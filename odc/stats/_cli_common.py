@@ -94,10 +94,26 @@ def click_yaml_cfg(*args, **kw):
     """
     def _parse(ctx, param, value):
         if value is not None:
-            try:
-                return parse_yaml_file_or_inline(value)
-            except Exception as e:
-                raise click.ClickException(str(e)) from None
+            from urllib.parse import urlparse
+            r = urlparse(value)
+
+            if all([r.scheme, r.netloc]):
+                import urllib
+                import fsspec
+                import yaml
+                try:
+                    with fsspec.open(value, mode="r") as f:
+                        return next(yaml.safe_load_all(f))
+                except urllib.error.URLError as e:
+                    raise click.ClickException(str(e) + f". Cannot access file {value}") from None 
+                except Exception as e:
+                    raise click.ClickException(str(e)) from None 
+            else:
+                from odc.io.text import parse_yaml_file_or_inline
+                try:
+                    return parse_yaml_file_or_inline(value)
+                except Exception as e:
+                    raise click.ClickException(str(e)) from None
     return click.option(*args, callback=_parse, **kw)
 
 
