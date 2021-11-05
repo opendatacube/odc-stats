@@ -1,0 +1,73 @@
+# Conda environment for running tests in odc-tools
+#   conda env create -f test-env-py38.yml
+#   conda activate odc-tests-py38
+
+name: odc-tests-py38
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+
+  # Datacube
+  - datacube>=1.8.6
+
+  # odc.{aws,aio}: aiobotocore/boto3
+  #  pin aiobotocore for easier resolution of dependencies
+  - aiobotocore==1.3.3
+  - boto3
+
+  # eodatasets3 (for odc-stats)
+  - boltons
+  - ciso8601
+  - python-rapidjson
+  - requests-cache==0.7.4  # 0.8.0 broke eodatasets3
+  - ruamel.yaml
+  - structlog
+  - url-normalize
+
+  # odc-stats
+  - pandas
+  - pystac>=1.1.0
+  - toolz
+  - tqdm
+  - xarray
+
+  # For tests
+  - pytest
+  - pytest-httpserver
+  - pytest-cov
+  - pytest-timeout
+  - moto
+  - mock
+  - deepdiff
+
+  # for pytest-depends
+  - future_fstrings
+  - networkx
+  - colorama
+
+  # for docs
+  - sphinx
+  - sphinx_rtd_theme
+  - sphinx-autodoc-typehints
+  - nbsphinx
+
+  - pip=20
+  - pip:
+      - odc-stac
+      - odc-algo
+      - odc-dscache
+      - odc-cloud[ASYNC]
+      - thredds-crawler
+
+      # odc.stats
+      - eodatasets3>=0.22.0
+
+      # odc.algo optional dependency
+      - hdstats
+
+      # tests
+      - pytest-depends
+
+      # for odc-stats
+      - datacube_ows==1.8.19

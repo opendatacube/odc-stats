@@ -9,6 +9,9 @@ dask-worker-space/
 # C extensions
 *.so
 
+# Editor swap files
+*.swp
+
 # Distribution / packaging
 .Python
 env/

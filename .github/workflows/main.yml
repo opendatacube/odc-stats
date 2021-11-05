@@ -7,7 +7,6 @@ on:
       - '**'
       - '!notebooks/**'
       - '!docs/**'
-      - '!old/**'
       - '!README.md'
 
 jobs:
@@ -41,7 +40,8 @@ jobs:
     - name: Build Clean Packages
       run: |
         mkdir -p ./wheels/clean
-        ./scripts/build-wheels.sh ./wheels/clean
+        python setup.py bdist_wheel --dist-dir ./wheels/clean/
+        python setup.py sdist --dist-dir ./wheels/clean/
         find ./wheels/clean -type f
 
     - name: Patch Package Versions
@@ -51,7 +51,8 @@ jobs:
     - name: Build Dev Packages
       run: |
         mkdir -p ./wheels/dev
-        ./scripts/build-wheels.sh ./wheels/dev
+        python setup.py bdist_wheel --dist-dir ./wheels/dev/
+        python setup.py sdist --dist-dir ./wheels/dev/
         find ./wheels/dev -type f
 
   build-test-env-base:
@@ -63,9 +64,7 @@ jobs:
     - uses: actions/cache@v2
       id: conda_cache
       with:
-        path: |
-          tests/env
-
+        path: /tmp/test_env
         key: ${{ runner.os }}-test-env-py38-${{ hashFiles('tests/test-env-py38.yml') }}
 
     - uses: conda-incubator/setup-miniconda@v2
@@ -92,7 +91,7 @@ jobs:
       shell: bash -l {0}
       if: steps.conda_cache.outputs.cache-hit != 'true'
       run: |
-        mamba env create -f tests/test-env-py38.yml -p tests/env
+        mamba env create -f tests/test-env-py38.yml -p /tmp/test_env
 
     - name: Check Python Env
       shell: bash -l {0}
@@ -114,25 +113,19 @@ jobs:
       uses: actions/cache@v2
       id: conda_cache
       with:
-        path: |
-          tests/env
+        path: /tmp/test_env
 
         key: ${{ runner.os }}-test-env-py38-${{ hashFiles('tests/test-env-py38.yml') }}
 
     - name: Update PATH
       shell: bash
       run: |
-        echo "$(pwd)/tests/env/bin" >> $GITHUB_PATH
+        echo "/tmp/test_env/bin" >> $GITHUB_PATH
 
     - name: Install in Edit mode
       shell: bash
       run: |
-        which python
-        which createdb
-        which datacube
-
-        ./scripts/dev-install.sh --no-deps
-
+        pip install -e . --no-deps
 
     - name: Start Test DB
       shell: bash
@@ -157,7 +150,7 @@ jobs:
         --cov-report=html \
         --cov-report=xml:coverage.xml \
         --timeout=30 \
-        libs apps
+        tests
 
       env:
         AWS_DEFAULT_REGION: us-west-2
@@ -166,7 +159,7 @@ jobs:
 
     - name: Upload Coverage
       if: |
-        github.repository == 'opendatacube/odc-tools'
+        github.repository == 'opendatacube/odc-stats'
 
       uses: codecov/codecov-action@v1
       with:
@@ -195,15 +188,13 @@ jobs:
       uses: actions/cache@v2
       id: conda_cache
       with:
-        path: |
-          tests/env
-
+        path: /tmp/test_env
         key: ${{ runner.os }}-test-env-py38-${{ hashFiles('tests/test-env-py38.yml') }}
 
     - name: Update PATH
       shell: bash
       run: |
-        echo "$(pwd)/tests/env/bin" >> $GITHUB_PATH
+        echo "/tmp/test_env/bin" >> $GITHUB_PATH
 
     - name: Install wheels for testing
       shell: bash
@@ -235,137 +226,10 @@ jobs:
         datacube system check
 
         echo "Running Tests"
-        pytest --timeout=30 libs apps
+        pytest --timeout=30 tests
 
       env:
         AWS_DEFAULT_REGION: us-west-2
         DASK_TEMPORARY_DIRECTORY: /tmp/dask
         DATACUBE_DB_URL: postgresql:///datacube
 
-  publish-s3:
-    if: |
-        github.event_name == 'push'
-        && github.repository == 'opendatacube/odc-tools'
-        && github.ref == 'refs/heads/develop'
-
-    needs:
-      - build-wheels
-      - test-wheels
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Config
-      id: cfg
-      if: |
-        github.ref == 'refs/heads/develop'
-        && github.event_name == 'push'
-        && github.repository == 'opendatacube/odc-tools'
-      run: |
-        echo "::set-output name=publish::yes"
-    - uses: actions/cache@v2
-      id: wheels_cache
-      if: steps.cfg.outputs.publish == 'yes'
-      with:
-        path: ./wheels
-        key: wheels-${{ github.sha }}
-
-    - name: Prepare for upload to S3
-      if: steps.cfg.outputs.publish == 'yes'
-      run: |
-        mkdir -p ./pips
-        ./scripts/mk-pip-tree.sh ./wheels/dev/ ./pips
-        find ./pips -type f
-    - name: Upload to S3
-      if: steps.cfg.outputs.publish == 'yes'
-      run: |
-        echo "Using Keys: ...${AWS_ACCESS_KEY_ID:(-4)}/...${AWS_SECRET_ACCESS_KEY:(-4)}"
-        aws s3 ls "${S3_DST}"
-        aws s3 sync ./pips/ "${S3_DST}"
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: 'ap-southeast-2'
-        AWS_REGION: 'ap-southeast-2'
-        S3_DST: 's3://datacube-core-deployment/'
-
-
-  publish-pypi:
-    if: |
-        github.event_name == 'push'
-        && github.repository == 'opendatacube/odc-tools'
-        && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/pypi/publish')
-
-    strategy:
-      matrix:
-        pkg:
-        - odc-algo
-        - odc-cloud
-        - odc-io
-        - odc-stats
-        - odc-ui
-        - odc-apps-cloud
-        - odc-apps-dc-tools
-
-    needs:
-      - build-wheels
-      - test-wheels
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Config
-      if: |
-        github.event_name == 'push'
-        && github.repository == 'opendatacube/odc-tools'
-        && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/pypi/publish')
-      id: cfg
-      env:
-        PKG: ${{ matrix.pkg }}
-      run: |
-        tk="pypi_token_${PKG//-/_}"
-        echo "::set-output name=tk::${tk}"
-        echo "::set-output name=publish::yes"
-
-    - name: Setup Python
-      if: steps.cfg.outputs.publish == 'yes'
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.8
-
-    - name: Install Twine
-      if: steps.cfg.outputs.publish == 'yes'
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install --upgrade setuptools
-        python -m pip install --upgrade \
-         toml \
-         wheel \
-         twine
-        python -m pip freeze
-    - uses: actions/cache@v2
-      id: wheels_cache
-      if: steps.cfg.outputs.publish == 'yes'
-      with:
-        path: ./wheels
-        key: wheels-${{ github.sha }}
-
-    - name: Prepare for upload
-      if: steps.cfg.outputs.publish == 'yes'
-      run: |
-        mkdir -p ./pips
-        ./scripts/mk-pip-tree.sh ./wheels/clean ./pips
-        find ./pips -type f
-    - name: Upload to PyPI
-      if: steps.cfg.outputs.publish == 'yes'
-      env:
-        TWINE_PASSWORD: ${{ secrets[ steps.cfg.outputs.tk ] }}
-        TWINE_USERNAME: __token__
-        PKG: ${{ matrix.pkg }}
-
-      run: |
-        ls pips/${PKG}
-        twine upload --non-interactive --skip-existing pips/${PKG}/*
