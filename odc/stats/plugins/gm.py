@@ -81,7 +81,7 @@ class StatsGM(StatsPluginInterface):
             geobox,
             categories=self.cloud_classes,
             filters=self.filters,
-            groupby=self.groupby,
+            groupby=self.group_by,
             resampling=self.resampling,
             chunks={},
         )
