@@ -1,13 +1,17 @@
 name: Publish to PyPI
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Run Code Checks"]
+    branches: [develop]
+    types:
+      - completed
 
 jobs:
   publish-pypi:
     if: |
         github.repository == 'opendatacube/odc-stats'
-        && (github.ref == 'refs/heads/stable' || github.ref == 'refs/heads/pypi/publish')
+        && github.event.workflow_run.conclusion == 'success'
 
     runs-on: ubuntu-latest
 
