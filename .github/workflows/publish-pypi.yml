@@ -1,11 +1,7 @@
 name: Publish to PyPI
 
 on:
-  workflow_run:
-    workflows: ["Run Code Checks"]
-    branches: [pypi/publish]
-    types:
-      - completed
+  push:
 
 jobs:
   publish-pypi:
