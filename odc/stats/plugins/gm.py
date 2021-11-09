@@ -85,7 +85,7 @@ class StatsGM(StatsPluginInterface):
             resampling=self.resampling,
             chunks={},
         )
-        xx = super.input_data(datasets, geobox)
+        xx = super().input_data(datasets, geobox)
         xx = erase_bad(xx, erased)
         return xx
 
