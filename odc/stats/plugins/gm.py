@@ -1,7 +1,7 @@
 """
 Geomedian
 """
-from typing import Optional, Sequence, Tuple, Iterable
+from typing import Optional, Mapping, Sequence, Tuple, Iterable
 import xarray as xr
 from datacube.model import Dataset
 from datacube.utils.geometry import GeoBox
@@ -30,6 +30,8 @@ class StatsGM(StatsPluginInterface):
     ):
         self.bands = tuple(bands)
         self._mask_band = mask_band
+        if nodata_classes is not None:
+            nodata_classes = tuple(nodata_classes)
         self._nodata_classes = nodata_classes
         input_bands = self.bands
         if self._nodata_classes is not None:
@@ -41,11 +43,12 @@ class StatsGM(StatsPluginInterface):
             basis=basis_band or self.bands[0],
             **kwargs)
 
-        if nodata_classes is not None:
-            nodata_classes = tuple(nodata_classes)
-
         self.cloud_classes = tuple(cloud_classes)
+        # if filters:
+        #     self.filters: Optional[Mapping] = dict(filters)
         self.filters = filters
+        # else:
+        #     self.filters = None
 
         self._renames = aux_names
         self.aux_bands = tuple(
