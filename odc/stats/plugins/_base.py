@@ -6,7 +6,7 @@ from datacube.model import Dataset
 from datacube.utils.geometry import GeoBox
 from odc.algo import to_rgba
 from odc.algo.io import load_with_native_transform
-from odc.algo.masking import _nodata_fuser
+from odc.algo._masking import _nodata_fuser
 
 
 class StatsPluginInterface(ABC):
