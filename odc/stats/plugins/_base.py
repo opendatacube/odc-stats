@@ -6,6 +6,7 @@ from datacube.model import Dataset
 from datacube.utils.geometry import GeoBox
 from odc.algo import to_rgba
 from odc.algo.io import load_with_native_transform
+from odc.algo.masking import _nodata_fuser
 
 
 class StatsPluginInterface(ABC):
@@ -40,7 +41,7 @@ class StatsPluginInterface(ABC):
         return xx
 
     def fuser(self, xx: xr.Dataset) -> xr.Dataset:
-        return xx
+        return _nodata_fuser(xx)
 
     def input_data(self, datasets: Sequence[Dataset], geobox: GeoBox) -> xr.Dataset:
         xx = load_with_native_transform(
