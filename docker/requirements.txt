@@ -25,16 +25,19 @@ datacube[dev]==1.8.6
 
 # need to constrain this one for pip-sake
 # Fixing this allows pip resolution without constraints.txt
-aiobotocore[boto3,awscli]==1.4.2
+aiobotocore[boto3,awscli]==2.0.0
 
 # Make sure dask has all the features enabled
 dask[complete]
 
-eodatasets3
+eodatasets3>=0.22.0
 
-# not needed for python 3.8 and up, and are not installed,
-# but `pip check` doesn't know better
-dataclasses
+# hdstats for open source version:
+hdstats>=0.1.8
+
+# hdstats for faster binary-only version:
+# --extra-index-url https://packages.dea.ga.gov.au/
+# hdstats==0.1.8.post1
 
 # other top level dependencies of odc. libraries/apps
 affine
@@ -45,7 +48,6 @@ dask_image
 deepdiff
 fsspec
 google-cloud-storage
-hdstats>=0.1.7.post5
 ipyleaflet
 ipywidgets
 jinja2
@@ -69,3 +71,5 @@ toolz
 tqdm
 xarray
 zstandard
+
+
