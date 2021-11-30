@@ -11,6 +11,7 @@ import os
 from tqdm.auto import tqdm
 from urllib.parse import urlparse
 import logging
+import ciso8601
 
 from odc.dscache import DatasetCache
 from datacube import Datacube
@@ -580,7 +581,7 @@ class DatasetChecker:
     @staticmethod
     def check_dt(ds_filter, datetime_str):
         time_range = DateTimeRange(ds_filter["datetime"])
-        dt = datetime.strptime(datetime_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+        dt = ciso8601.parse_datetime_as_naive(datetime_str)
         return dt in time_range
 
     def check_ds_1(self, ds_filter, ds):
