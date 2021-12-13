@@ -54,9 +54,8 @@ dependencies:
 
   - pip=20
   - pip:
-      - odc-stac
       - odc-algo
-      - odc-dscache
+      - odc-dscache>=0.2.2
       - odc-cloud[ASYNC]
       - thredds-crawler
 

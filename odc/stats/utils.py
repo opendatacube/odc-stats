@@ -2,8 +2,7 @@ import toolz
 from typing import Dict, Tuple, List, Any, Callable, Optional
 from collections import namedtuple
 from datetime import datetime
-from .model import DateTimeRange
-from odc.index import odc_uuid
+from .model import DateTimeRange, odc_uuid
 from datacube.storage import measurement_paths
 from datacube.model import Dataset, DatasetType
 from datacube.index.eo3 import prep_eo3
