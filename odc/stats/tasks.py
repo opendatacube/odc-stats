@@ -19,7 +19,7 @@ from datacube.utils.geometry import Geometry
 from datacube.utils.documents import transform_object_tree
 from datacube.utils.dates import normalise_dt
 
-from odc.index import chopped_dss, bin_dataset_stream, dataset_count, all_datasets
+from odc.dscache.tools import chopped_dss, bin_dataset_stream, dataset_count, all_datasets
 from odc.dscache.tools.tiling import parse_gridspec_with_name
 from odc.dscache.tools.profiling import ds_stream_test_func
 from ._text import split_and_check

@@ -4,7 +4,7 @@ import click
 import sys
 from ._cli_common import main, click_range2d
 from .utils import fuse_products, fuse_ds
-from odc.index import ordered_dss, dataset_count
+from odc.dscache.tools import ordered_dss, dataset_count
 from itertools import groupby
 
 

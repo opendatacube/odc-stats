@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from datacube.model import GridSpec
 from datacube.utils.geometry import polygon_from_transform, Geometry
-from odc.index import solar_offset
+from odc.dscache.tools import solar_offset
 from .model import TileIdx_xy, TileIdx_txy
 
 
@@ -39,7 +39,7 @@ def compute_grid_info(
 ) -> Dict[TileIdx_xy, Any]:
     """
     Compute geojson feature for every cell in ``cells``.
-    Where ``cells`` is produced by ``odc.index.bin_dataset_stream``
+    Where ``cells`` is produced by ``bin_dataset_stream``
     """
     if title_width == 0:
         nmax = max([max(abs(ix), abs(iy)) for ix, iy in cells])
