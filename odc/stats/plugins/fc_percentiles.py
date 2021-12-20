@@ -15,23 +15,23 @@ NODATA = 255
 
 
 class StatsFCP(StatsPluginInterface):
-
+    
     NAME = "ga_fc_percentiles"
     SHORT_NAME = NAME
-    VERSION = "0.0.2"
+    VERSION = "0.0.1"
     PRODUCT_FAMILY = "fc_percentiles"
 
-    def __init__(self, **kwargs):
-        super().__init__(input_bands=["water", "pv", "bs", "npv", "ue"], **kwargs)
+    def __init__(
+        self,
+        **kwargs
+    ):
+        super().__init__(input_bands=["water", "pv", "bs", "npv"], **kwargs)
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        _measurements = [
-            f"{b}_pc_{p}" for b, p in product(["pv", "bs", "npv"], ["10", "50", "90"])
-        ]
-        _measurements.append("qa")
-        _measurements.append("count_valid")
-        return _measurements
+        _measurments = [f"{b}_pc_{p}" for b, p in product(["pv", "bs", "npv"], ["10", "50", "90"])]
+        _measurments.append("qa")
+        return _measurments
 
     def native_transform(self, xx):
         """
@@ -43,24 +43,17 @@ class StatsFCP(StatsPluginInterface):
         4. Calculate the clear wet pixels
         5. Drop the WOfS band
         """
-
+        
         water = xx.water & 0b1110_1111
-        xx = xx.drop_vars(["water"])
-
-        unmixing_error_lt_30 = xx.ue < 30
-        xx = xx.drop_vars(["ue"])
-
         dry = water == 0
-        dry_and_ue_lt_30 = dry & unmixing_error_lt_30
-
-        xx = keep_good_only(xx, dry_and_ue_lt_30, nodata=NODATA)
+        xx = xx.drop_vars(["water"])
+        xx = keep_good_only(xx, dry, nodata=NODATA)
         xx["wet"] = water == 128
-
         return xx
 
     def fuser(self, xx):
         wet = xx["wet"]
-        xx = _xr_fuse(xx.drop_vars(["wet"]), partial(_fuse_mean_np, nodata=NODATA), "")
+        xx = _xr_fuse(xx.drop_vars(["wet"]), partial(_fuse_mean_np, nodata=NODATA), '')
 
         band, *bands = xx.data_vars.keys()
         all_bands_invalid = xx[band] == NODATA
@@ -69,11 +62,11 @@ class StatsFCP(StatsPluginInterface):
 
         xx["wet"] = _xr_fuse(wet, _fuse_or_np, wet.name) & all_bands_invalid
         return xx
-
+    
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         # (!all_bands_valid) & is_ever_wet => 0
         # (!all_bands_valid) & (!is_ever_wet) => 1
-        # all_bands_valid => 2
+        # all_bands_valid => 2  
 
         wet = xx["wet"]
         xx = xx.drop_vars(["wet"])
@@ -89,8 +82,6 @@ class StatsFCP(StatsPluginInterface):
         all_bands_valid = all_bands_valid.astype(np.uint8)
         is_ever_wet = is_ever_wet.astype(np.uint8)
         yy["qa"] = 1 + all_bands_valid - is_ever_wet * (1 - all_bands_valid)
-        yy["count_valid"] = all_bands_valid
-
         return yy
 
 
