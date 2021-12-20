@@ -76,6 +76,7 @@ def test_native_transform(dataset, bits):
         ]
     )
     result = xx.compute()["band_1"].data
+    print(result)
     assert (result == expected_result).all()
 
     expected_result = np.array(
@@ -99,12 +100,15 @@ def test_fusing(dataset):
     )
     result = xx.compute()["band_1"].data
 
+    print(result)
+
     assert (result == expected_result).all()
 
     expected_result = np.array(
         [[False, False], [True, False]],
     )
     result = xx.compute()["wet"].data
+    print(result)
     assert (result == expected_result).all()
 
 
@@ -124,12 +128,24 @@ def test_reduce(dataset):
     result = xx.compute()["qa"].data
     assert (result == expected_result).all()
 
+    # Check count
+    # 3 valid, 2 valid (1 wet), 0 valid (3 wet), 2 valid (1 UE > 30)
+    expected_result = np.array(
+        [[3, 2], [0, 2]], dtype="int16"
+    )
+    result = xx.compute()["count_valid"].data
+    print(result)
+    assert (result == expected_result).all()
+
     assert set(xx.data_vars.keys()) == set(
         ["band_1_pc_10", "band_1_pc_50", "band_1_pc_90", "qa", "count_valid"]
     )
 
     for band_name in xx.data_vars.keys():
-        assert xx.data_vars[band_name].dtype == np.uint8
+        if band_name not in ["count_valid"]:
+            assert xx.data_vars[band_name].dtype == np.uint8
+        else:
+            assert xx.data_vars[band_name].dtype == np.int16
 
         if band_name not in ["qa", "count_valid"]:
             assert xx[band_name].attrs["test_attr"] == 57

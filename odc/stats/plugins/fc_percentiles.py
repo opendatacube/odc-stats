@@ -55,12 +55,15 @@ class StatsFCP(StatsPluginInterface):
 
         xx = keep_good_only(xx, dry_and_ue_lt_30, nodata=NODATA)
         xx["wet"] = water == 128
+        xx["dry_and_ue_lt_30"] = dry_and_ue_lt_30
 
         return xx
 
     def fuser(self, xx):
         wet = xx["wet"]
-        xx = _xr_fuse(xx.drop_vars(["wet"]), partial(_fuse_mean_np, nodata=NODATA), "")
+        dry_and_ue_lt_30 = xx["dry_and_ue_lt_30"]
+
+        xx = _xr_fuse(xx.drop_vars(["wet", "dry_and_ue_lt_30"]), partial(_fuse_mean_np, nodata=NODATA), "")
 
         band, *bands = xx.data_vars.keys()
         all_bands_invalid = xx[band] == NODATA
@@ -68,6 +71,8 @@ class StatsFCP(StatsPluginInterface):
             all_bands_invalid &= xx[band] == NODATA
 
         xx["wet"] = _xr_fuse(wet, _fuse_or_np, wet.name) & all_bands_invalid
+        xx["dry_and_ue_lt_30"] = _xr_fuse(dry_and_ue_lt_30, _fuse_or_np, dry_and_ue_lt_30.name) & all_bands_invalid
+
         return xx
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
@@ -76,7 +81,8 @@ class StatsFCP(StatsPluginInterface):
         # all_bands_valid => 2
 
         wet = xx["wet"]
-        xx = xx.drop_vars(["wet"])
+        dry_and_ue_lt_30 = xx["dry_and_ue_lt_30"]
+        xx = xx.drop_vars(["wet", "dry_and_ue_lt_30"])
 
         yy = xr_quantile_bands(xx, [0.1, 0.5, 0.9], nodata=NODATA)
         is_ever_wet = _or_fuser(wet).squeeze(wet.dims[0], drop=True)
@@ -89,8 +95,8 @@ class StatsFCP(StatsPluginInterface):
         all_bands_valid = all_bands_valid.astype(np.uint8)
         is_ever_wet = is_ever_wet.astype(np.uint8)
         yy["qa"] = 1 + all_bands_valid - is_ever_wet * (1 - all_bands_valid)
-        yy["count_valid"] = all_bands_valid
 
+        yy["count_valid"] = dry_and_ue_lt_30.sum(axis=0, dtype="int16")
         return yy
 
 
