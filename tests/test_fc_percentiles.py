@@ -13,7 +13,7 @@ def dataset():
         [
             [[255, 57], [20, 50]],
             [[30, 40], [70, 80]],
-            [[25, 52], [73, 98]],
+            [[127, 52], [73, 98]],
         ]
     ).astype(np.uint8)
 
@@ -72,7 +72,7 @@ def test_native_transform(dataset, bits):
         [
             [[255, 255], [255, 50]],
             [[30, 40], [255, 80]],
-            [[25, 52], [255, 255]],
+            [[255, 52], [255, 255]],
         ]
     )
     result = xx.compute()["band_1"].data
@@ -96,7 +96,7 @@ def test_fusing(dataset):
     assert xx["band_1"].attrs["test_attr"] == 57
 
     expected_result = np.array(
-        [[28, 46], [255, 65]],
+        [[30, 46], [255, 65]],
     )
     result = xx.compute()["band_1"].data
 
@@ -129,9 +129,9 @@ def test_reduce(dataset):
     assert (result == expected_result).all()
 
     # Check count
-    # 3 valid, 2 valid (1 wet), 0 valid (3 wet), 2 valid (1 UE > 30)
+    # 2 valid (1 value > 120), 2 valid (1 wet), 0 valid (3 wet), 2 valid (1 UE > 30)
     expected_result = np.array(
-        [[3, 2], [0, 2]], dtype="int16"
+        [[2, 2], [0, 2]], dtype="int16"
     )
     result = xx.compute()["count_valid"].data
     print(result)

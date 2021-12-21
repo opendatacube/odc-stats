@@ -50,20 +50,31 @@ class StatsFCP(StatsPluginInterface):
         unmixing_error_lt_30 = xx.ue < 30
         xx = xx.drop_vars(["ue"])
 
-        dry = water == 0
-        dry_and_ue_lt_30 = dry & unmixing_error_lt_30
+        # Sum the bands and set any with over 120 to NODATA
+        sum_bands = None
+        for band in xx.data_vars.keys():
+            band_data = keep_good_only(xx[band], xx[band] != NODATA, nodata=0)
+            if sum_bands is None:
+                sum_bands = band_data
+            else:
+                sum_bands += band_data
+        sum_lt_120 = sum_bands < 120
 
-        xx = keep_good_only(xx, dry_and_ue_lt_30, nodata=NODATA)
+        dry = water == 0
+        valid = dry & unmixing_error_lt_30 & sum_lt_120
+
+        xx = keep_good_only(xx, valid, nodata=NODATA)
+
         xx["wet"] = water == 128
-        xx["dry_and_ue_lt_30"] = dry_and_ue_lt_30
+        xx["valid"] = valid
 
         return xx
 
     def fuser(self, xx):
         wet = xx["wet"]
-        dry_and_ue_lt_30 = xx["dry_and_ue_lt_30"]
+        valid = xx["valid"]
 
-        xx = _xr_fuse(xx.drop_vars(["wet", "dry_and_ue_lt_30"]), partial(_fuse_mean_np, nodata=NODATA), "")
+        xx = _xr_fuse(xx.drop_vars(["wet", "valid"]), partial(_fuse_mean_np, nodata=NODATA), "")
 
         band, *bands = xx.data_vars.keys()
         all_bands_invalid = xx[band] == NODATA
@@ -71,7 +82,7 @@ class StatsFCP(StatsPluginInterface):
             all_bands_invalid &= xx[band] == NODATA
 
         xx["wet"] = _xr_fuse(wet, _fuse_or_np, wet.name) & all_bands_invalid
-        xx["dry_and_ue_lt_30"] = _xr_fuse(dry_and_ue_lt_30, _fuse_or_np, dry_and_ue_lt_30.name) & all_bands_invalid
+        xx["valid"] = _xr_fuse(valid, _fuse_or_np, valid.name) & all_bands_invalid
 
         return xx
 
@@ -81,8 +92,8 @@ class StatsFCP(StatsPluginInterface):
         # all_bands_valid => 2
 
         wet = xx["wet"]
-        dry_and_ue_lt_30 = xx["dry_and_ue_lt_30"]
-        xx = xx.drop_vars(["wet", "dry_and_ue_lt_30"])
+        valid = xx["valid"]
+        xx = xx.drop_vars(["wet", "valid"])
 
         yy = xr_quantile_bands(xx, [0.1, 0.5, 0.9], nodata=NODATA)
         is_ever_wet = _or_fuser(wet).squeeze(wet.dims[0], drop=True)
@@ -96,7 +107,7 @@ class StatsFCP(StatsPluginInterface):
         is_ever_wet = is_ever_wet.astype(np.uint8)
         yy["qa"] = 1 + all_bands_valid - is_ever_wet * (1 - all_bands_valid)
 
-        yy["count_valid"] = dry_and_ue_lt_30.sum(axis=0, dtype="int16")
+        yy["count_valid"] = valid.sum(axis=0, dtype="int16")
         return yy
 
 
