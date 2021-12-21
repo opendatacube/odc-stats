@@ -11,35 +11,36 @@ import pandas as pd
 def dataset():
     band_1 = np.array(
         [
-            [[255, 57], [20, 50]],
-            [[30, 40], [70, 80]],
-            [[127, 52], [73, 98]],
+            [[255, 57], [20, 50], [10, 20]],
+            [[30, 40], [70, 80], [20, 30]],
+            [[127, 52], [73, 98], [30, 40]],
         ]
     ).astype(np.uint8)
 
     band_2 = np.array(
         [
-            [[0, 128], [128, 0]],
-            [[0, 0], [128, 0]],
-            [[0, 0], [0b0110_1110, 0]],
+            [[0, 128], [128, 0], [0, 0]],
+            [[0, 0], [128, 0], [0, 0]],
+            [[0, 0], [0b0110_1110, 0], [0, 0]],
         ]
     ).astype(np.uint8)
 
     band_3 = np.array(
         [
-            [[0, 0], [0, 0]],
-            [[0, 5], [0, 0]],
-            [[0, 0], [0, 45]],
+            [[0, 0], [0, 0], [0, 0]],
+            [[0, 5], [0, 0], [0, 0]],
+            [[0, 0], [0, 45], [0, 0]],
         ]
     ).astype(np.uint8)
 
     band_1 = da.from_array(band_1, chunks=(3, -1, -1))
-    band_2 = da.from_array(band_2, chunks=(3, -1, 20))
-    band_3 = da.from_array(band_3, chunks=(3, -1, 20))
+    band_2 = da.from_array(band_2, chunks=(3, -1, -1))
+    band_3 = da.from_array(band_3, chunks=(3, -1, -1))
 
     tuples = [
-        (np.datetime64(f"2000-01-01T0{i}"), np.datetime64("2000-01-01"))
-        for i in range(3)
+        (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
+        (np.datetime64("2000-01-01T01"), np.datetime64("2000-01-01")),
+        (np.datetime64("2000-01-02T12"), np.datetime64("2000-01-02")),
     ]
     index = pd.MultiIndex.from_tuples(tuples, names=["time", "solar_day"])
     coords = {
@@ -52,8 +53,8 @@ def dataset():
         "band_1": xr.DataArray(
             band_1, dims=("spec", "y", "x"), attrs={"test_attr": 57}
         ),
-        "ue": xr.DataArray(band_3, dims=("spec", "y", "x")),
         "water": (("spec", "y", "x"), band_2),
+        "ue": xr.DataArray(band_3, dims=("spec", "y", "x")),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
 
@@ -70,9 +71,9 @@ def test_native_transform(dataset, bits):
 
     expected_result = np.array(
         [
-            [[255, 255], [255, 50]],
-            [[30, 40], [255, 80]],
-            [[255, 52], [255, 255]],
+            [[255, 255], [255, 50], [10, 20]],
+            [[30, 40], [255, 80], [20, 30]],
+            [[255, 52], [255, 255], [30, 40]],
         ]
     )
     result = xx.compute()["band_1"].data
@@ -81,12 +82,13 @@ def test_native_transform(dataset, bits):
 
     expected_result = np.array(
         [
-            [[False, True], [True, False]],
-            [[False, False], [True, False]],
-            [[False, False], [False, False]],
+            [[False, True], [True, False], [False, False]],
+            [[False, False], [True, False], [False, False]],
+            [[False, False], [False, False], [False, False]],
         ]
     )
     result = xx.compute()["wet"].data
+    print(result)
     assert (result == expected_result).all()
 
 
@@ -96,7 +98,10 @@ def test_fusing(dataset):
     assert xx["band_1"].attrs["test_attr"] == 57
 
     expected_result = np.array(
-        [[30, 46], [255, 65]],
+        [
+            [[30, 40], [255, 65], [15, 25]],
+            [[255, 52], [255, 255], [30, 40]],
+        ]
     )
     result = xx.compute()["band_1"].data
 
@@ -105,7 +110,10 @@ def test_fusing(dataset):
     assert (result == expected_result).all()
 
     expected_result = np.array(
-        [[False, False], [True, False]],
+        [
+            [[False, True], [True, False], [False, False]],
+            [[False, False], [False, False], [False, False]],
+        ]
     )
     result = xx.compute()["wet"].data
     print(result)
@@ -115,6 +123,7 @@ def test_fusing(dataset):
 def test_reduce(dataset):
     fcp = StatsFCP()
     xx = fcp.native_transform(dataset)
+    xx = xx.groupby("solar_day").map(partial(StatsFCP.fuser, None))
     xx = fcp.reduce(xx)
 
     result = xx.compute()["band_1_pc_10"].data
@@ -123,16 +132,20 @@ def test_reduce(dataset):
     assert (result[1, 1] == 255).all()
 
     expected_result = np.array(
-        [[1, 0], [0, 1]],
+        [[1, 0], [0, 1], [1, 1]],
     )
     result = xx.compute()["qa"].data
+    print(result)
     assert (result == expected_result).all()
 
     # Check count
     # 2 valid (1 value > 120), 2 valid (1 wet), 0 valid (3 wet), 2 valid (1 UE > 30)
     expected_result = np.array(
-        [[2, 2], [0, 2]], dtype="int16"
+        [
+            [[1, 2], [0, 1], [2, 2]]
+        ]
     )
+
     result = xx.compute()["count_valid"].data
     print(result)
     assert (result == expected_result).all()

@@ -64,14 +64,15 @@ class StatsFCP(StatsPluginInterface):
             if sum_bands is None:
                 sum_bands = band_data
             else:
-                sum_bands += band_data
+                sum_bands = sum_bands + band_data
 
-            # Clip to 0-100
+            # Note: clipping to 0-100
             clipped = np.clip(xx[band], 0, 100)
             # Set masked values back to 255
             xx[band] = clipped.where(~mask, NODATA)
             xx[band].attrs = attributes
 
+        # Note: hard limit of 120 for the sum of values.
         sum_lt_120 = sum_bands < 120
 
         valid = dry & unmixing_error_lt_30 & sum_lt_120
@@ -89,13 +90,15 @@ class StatsFCP(StatsPluginInterface):
 
         xx = _xr_fuse(xx.drop_vars(["wet", "valid"]), partial(_fuse_mean_np, nodata=NODATA), "")
 
-        band, *bands = xx.data_vars.keys()
-        all_bands_invalid = xx[band] == NODATA
-        for band in bands:
-            all_bands_invalid &= xx[band] == NODATA
+        # Not sure why we're doing this... alex leith, 2021-12
+        # band, *bands = xx.data_vars.keys()
+        # all_bands_nodata = xx[band] == NODATA
+        # for band in bands:
+        #     all_bands_nodata &= xx[band] == NODATA
 
-        xx["wet"] = _xr_fuse(wet, _fuse_or_np, wet.name) & all_bands_invalid
-        xx["valid"] = _xr_fuse(valid, _fuse_or_np, valid.name) & all_bands_invalid
+        # This used to have "& all_bands_nodata"
+        xx["wet"] = _xr_fuse(wet, _fuse_or_np, wet.name)
+        xx["valid"] = _xr_fuse(valid, _fuse_or_np, valid.name)
 
         return xx
 
@@ -121,6 +124,7 @@ class StatsFCP(StatsPluginInterface):
         yy["qa"] = 1 + all_bands_valid - is_ever_wet * (1 - all_bands_valid)
 
         yy["count_valid"] = valid.sum(axis=0, dtype="int16")
+
         return yy
 
 
