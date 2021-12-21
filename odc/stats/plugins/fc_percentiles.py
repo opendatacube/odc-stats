@@ -47,20 +47,33 @@ class StatsFCP(StatsPluginInterface):
         water = xx.water & 0b1110_1111
         xx = xx.drop_vars(["water"])
 
+        # Pick out the dry pixels
+        dry = water == 0
+
+        # Pick out the pixels that have an unmixing error of less than 30
         unmixing_error_lt_30 = xx.ue < 30
         xx = xx.drop_vars(["ue"])
 
-        # Sum the bands and set any with over 120 to NODATA
+        # Sum the bands and pick out only pixels that sum to less than 120
+        # Also clips to 0-100
         sum_bands = None
         for band in xx.data_vars.keys():
-            band_data = keep_good_only(xx[band], xx[band] != NODATA, nodata=0)
+            attributes = xx[band].attrs
+            mask = xx[band] == NODATA
+            band_data = keep_good_only(xx[band], ~mask, nodata=0)
             if sum_bands is None:
                 sum_bands = band_data
             else:
                 sum_bands += band_data
+
+            # Clip to 0-100
+            clipped = np.clip(xx[band], 0, 100)
+            # Set masked values back to 255
+            xx[band] = clipped.where(~mask, NODATA)
+            xx[band].attrs = attributes
+
         sum_lt_120 = sum_bands < 120
 
-        dry = water == 0
         valid = dry & unmixing_error_lt_30 & sum_lt_120
 
         xx = keep_good_only(xx, valid, nodata=NODATA)
