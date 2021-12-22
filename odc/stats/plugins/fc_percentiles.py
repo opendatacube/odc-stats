@@ -2,10 +2,10 @@
 Fractional Cover Percentiles
 """
 from functools import partial
-from typing import Tuple
 from itertools import product
 import xarray as xr
 import numpy as np
+from typing import Optional, Tuple
 from odc.algo import keep_good_only
 from odc.algo._percentile import xr_quantile_bands
 from odc.algo._masking import _xr_fuse, _or_fuser, _fuse_mean_np, _fuse_or_np
@@ -21,8 +21,18 @@ class StatsFCP(StatsPluginInterface):
     VERSION = "0.0.2"
     PRODUCT_FAMILY = "fc_percentiles"
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        max_sum_limit: Optional[int] = None,
+        clip_range: Optional[Tuple] = None,
+        ue_threshold: Optional[int] = None,
+        **kwargs
+    ):
         super().__init__(input_bands=["water", "pv", "bs", "npv", "ue"], **kwargs)
+
+        self.max_sum_limit = max_sum_limit
+        self.clip_range = clip_range
+        self.ue_threshold = ue_threshold
 
     @property
     def measurements(self) -> Tuple[str, ...]:
@@ -50,32 +60,41 @@ class StatsFCP(StatsPluginInterface):
         # Pick out the dry pixels
         dry = water == 0
 
-        # Pick out the pixels that have an unmixing error of less than 30
-        unmixing_error_lt_30 = xx.ue < 30
+        # Incrementally add to the valid band
+        valid = dry
+
+        # Pick out the pixels that have an unmixing error of less than the threshold
+        if self.ue_threshold is not None:
+            # No QA
+            unmixing_error_lt_30 = xx.ue < self.ue_threshold
+            valid = valid & unmixing_error_lt_30
         xx = xx.drop_vars(["ue"])
 
-        # Sum the bands and pick out only pixels that sum to less than 120
-        # Also clips to 0-100
-        sum_bands = None
-        for band in xx.data_vars.keys():
-            attributes = xx[band].attrs
-            mask = xx[band] == NODATA
-            band_data = keep_good_only(xx[band], ~mask, nodata=0)
-            if sum_bands is None:
-                sum_bands = band_data
-            else:
-                sum_bands = sum_bands + band_data
+        # If there's a sum limit or clip range, implement these
+        if self.max_sum_limit is not None or self.clip_range is not None:
+            sum_bands = None
+            for band in xx.data_vars.keys():
+                attributes = xx[band].attrs
+                mask = xx[band] == NODATA
+                band_data = keep_good_only(xx[band], ~mask, nodata=0)
 
-            # Note: clipping to 0-100
-            clipped = np.clip(xx[band], 0, 100)
-            # Set masked values back to 255
-            xx[band] = clipped.where(~mask, NODATA)
-            xx[band].attrs = attributes
+                if self.max_sum_limit is not None:
+                    if sum_bands is None:
+                        sum_bands = band_data
+                    else:
+                        sum_bands = sum_bands + band_data
 
-        # Note: hard limit of 120 for the sum of values.
-        sum_lt_120 = sum_bands < 120
+                if self.clip_range is not None:
+                    # No QA
+                    limit_min, limit_max = self.clip_range
+                    clipped = np.clip(xx[band], limit_min, limit_max)
+                    # Set masked values back to NODATA
+                    xx[band] = clipped.where(~mask, NODATA)
+                    xx[band].attrs = attributes
 
-        valid = dry & unmixing_error_lt_30 & sum_lt_120
+            if self.max_sum_limit is not None:
+                sum_lt_limit = sum_bands < self.max_sum_limit
+                valid = valid & sum_lt_limit
 
         xx = keep_good_only(xx, valid, nodata=NODATA)
 
@@ -90,13 +109,6 @@ class StatsFCP(StatsPluginInterface):
 
         xx = _xr_fuse(xx.drop_vars(["wet", "valid"]), partial(_fuse_mean_np, nodata=NODATA), "")
 
-        # Not sure why we're doing this... alex leith, 2021-12
-        # band, *bands = xx.data_vars.keys()
-        # all_bands_nodata = xx[band] == NODATA
-        # for band in bands:
-        #     all_bands_nodata &= xx[band] == NODATA
-
-        # This used to have "& all_bands_nodata"
         xx["wet"] = _xr_fuse(wet, _fuse_or_np, wet.name)
         xx["valid"] = _xr_fuse(valid, _fuse_or_np, valid.name)
 
