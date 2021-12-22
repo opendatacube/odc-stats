@@ -3,12 +3,14 @@ Fractional Cover Percentiles
 """
 from functools import partial
 from itertools import product
-import xarray as xr
-import numpy as np
 from typing import Optional, Tuple
+
+import numpy as np
+import xarray as xr
 from odc.algo import keep_good_only
+from odc.algo._masking import _fuse_mean_np, _fuse_or_np, _or_fuser, _xr_fuse
 from odc.algo._percentile import xr_quantile_bands
-from odc.algo._masking import _xr_fuse, _or_fuser, _fuse_mean_np, _fuse_or_np
+
 from ._registry import StatsPluginInterface, register
 
 NODATA = 255
