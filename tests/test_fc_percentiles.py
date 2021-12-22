@@ -66,17 +66,18 @@ def test_native_transform(dataset, bits):
 
     xx = dataset.copy()
     xx["water"] = da.bitwise_or(xx["water"], bits)
-    xx = StatsFCP.native_transform(None, xx)
-    assert xx["band_1"].attrs["test_attr"] == 57
+    stats_fcp = StatsFCP()
+    out_xx = stats_fcp.native_transform(xx)
+    assert out_xx["band_1"].attrs["test_attr"] == 57
 
     expected_result = np.array(
         [
             [[255, 255], [255, 50], [10, 20]],
             [[30, 40], [255, 80], [20, 30]],
-            [[255, 52], [255, 255], [30, 40]],
+            [[127, 52], [255, 98], [30, 40]],
         ]
     )
-    result = xx.compute()["band_1"].data
+    result = out_xx.compute()["band_1"].data
     print(result)
     assert (result == expected_result).all()
 
@@ -87,20 +88,36 @@ def test_native_transform(dataset, bits):
             [[False, False], [False, False], [False, False]],
         ]
     )
-    result = xx.compute()["wet"].data
+    result = out_xx.compute()["wet"].data
+    print(result)
+    assert (result == expected_result).all()
+
+    # Test native transform with UE filter and sum 120 limit
+    stats_fcp_ue30_sum120 = StatsFCP(ue_threshold=30, max_sum_limit=120)
+    out_xx_ue30_sum120 = stats_fcp_ue30_sum120.native_transform(xx)
+    expected_result = np.array(
+        [
+            [[255, 255], [255, 50], [10, 20]],
+            [[30, 40], [255, 80], [20, 30]],
+            [[255, 52], [255, 255], [30, 40]],
+        ]
+    )
+
+    result = out_xx_ue30_sum120.compute()["band_1"].data
     print(result)
     assert (result == expected_result).all()
 
 
 def test_fusing(dataset):
-    xx = StatsFCP.native_transform(None, dataset)
+    stats_fcp = StatsFCP()
+    xx = stats_fcp.native_transform(dataset)
     xx = xx.groupby("solar_day").map(partial(StatsFCP.fuser, None))
     assert xx["band_1"].attrs["test_attr"] == 57
 
     expected_result = np.array(
         [
             [[30, 40], [255, 65], [15, 25]],
-            [[255, 52], [255, 255], [30, 40]],
+            [[127, 52], [255, 98], [30, 40]],
         ]
     )
     result = xx.compute()["band_1"].data
@@ -119,12 +136,28 @@ def test_fusing(dataset):
     print(result)
     assert (result == expected_result).all()
 
+    # Test fusing with UE filter and sum 120 limit
+    stats_fcp_ue30_sum120 = StatsFCP(ue_threshold=30, max_sum_limit=120)
+    xx_ue30_sum120 = stats_fcp_ue30_sum120.native_transform(dataset)
+    xx_ue30_sum120 = xx_ue30_sum120.groupby("solar_day").map(
+        partial(StatsFCP.fuser, None)
+    )
+    expected_result = np.array(
+        [
+            [[30, 40], [255, 65], [15, 25]],
+            [[255, 52], [255, 255], [30, 40]],
+        ]
+    )
+    result = xx_ue30_sum120.compute()["band_1"].data
+    print(result)
+    assert (result == expected_result).all()
+
 
 def test_reduce(dataset):
-    fcp = StatsFCP()
-    xx = fcp.native_transform(dataset)
+    stats_fcp = StatsFCP()
+    xx = stats_fcp.native_transform(dataset)
     xx = xx.groupby("solar_day").map(partial(StatsFCP.fuser, None))
-    xx = fcp.reduce(xx)
+    xx = stats_fcp.reduce(xx)
 
     result = xx.compute()["band_1_pc_10"].data
     assert (result[0, :] == 255).all()
@@ -140,11 +173,7 @@ def test_reduce(dataset):
 
     # Check count
     # 2 valid (1 value > 120), 2 valid (1 wet), 0 valid (3 wet), 2 valid (1 UE > 30)
-    expected_result = np.array(
-        [
-            [[1, 2], [0, 1], [2, 2]]
-        ]
-    )
+    expected_result = np.array([[[2, 2], [0, 2], [2, 2]]])
 
     result = xx.compute()["count_valid"].data
     print(result)
