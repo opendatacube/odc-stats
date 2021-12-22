@@ -26,7 +26,7 @@ class StatsFCP(StatsPluginInterface):
         max_sum_limit: Optional[int] = None,
         clip_range: Optional[Tuple] = None,
         ue_threshold: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(input_bands=["water", "pv", "bs", "npv", "ue"], **kwargs)
 
@@ -107,7 +107,9 @@ class StatsFCP(StatsPluginInterface):
         wet = xx["wet"]
         valid = xx["valid"]
 
-        xx = _xr_fuse(xx.drop_vars(["wet", "valid"]), partial(_fuse_mean_np, nodata=NODATA), "")
+        xx = _xr_fuse(
+            xx.drop_vars(["wet", "valid"]), partial(_fuse_mean_np, nodata=NODATA), ""
+        )
 
         xx["wet"] = _xr_fuse(wet, _fuse_or_np, wet.name)
         xx["valid"] = _xr_fuse(valid, _fuse_or_np, valid.name)
