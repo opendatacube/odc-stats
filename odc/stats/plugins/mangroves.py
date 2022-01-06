@@ -1,5 +1,5 @@
 """
-Fractional Cover Percentiles
+Mangroves canopy cover classes
 """
 from functools import partial
 from itertools import product
@@ -66,17 +66,9 @@ class Mangroves(StatsPluginInterface):
         gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[1])
         return dask.array.from_array(band.ReadAsArray().reshape(array_shape), name=False)
 
-    def native_transform(self, xx):
-        """
-            no native transform required since
-            no reprojection in mangroves
-            return loaded data
-        """
-        return xx
-
     def fuser(self, xx):
         """
-            no fuse required for mangroves either
+            no fuse required for mangroves since group by none
             return loaded data
         """
         return xx
