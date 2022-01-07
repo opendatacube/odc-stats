@@ -72,3 +72,4 @@ tqdm
 xarray
 zstandard
 ciso8601
+gdal
