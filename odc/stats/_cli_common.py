@@ -149,5 +149,7 @@ def click_range2d(ctx, param, value):
 
 
 @click.group(help="Stats command line interface")
+@click.version_option(package_name="odc_stats")
+@click.pass_context
 def main():
     pass
