@@ -154,6 +154,9 @@ def run(
         _log.error("Must supply `filedb` either through config or CLI")
         sys.exit(1)    
 
+    if dataset_filters is None:
+        dataset_filters = _cfg.pop('dataset-filters')
+
     cfg = TaskRunnerConfig(**_cfg)
     _log.info(f"Using this config: {cfg}")
 
