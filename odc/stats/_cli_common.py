@@ -1,7 +1,7 @@
 from typing import List, Tuple
 import click
 
-from ._text import parse_yaml_file_or_inline, parse_range2d_int
+from ._text import parse_yaml_file_or_inline, parse_range2d_int, load_yaml_remote
 
 TileIdx_txy = Tuple[str, int, int]
 
@@ -96,18 +96,11 @@ def click_yaml_cfg(*args, **kw):
         if value is not None:
             from urllib.parse import urlparse
             r = urlparse(value)
-
             if all([r.scheme, r.netloc]):
-                import urllib
-                import fsspec
-                import yaml
                 try:
-                    with fsspec.open(value, mode="r") as f:
-                        return next(yaml.safe_load_all(f))
-                except urllib.error.URLError as e:
-                    raise click.ClickException(str(e) + f". Cannot access file {value}") from None 
+                    return load_yaml_remote(value)
                 except Exception as e:
-                    raise click.ClickException(str(e)) from None 
+                    raise click.ClickException(str(e)) from None
             else:
                 from odc.io.text import parse_yaml_file_or_inline
                 try:
