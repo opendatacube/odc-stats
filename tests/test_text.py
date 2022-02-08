@@ -37,6 +37,12 @@ def test_load_yaml_remote(httpserver):
     )
     content = load_yaml_remote(httpserver.url_for("/ga_ls_fc_pc_cyear_3.yaml"))
     assert content["a"] == 3 and content["b"] == "foo"
+    try: 
+        content = load_yaml_remote(httpserver.url_for("/something_non_exist.yaml"))
+    except Exception as e:
+        pass
+    else:
+        assert False
 
 
 def test_split_check():
