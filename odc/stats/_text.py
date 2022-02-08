@@ -91,7 +91,7 @@ def load_yaml_remote(yaml_url: str) -> Dict[str, Any]:
         with fsspec.open(yaml_url, mode="r") as f:
             return next(yaml.safe_load_all(f))
     except Exception as e:
-        print(f". Cannot load yaml {yaml_url}")
+        print(f"Cannot load {yaml_url}")
         raise
 
 
