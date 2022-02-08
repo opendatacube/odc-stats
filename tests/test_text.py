@@ -1,7 +1,7 @@
 import pytest
 from odc.stats._text import read_int, parse_slice, parse_range2d_int, \
                             parse_yaml, parse_yaml_file_or_inline, \
-                            split_and_check, load_yaml_remote
+                            split_and_check
 
 
 def test_read_int():
@@ -27,14 +27,6 @@ b: foo
 
     assert o["a"] == 3 and o["b"] == "foo"
     assert set(o) == {"a", "b"}
-
-
-@pytest.mark.parametrize("yaml_url, expected", [("https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/"\
-                                      "master/dev/services/odc-stats/fc_percentile/ga_ls_fc_pc_cyear_3.yaml",
-                                      "ga_ls_fc_pc_cyear_3")])
-def test_load_yaml_remote(yaml_url, expected):
-    content = load_yaml_remote(yaml_url)
-    assert content["product"]["name"] == expected
 
 
 def test_split_check():

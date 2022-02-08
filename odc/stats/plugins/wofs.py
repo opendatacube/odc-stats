@@ -20,7 +20,7 @@ import xarray as xr
 from datacube.model import Dataset
 from datacube.utils.geometry import GeoBox
 from odc.algo import safe_div, apply_numexpr, keep_good_only, binary_dilation
-from odc.stac import dc_load
+from odc.algo.io import dc_load
 from ._registry import StatsPluginInterface, register
 
 

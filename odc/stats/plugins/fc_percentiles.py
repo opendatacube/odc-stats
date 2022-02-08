@@ -28,7 +28,6 @@ class StatsFCP(StatsPluginInterface):
         max_sum_limit: Optional[int] = None,
         clip_range: Optional[Tuple] = None,
         ue_threshold: Optional[int] = None,
-        count_valid: Optional[bool] = False,
         **kwargs,
     ):
         super().__init__(input_bands=["water", "pv", "bs", "npv", "ue"], **kwargs)
@@ -36,7 +35,6 @@ class StatsFCP(StatsPluginInterface):
         self.max_sum_limit = max_sum_limit
         self.clip_range = clip_range
         self.ue_threshold = ue_threshold
-        self.count_valid = count_valid
 
     @property
     def measurements(self) -> Tuple[str, ...]:
@@ -44,8 +42,7 @@ class StatsFCP(StatsPluginInterface):
             f"{b}_pc_{p}" for b, p in product(["pv", "bs", "npv"], ["10", "50", "90"])
         ]
         _measurements.append("qa")
-        if self.count_valid:
-            _measurements.append("count_valid")
+        _measurements.append("count_valid")
         return _measurements
 
     def native_transform(self, xx):
@@ -142,8 +139,7 @@ class StatsFCP(StatsPluginInterface):
         is_ever_wet = is_ever_wet.astype(np.uint8)
         yy["qa"] = 1 + all_bands_valid - is_ever_wet * (1 - all_bands_valid)
 
-        if self.count_valid:
-            yy["count_valid"] = valid.sum(axis=0, dtype="int16")
+        yy["count_valid"] = valid.sum(axis=0, dtype="int16")
 
         return yy
 

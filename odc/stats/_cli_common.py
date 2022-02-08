@@ -1,7 +1,7 @@
 from typing import List, Tuple
 import click
 
-from ._text import parse_yaml_file_or_inline, parse_range2d_int, load_yaml_remote
+from ._text import parse_yaml_file_or_inline, parse_range2d_int
 
 TileIdx_txy = Tuple[str, int, int]
 
@@ -94,19 +94,10 @@ def click_yaml_cfg(*args, **kw):
     """
     def _parse(ctx, param, value):
         if value is not None:
-            from urllib.parse import urlparse
-            r = urlparse(value)
-            if all([r.scheme, r.netloc]):
-                try:
-                    return load_yaml_remote(value)
-                except Exception as e:
-                    raise click.ClickException(str(e)) from None
-            else:
-                from odc.io.text import parse_yaml_file_or_inline
-                try:
-                    return parse_yaml_file_or_inline(value)
-                except Exception as e:
-                    raise click.ClickException(str(e)) from None
+            try:
+                return parse_yaml_file_or_inline(value)
+            except Exception as e:
+                raise click.ClickException(str(e)) from None
     return click.option(*args, callback=_parse, **kw)
 
 
@@ -141,7 +132,6 @@ def click_range2d(ctx, param, value):
 # pylint: disable=import-outside-toplevel,inconsistent-return-statements
 
 
-@click.version_option(package_name="odc_stats")
 @click.group(help="Stats command line interface")
 def main():
     pass
