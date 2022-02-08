@@ -154,6 +154,15 @@ def run(
         _log.error("Must supply `filedb` either through config or CLI")
         sys.exit(1)    
 
+    
+    tmp = _cfg.pop('dataset-filters', None)
+    if dataset_filters is None:
+        dataset_filters = tmp
+
+    tmp = _cfg.pop('apply_eodatasets3', False)
+    if not apply_eodatasets3:
+        apply_eodatasets3 = tmp
+
     cfg = TaskRunnerConfig(**_cfg)
     _log.info(f"Using this config: {cfg}")
 

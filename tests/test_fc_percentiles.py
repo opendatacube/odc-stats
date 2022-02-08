@@ -154,7 +154,7 @@ def test_fusing(dataset):
 
 
 def test_reduce(dataset):
-    stats_fcp = StatsFCP()
+    stats_fcp = StatsFCP(count_valid=True)
     xx = stats_fcp.native_transform(dataset)
     xx = xx.groupby("solar_day").map(partial(StatsFCP.fuser, None))
     xx = stats_fcp.reduce(xx)

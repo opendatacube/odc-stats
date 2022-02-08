@@ -81,6 +81,22 @@ def parse_yaml_file_or_inline(s: str) -> Dict[str, Any]:
     return result
 
 
+def load_yaml_remote(yaml_url: str) -> Dict[str, Any]:
+    """
+       Open a yaml file remotely and return the parsed yaml document 
+    """
+    import urllib
+    import fsspec
+    import yaml
+    try:
+        with fsspec.open(yaml_url, mode="r") as f:
+            return next(yaml.safe_load_all(f))
+    except urllib.error.URLError as e:
+        raise urllib.error.URLError(str(e) + f". Cannot access file {value}")
+    except Exception as e:
+        raise RuntimeError(str(e))
+
+
 def parse_range2d_int(s: str) -> Tuple[Tuple[int, int], Tuple[int, int]]:
     """Parse string like "0:3,4:5" -> ((0,3), (4,5))"""
     from ._text import split_and_check
