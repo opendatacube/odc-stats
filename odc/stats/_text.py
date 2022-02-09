@@ -85,16 +85,14 @@ def load_yaml_remote(yaml_url: str) -> Dict[str, Any]:
     """
        Open a yaml file remotely and return the parsed yaml document 
     """
-    import urllib
     import fsspec
     import yaml
     try:
         with fsspec.open(yaml_url, mode="r") as f:
             return next(yaml.safe_load_all(f))
-    except urllib.error.URLError as e:
-        raise urllib.error.URLError(str(e) + f". Cannot access file {value}")
     except Exception as e:
-        raise RuntimeError(str(e))
+        print(f"Cannot load {yaml_url}")
+        raise
 
 
 def parse_range2d_int(s: str) -> Tuple[Tuple[int, int], Tuple[int, int]]:

@@ -32,6 +32,7 @@ dependencies:
   - tqdm
   - xarray
   - gdal
+  - fsspec>=2022.1.0
 
   # For tests
   - pytest
@@ -70,4 +71,4 @@ dependencies:
       - pytest-depends
 
       # for odc-stats
-      - datacube_ows==1.8.19
+      - datacube_ows>=1.8.21
