@@ -12,6 +12,7 @@ from pathlib import Path
 import xarray as xr
 import io
 from rasterio.crs import CRS
+from numpy import datetime64
 
 from datacube.utils.aws import get_creds_with_retry, mk_boto_session, s3_client
 from odc.aws import s3_head_object  # TODO: move it to datacube
@@ -78,6 +79,15 @@ def _sha1_digest(*write_results):
         file = wr.path.split("/")[-1]
         lines.append(f"{wr.sha1}\t{file}\n")
     return "".join(lines)
+
+
+@dask.delayed(name="xarray-to-list")
+def _xarray_to_list(image, dest_shape):
+    # apply the OWS styling, the return image must have red, green, blue and alpha.
+    display_pixels = []
+    for display_band in ['red', 'green', 'blue']:
+        display_pixels.append(image[display_band].values.reshape(dest_shape))
+    return display_pixels
 
 
 class S3COGSink:
@@ -205,30 +215,24 @@ class S3COGSink:
             out.append(self._write_blob(cog_bytes, url, ContentType="image/tiff"))
         return out
 
-    def _apply_color_ramp(self, ds: xr.Dataset, ows_style_dict: dict, task: Task):
+    def _apply_color_ramp(self, ds: xr.Dataset, ows_style_dict: dict, time: datetime64) -> Delayed:
         from datacube_ows.styles.api import StandaloneStyle
         from datacube_ows.styles.api import apply_ows_style
 
         ows_style = StandaloneStyle(ows_style_dict)
         # assign the time to xr.Dataset cause ows needs it
-        time_da = xr.Dataset({"time": task.time_range.start})
+        time_da = xr.Dataset({"time": time})
         dst = ds.expand_dims(time=time_da.to_array())
-        return apply_ows_style(ows_style, dst)
+        img = dask.delayed(apply_ows_style)(ows_style, dst)
+        return img
 
 
-    def _get_thumbnail(self, ds: xr.Dataset, task: Task, ows_style_dict: dict, input_geobox: GridSpec, odc_file_path: str) -> Delayed:
-        display_pixels = []
-
-        image = self._apply_color_ramp(ds, ows_style_dict, task)
-        # apply the OWS styling, the return image must have red, green, blue and alpha.
-        for display_band in ['red', 'green', 'blue']:
-            display_pixels.append(image[display_band].values.reshape([task.geobox.shape[0], task.geobox.shape[1]]))
-
-        thumbnail_bytes = FileWrite().create_thumbnail_from_numpy(rgb=display_pixels,
-                                                                  static_stretch=(0, 255),
-                                                                  out_scale=10,
-                                                                  input_geobox=input_geobox,
-                                                                  nodata=None)
+    def _get_thumbnail(self, display_pixels:list, input_geobox: GridSpec, odc_file_path: str) -> Delayed:
+        thumbnail_bytes = dask.delayed(FileWrite().create_thumbnail_from_numpy)(rgb=display_pixels,
+                                                                                static_stretch=(0, 255),
+                                                                                out_scale=10,
+                                                                                input_geobox=input_geobox,
+                                                                                nodata=None)
 
         return self._write_blob(thumbnail_bytes, odc_file_path.split('.')[0] + f"_thumbnail.jpg", ContentType="image/jpeg")
 
@@ -242,13 +246,17 @@ class S3COGSink:
                                 crs=CRS.from_epsg(task.geobox.crs.to_epsg()))
 
         if task.product.preview_image_ows_style:
+            _log.info("Generate thumbnail")
             try:
-                thumbnail_cog = self._get_thumbnail(ds, task, task.product.preview_image_ows_style, input_geobox, odc_file_path)
-                thumbnail_cogs.append(thumbnail_cog)
-            except AttributeError:
-                _log.error(f"Cannot parse OWS styling: {task.product.preview_image_ows_style}.")
+                image = self._apply_color_ramp(ds, task.product.preview_image_ows_style, task.time_range.start)
+            except AttributeError as e:
+                _log.error(f"{e} Cannot parse OWS styling: {task.product.preview_image_ows_style}.")
             except ImportError as e:
                 raise type(e)(str(e) + '. Please run python -m pip install "odc-stats[ows]" to setup environment to generate thumbnail.')
+
+            display_pixels = _xarray_to_list(image, task.geobox.shape[0:2])
+            thumbnail_cog = self._get_thumbnail(display_pixels, input_geobox, odc_file_path)
+            thumbnail_cogs.append(thumbnail_cog)
 
         return thumbnail_cogs
 
