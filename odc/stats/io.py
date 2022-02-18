@@ -253,10 +253,10 @@ class S3COGSink:
                 _log.error(f"{e} Cannot parse OWS styling: {task.product.preview_image_ows_style}.")
             except ImportError as e:
                 raise type(e)(str(e) + '. Please run python -m pip install "odc-stats[ows]" to setup environment to generate thumbnail.')
-
-            display_pixels = _xarray_to_list(image, task.geobox.shape[0:2])
-            thumbnail_cog = self._get_thumbnail(display_pixels, input_geobox, odc_file_path)
-            thumbnail_cogs.append(thumbnail_cog)
+            else:
+                display_pixels = _xarray_to_list(image, task.geobox.shape[0:2])
+                thumbnail_cog = self._get_thumbnail(display_pixels, input_geobox, odc_file_path)
+                thumbnail_cogs.append(thumbnail_cog)
 
         return thumbnail_cogs
 
