@@ -340,6 +340,11 @@ class SaveTasks:
             tasks = {k: set(dss) for k, dss in tasks.items()}
             tasks_uuid = {k: [ds.id for ds in dss] for k, dss in tasks.items()}
 
+            all_ids = set()
+            for k, dss in tasks_uuid.items():
+                all_ids.update(dss)
+            msg(f"Total of {len(all_ids):,d} unique dataset IDs after filtering")
+
             msg(f"Saving tasks to disk ({len(tasks)})")
             cache.add_grid_tiles(self._grid, tasks_uuid)
             msg(".. done")

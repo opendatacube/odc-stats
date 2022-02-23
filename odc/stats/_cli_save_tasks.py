@@ -64,6 +64,11 @@ from itertools import groupby
     help="Only save datasets that pass `gqa_iterative_mean_xy <= gqa` test",
 )
 @click.option(
+    "--usgs-collection-category",
+    type=str,
+    help="Only save datasets that pass `collection_category == usgs_collection_category` test",
+)
+@click.option(
     "--dataset-filter",
     type=str,
     default=None,
@@ -85,6 +90,7 @@ def save_tasks(
     tiles=None,
     debug=False,
     gqa=None,
+    usgs_collection_category=None,
 ):
     """
     Prepare tasks for processing (query db).
@@ -153,9 +159,18 @@ def save_tasks(
     def gqa_predicate(ds):
         return ds.metadata.gqa_iterative_mean_xy <= gqa
 
+    def collection_category_predicate(ds):
+        if ds.type.name in ["ls5_sr", "ls7_sr", "ls8_sr", "ls9_sr"]:
+            return ds.metadata.collection_category == usgs_collection_category
+        else:
+            return True
+
     predicate = None
+    # These two are exclusive. GQA is from DEA, whereas collection_category is from USGS
     if gqa is not None:
         predicate = gqa_predicate
+    if usgs_collection_category is not None:
+        predicate = collection_category_predicate
 
     try:
         ok = tasks.save(
@@ -232,4 +247,3 @@ class ErrorLogger:
                 self.append(ds_group)
             else:
                 yield ds_group
-
