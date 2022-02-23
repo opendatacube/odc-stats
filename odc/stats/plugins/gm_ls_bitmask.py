@@ -53,7 +53,7 @@ class StatsGMLSBitmask(StatsPluginInterface):
         self.filters = filters
         self.work_chunks = work_chunks
         self.renames = aux_names
-        self.aux_bands = tuple(aux_names.values())
+        self.aux_bands = list(aux_names.values())
         self.scale = scale
         self.offset = offset
         self.output_scale = output_scale
