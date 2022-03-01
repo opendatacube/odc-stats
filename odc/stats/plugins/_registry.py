@@ -37,6 +37,7 @@ def import_all():
 
     # TODO: make that more automatic
     modules = [
+        "odc.stats.plugins.mangroves",
         "odc.stats.plugins.fc_percentiles",
         "odc.stats.plugins.tcw_percentiles",
         "odc.stats.plugins.gm",
