@@ -8,6 +8,7 @@ from typing import Optional, Tuple
 import numpy as np
 import xarray as xr
 import dask
+import os
 from odc.algo import keep_good_only, erase_bad
 from odc.algo._masking import _fuse_mean_np, _fuse_or_np, _or_fuser, _xr_fuse
 from odc.algo._percentile import xr_quantile_bands
@@ -31,11 +32,10 @@ class Mangroves(StatsPluginInterface):
         tcw_threshold=-1850,
         **kwargs,
     ):
-        super().__init__(input_bands=["pv_pc_10", "qa", "wet_pc_10"], **kwargs)
-
-        self.mangroves_extent = kwargs.get('mangroves_extent', None)
+        self.mangroves_extent = kwargs.pop('mangroves_extent', None)
         self.pv_thresholds = pv_thresholds
         self.tcw_threshold = tcw_threshold
+        super().__init__(input_bands=["pv_pc_10", "qa", "wet_pc_10"], **kwargs)
 
     @property
     def measurements(self) -> Tuple[str, ...]:
@@ -44,7 +44,7 @@ class Mangroves(StatsPluginInterface):
         ]
         return _measurements
     
-    def rasterize_mangroves_extent(shape_file, array_shape, orig_coords, resolution=(30, -30)):
+    def rasterize_mangroves_extent(self, shape_file, array_shape, orig_coords, resolution=(30, -30)):
         source_ds = ogr.Open(shape_file)
         source_layer = source_ds.GetLayer()
 
@@ -79,7 +79,9 @@ class Mangroves(StatsPluginInterface):
             it is not a 'reduce' though
         """
         if self.mangroves_extent:
-            extent_mask = rasterize_mangroves_extent(self.mangroves_extent, xx.pv_pc_10.shape,
+            if not os.path.exists(self.mangroves_extent):
+                raise FileNotFoundError(f"{self.mangroves_extent} not found")
+            extent_mask = self.rasterize_mangroves_extent(self.mangroves_extent, xx.pv_pc_10.shape,
                                                      (xx.coords["x"].min(), xx.coords["y"].max()))
         else:
             extent_mask = dask.array.ones(xx.pv_pc_10.shape)
@@ -99,6 +101,9 @@ class Mangroves(StatsPluginInterface):
         cover_type.attrs['nodata'] = NODATA
 
         cover_type = cover_type.to_dataset(name="canopy_cover_class")
+        # don't want the dimension spec from input but keep the info in case
+        if "spec" in cover_type.dims:
+            cover_type = cover_type.squeeze(dim=["spec"])
         return cover_type 
 
 
