@@ -207,5 +207,9 @@ def run(
 
     _log.info("Shutting down Dask cluster")
     del runner
-    _log.info("Calling sys.exit(0)")
-    sys.exit(0)
+    if errored:
+        _log.info("Calling sys.exit(1)")
+        sys.exit(1)
+    else:
+        _log.info("Calling sys.exit(0)")
+        sys.exit(0)
