@@ -1,5 +1,5 @@
 """
-Fractional Cover Percentiles
+Tasseled cap index Percentiles
 """
 from functools import partial
 from typing import Optional, Sequence, Tuple, Dict
@@ -15,10 +15,10 @@ NODATA = -9999 # output NODATA
 
 class StatsTCWPC(StatsPluginInterface):
 
-    NAME = "ga_tcw_percentiles"
+    NAME = "ga_tc_percentiles"
     SHORT_NAME = NAME
-    VERSION = "0.0.1"
-    PRODUCT_FAMILY = "twc_percentiles"
+    VERSION = "1.0.0"
+    PRODUCT_FAMILY = "tci"
 
     def __init__(
         self,
