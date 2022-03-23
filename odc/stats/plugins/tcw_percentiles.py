@@ -31,16 +31,17 @@ class StatsTCWPC(StatsPluginInterface):
                       "swir1": -0.0002, "swir2": -0.1446},
             },
         input_bands: Sequence[str] = ["blue", "green", "red", "nir", "swir1", "swir2", "fmask", "nbart_contiguity"],
-        output_bands: Sequence[str] = ["wet"],
+        output_bands: Sequence[str] = ["wet", "bright", "green"],
         **kwargs
     ):
         super().__init__(input_bands=input_bands, **kwargs)
         self.coefficients = coefficients
+        self.output_bands = output_bands
 
     @property
     def measurements(self) -> Tuple[str, ...]:
         _measurments = []
-        for band in output_bands:
+        for band in self.output_bands:
             _measurments += [f"{band}_pc_10", f"{band}_pc_50", f"{band}_pc_90"]
         return _measurments
 
@@ -50,19 +51,18 @@ class StatsTCWPC(StatsPluginInterface):
         """
         bad = enum_to_bool(xx["fmask"], ("nodata", "cloud", "shadow")) # a pixel is bad if any of the cloud, shadow, or no-data value
         bad |= xx["nbart_contiguity"] == 0 # or the nbart contiguity bit is 0
-        xx = xx.drop_vars(["fmask", "nbart_contiguity"])
         
         for band in xx.data_vars.keys():
             bad = bad | (xx[band] == -999)
 
-        for m in output_bands:
-            xx[m] = sum(coeff * xx[band] for band, coeff in self.coefficients[m].items()).astype(np.int16)
-            xx[m].attrs = xx.blue.attrs
-            xx[m].attrs["nodata"] = NODATA
+        yy = xx.drop_vars(self.input_bands)
+        for m in self.output_bands:
+            yy[m] = sum(coeff * xx[band] for band, coeff in self.coefficients[m].items()).astype(np.int16)
+            yy[m].attrs = xx.blue.attrs
+            yy[m].attrs["nodata"] = NODATA
 
-        xx = xx.drop_vars(input_bands)
-        xx = keep_good_only(xx, ~bad, nodata=NODATA)
-        return xx
+        yy = keep_good_only(yy, ~bad, nodata=NODATA)
+        return yy
 
     @staticmethod
     def fuser(xx):
