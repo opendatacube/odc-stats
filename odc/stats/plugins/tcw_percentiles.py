@@ -22,10 +22,16 @@ class StatsTCWPC(StatsPluginInterface):
 
     def __init__(
         self,
-        coefficients: Dict[str, float] = {
-            'blue': 0.0315, 'green': 0.2021, 'red': 0.3102, 'nir': 0.1594, 'swir1': -0.6806, 'swir2': -0.6109
+        coefficients: Dict[str, Dict[str, float]] = {
+            "wet": {"blue": 0.0315, "green": 0.2021, "red": 0.3102, "nir": 0.1594,
+                    "swir1": -0.6806, "swir2": -0.6109},
+            "bright": {"blue": 0.2043, "green": 0.4158, "red": 0.5524, "nir": 0.5741,
+                       "swir1": 0.3124, "swir2": 0.2303},
+            "green": {"blue": -0.1603, "green": -0.2819, "red": -0.4934, "nir": 0.7940,
+                      "swir1": -0.0002, "swir2": -0.1446},
             },
         input_bands: Sequence[str] = ["blue", "green", "red", "nir", "swir1", "swir2", "fmask", "nbart_contiguity"],
+        output_bands: Sequence[str] = ["wet"],
         **kwargs
     ):
         super().__init__(input_bands=input_bands, **kwargs)
@@ -33,7 +39,9 @@ class StatsTCWPC(StatsPluginInterface):
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        _measurments = ["wet_pc_10", "wet_pc_50", "wet_pc_90"]
+        _measurments = []
+        for band in output_bands:
+            _measurments += [f"{band}_pc_10", f"{band}_pc_50", f"{band}_pc_90"]
         return _measurments
 
     def native_transform(self, xx):
@@ -47,18 +55,18 @@ class StatsTCWPC(StatsPluginInterface):
         for band in xx.data_vars.keys():
             bad = bad | (xx[band] == -999)
 
-        tcw = sum(coeff * xx[band] for band, coeff in self.coefficients.items())
-        tcw.attrs = xx.blue.attrs
-        tcw.attrs['nodata'] = NODATA
-        
-        xx = xx.drop_vars(xx.data_vars.keys())
-        xx['wet'] = tcw.astype(np.int16)
+        for m in output_bands:
+            xx[m] = sum(coeff * xx[band] for band, coeff in self.coefficients[m].items()).astype(np.int16)
+            xx[m].attrs = xx.blue.attrs
+            xx[m].attrs["nodata"] = NODATA
+
+        xx = xx.drop_vars(input_bands)
         xx = keep_good_only(xx, ~bad, nodata=NODATA)
         return xx
 
     @staticmethod
     def fuser(xx):
-        xx = _xr_fuse(xx, partial(_fuse_mean_np, nodata=NODATA), '')
+        xx = _xr_fuse(xx, partial(_fuse_mean_np, nodata=NODATA), "")
 
         return xx
     
