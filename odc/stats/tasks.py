@@ -129,7 +129,7 @@ class SaveTasks:
     def out_path(self, suffix: str) -> str:
         return out_path(suffix, self._output)
 
-    def ds_align(self, dss: Iterable, product: DatasetType, pair_size: int):
+    def ds_align(self, dss: Iterable, product: DatasetType, group_size: int):
         def match_dss(groups, group_size):
             for _, ds_group in groups:
                 ds_group = tuple(ds_group)
