@@ -130,16 +130,16 @@ class SaveTasks:
         return out_path(suffix, self._output)
 
     def ds_align(self, dss: Iterable, product: DatasetType, pair_size: int):
-
-        def pair_dss(groups, pair_size):
+        def match_dss(groups, group_size):
             for _, ds_group in groups:
                 ds_group = tuple(ds_group)
-                if len(ds_group) == pair_size:
+                if len(ds_group) == group_size:
                     yield ds_group
-        paired_dss = groupby(dss, key=lambda ds: (ds.center_time, ds.metadata.region_code))
-        paired_dss = pair_dss(paired_dss, pair_size)
+        grouped_dss = groupby(dss, key=lambda ds: (ds.center_time, ds.metadata.region_code)
+                                                   if hasattr(ds.metadata, 'region_code') else (ds.center_time,))
+        grouped_dss = match_dss(grouped_dss, group_size)
         map_fuse_func = lambda x: fuse_ds(*x, product=product)
-        dss = map(map_fuse_func, paired_dss)
+        dss = map(map_fuse_func, grouped_dss)
         return dss
 
     def _get_dss(
@@ -183,7 +183,9 @@ class SaveTasks:
         cfg["query"] = sanitize_query(query)
 
         msg("Connecting to the database, streaming datasets")
-        dss = ordered_dss(dc, freq="w", key=lambda ds: (ds.center_time, ds.metadata.region_code), **query)
+        dss = ordered_dss(dc, freq="w", key=lambda ds: (ds.center_time, ds.metadata.region_code)
+                                                        if hasattr(ds.metadata, 'region_code') else (ds.center_time,),
+                          **query)
         return dss, cfg
 
     def save(
@@ -242,17 +244,24 @@ class SaveTasks:
             fused_product = fuse_products(*products)
             dss = self.ds_align(dss, fused_product, len(products))
 
+        if predicate is not None:
+            dss = filter(predicate, dss)
+
         dss_slice = list(islice(dss, 0, 100))
         if len(dss_slice) == 0:
             msg(f"found no datasets")
             return True
-        msg(f"Training compression dictionary ")
-        samples = dss_slice.copy()
-        random.shuffle(samples)
-        zdict = DatasetCache.train_dictionary(samples, 8 * 1024)
-        dss = chain(dss_slice, dss)
-        msg(".. done")
 
+        if len(dss_slice) >= 100:
+            msg(f"Training compression dictionary ")
+            samples = dss_slice.copy()
+            random.shuffle(samples)
+            zdict = DatasetCache.train_dictionary(samples, 8 * 1024)
+            msg(".. done")
+        else:
+            zdict = None
+
+        dss = chain(dss_slice, dss)
         cache = DatasetCache.create(
             self._output,
             zdict=zdict,
@@ -263,12 +272,8 @@ class SaveTasks:
         cache.append_info_dict("stats/", dict(config=cfg))
 
         cells: Dict[Tuple[int, int], Any] = {}
-
-        if predicate is not None:
-            dss = filter(predicate, dss)
         dss = cache.tee(dss)
         dss = bin_dataset_stream(self._gridspec, dss, cells, persist=persist)
-
         rr = ds_stream_test_func(dss)
         msg(rr.text)
 
