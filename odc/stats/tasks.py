@@ -1,10 +1,9 @@
-from random import random
-from typing import Optional, Tuple, Union, Callable, Any, Dict, List, Iterable, Iterator
 import random
+from typing import Optional, Tuple, Union, Callable, Any, Dict, List, Iterable, Iterator
 from types import SimpleNamespace
 from collections import namedtuple
 from datetime import datetime
-from itertools import islice
+from itertools import islice, chain, groupby
 import pickle
 import json
 import os
@@ -12,25 +11,25 @@ from tqdm.auto import tqdm
 from urllib.parse import urlparse
 import logging
 import ciso8601
+import re
 
 from odc.dscache import DatasetCache
 from datacube import Datacube
-from datacube.model import Dataset, GridSpec
+from datacube.model import Dataset, GridSpec, DatasetType
 from datacube.utils.geometry import Geometry
 from datacube.utils.documents import transform_object_tree
 from datacube.utils.dates import normalise_dt
 
-from odc.dscache.tools import chopped_dss, bin_dataset_stream, dataset_count, all_datasets
+from odc.dscache.tools import chopped_dss, bin_dataset_stream, dataset_count, all_datasets, ordered_dss
 from odc.dscache.tools.tiling import parse_gridspec_with_name
 from odc.dscache.tools.profiling import ds_stream_test_func
 from ._text import split_and_check
 
 from odc.aws import s3_download, s3_url_parse
-from itertools import chain
 
 from .model import DateTimeRange, Task, OutputProduct, TileIdx, TileIdx_txy, TileIdx_xy
 from ._gjson import gs_bounds, compute_grid_info, gjson_from_tasks
-from .utils import bin_annual, bin_full_history, bin_generic, bin_seasonal
+from .utils import bin_annual, bin_full_history, bin_generic, bin_seasonal, fuse_ds, fuse_products
 
 TilesRange2d = Tuple[Tuple[int, int], Tuple[int, int]]
 CompressedDataset = namedtuple("CompressedDataset", ["id", "time"])
@@ -130,10 +129,23 @@ class SaveTasks:
     def out_path(self, suffix: str) -> str:
         return out_path(suffix, self._output)
 
+    def ds_align(self, dss: Iterable, product: DatasetType, pair_size: int):
+        def match_dss(groups, group_size):
+            for _, ds_group in groups:
+                ds_group = tuple(ds_group)
+                if len(ds_group) == group_size:
+                    yield ds_group
+        grouped_dss = groupby(dss, key=lambda ds: (ds.center_time, ds.metadata.region_code)
+                                                   if hasattr(ds.metadata, 'region_code') else (ds.center_time,))
+        grouped_dss = match_dss(grouped_dss, group_size)
+        map_fuse_func = lambda x: fuse_ds(*x, product=product)
+        dss = map(map_fuse_func, grouped_dss)
+        return dss
+
     def _get_dss(
         self,
         dc: Datacube,
-        product: str,
+        products: list,
         msg: Callable[[str], Any],
         dataset_filter: Optional[dict] = {},
         temporal_range: Optional[DateTimeRange] = None,
@@ -151,7 +163,10 @@ class SaveTasks:
             freq=self._frequency,
         )
 
-        query = dict(product=product, **dataset_filter)
+        # query by a list of products is not a "officially" supported feature
+        # but it is embedded in the code everywhere
+        # mark it for ref
+        query = dict(product=products, **dataset_filter)
 
         if tiles is not None:
             (x0, x1), (y0, y1) = tiles
@@ -167,40 +182,22 @@ class SaveTasks:
 
         cfg["query"] = sanitize_query(query)
 
-        if DatasetCache.exists(self._output) and self._overwrite is False:
-            raise ValueError(f"File database already exists: {self._output}")
-
-        msg("Connecting to the database, counting datasets")
-        n_dss = dataset_count(dc.index, **query)
-        if n_dss == 0:
-            msg("Found no datasets to process")
-            return [], n_dss, cfg
-
-        msg(f"Processing {n_dss:,d} datasets")
-
-        if "time" in query:
-            dss = chopped_dss(dc, freq="w", **query)
-        else:
-            if len(query) == 1:
-                dss = all_datasets(dc, **query)
-            else:
-                # note: this blocks for large result sets
-                dss = dc.find_datasets_lazy(**query)
-
-        return dss, n_dss, cfg
+        msg("Connecting to the database, streaming datasets")
+        dss = ordered_dss(dc, freq="w", key=lambda ds: (ds.center_time, ds.metadata.region_code)
+                                                        if hasattr(ds.metadata, 'region_code') else (ds.center_time,),
+                          **query)
+        return dss, cfg
 
     def save(
         self,
         dc: Datacube,
-        product: str,
+        products: str,
         dataset_filter: Optional[dict] = {},
         temporal_range: Union[str, DateTimeRange, None] = None,
         tiles: Optional[TilesRange2d] = None,
         predicate: Optional[Callable[[Dataset], bool]] = None,
         msg: Optional[Callable[[str], Any]] = None,
         debug: bool = False,
-        dss=None,
-        n_dss=None,
     ) -> bool:
         """
         :param product: Product name to consume
@@ -210,9 +207,10 @@ class SaveTasks:
         :param predicate: If supplied filter Datasets as they come in with custom filter, Dataset->Bool
         :param msg: Observe messages if needed via callback
         :param debug: Dump some intermediate state to files for debugging
-        :param dss: A generator of datasets to use
-        :param n_dss: The number of datasets in the generator
         """
+
+        if DatasetCache.exists(self._output) and self._overwrite is False:
+            raise ValueError(f"File database already exists: {self._output}")
 
         dt_range = SimpleNamespace(start=None, end=None)
 
@@ -238,118 +236,98 @@ class SaveTasks:
         if isinstance(temporal_range, str):
             temporal_range = DateTimeRange(temporal_range)
 
-        if '-' in product:
-            products = product.split('-')
-            n_dss = 0
-            dss = iter(())
-            for _product in products:
-                dss_found = self._get_dss(dc, _product, msg, dataset_filter, temporal_range, tiles)
-                if dss_found:
-                    _dss, _n_dss, cfg = dss_found
-                    dss = chain.from_iterable((dss, _dss))
-                    n_dss += _n_dss
-        elif dss is None:
-            dss_found = self._get_dss(dc, product, msg, dataset_filter, temporal_range, tiles)
-            if dss_found:
-                dss, n_dss, cfg = dss_found
-        else:
+        product_list = re.split(r"\+|-", products)
+        product_list = list(filter(None, product_list))
+        dss, cfg = self._get_dss(dc, product_list, msg, dataset_filter, temporal_range, tiles)
+        if "+" in products:
+            products = [dc.index.products.get_by_name(product) for product in product_list]
+            fused_product = fuse_products(*products)
+            dss = self.ds_align(dss, fused_product, len(products))
 
-            cfg: Dict[str, Any] = dict(
-                grid=self._grid,
-                freq=self._frequency,
-            )
+        if predicate is not None:
+            dss = filter(predicate, dss)
 
-            if temporal_range is not None:
-                cfg["temporal_range"] = temporal_range.short
+        dss_slice = list(islice(dss, 0, 100))
+        if len(dss_slice) == 0:
+            msg(f"found no datasets")
+            return True
 
-            if tiles is not None:
-                cfg["tiles"] = tiles
-
-        if DatasetCache.exists(self._output) and self._overwrite is False:
-            raise ValueError(f"File database already exists: {self._output}")
-
-        if dss is not None and n_dss > 0:
-            msg(f"Processing {n_dss:,d} datasets")
-
-            msg("Training compression dictionary")
-            dss_slice = list(islice(dss, 0, 100))
+        if len(dss_slice) >= 100:
+            msg(f"Training compression dictionary ")
             samples = dss_slice.copy()
             random.shuffle(samples)
             zdict = DatasetCache.train_dictionary(samples, 8 * 1024)
-            dss = chain(dss_slice, dss)
             msg(".. done")
+        else:
+            zdict = None
 
-            cache = DatasetCache.create(
-                self._output,
-                zdict=zdict,
-                complevel=self._complevel,
-                truncate=self._overwrite,
-            )
-            cache.add_grid(self._gridspec, self._grid)
-            cache.append_info_dict("stats/", dict(config=cfg))
+        dss = chain(dss_slice, dss)
+        cache = DatasetCache.create(
+            self._output,
+            zdict=zdict,
+            complevel=self._complevel,
+            truncate=self._overwrite,
+        )
+        cache.add_grid(self._gridspec, self._grid)
+        cache.append_info_dict("stats/", dict(config=cfg))
 
-            cells: Dict[Tuple[int, int], Any] = {}
+        cells: Dict[Tuple[int, int], Any] = {}
+        dss = cache.tee(dss)
+        dss = bin_dataset_stream(self._gridspec, dss, cells, persist=persist)
+        rr = ds_stream_test_func(dss)
+        msg(rr.text)
 
-            if predicate is not None:
-                dss = filter(predicate, dss)
-            dss = cache.tee(dss)
-            dss = bin_dataset_stream(self._gridspec, dss, cells, persist=persist)
-            dss = tqdm(dss, total=n_dss)
+        if tiles is not None:
+            # prune out tiles that were not requested
+            cells = {
+                tidx: cell for tidx, cell in cells.items() if is_tile_in(tidx, tiles)
+            }
 
-            rr = ds_stream_test_func(dss)
-            msg(rr.text)
+        if temporal_range is not None:
+            # Prune Datasets outside of temporal range (after correcting for UTC offset)
+            for cell in cells.values():
+                utc_offset = cell.utc_offset
+                cell.dss = [
+                    ds for ds in cell.dss if (ds.time + utc_offset) in temporal_range
+                ]
 
-            if tiles is not None:
-                # prune out tiles that were not requested
-                cells = {
-                    tidx: cell for tidx, cell in cells.items() if is_tile_in(tidx, tiles)
-                }
+        n_tiles = len(cells)
+        msg(f"Total of {n_tiles:,d} spatial tiles")
 
-            if temporal_range is not None:
-                # Prune Datasets outside of temporal range (after correcting for UTC offset)
-                for cell in cells.values():
-                    utc_offset = cell.utc_offset
-                    cell.dss = [
-                        ds for ds in cell.dss if (ds.time + utc_offset) in temporal_range
-                    ]
+        if self._frequency == "all":
+            tasks = bin_full_history(cells, start=dt_range.start, end=dt_range.end)
+        elif self._frequency == "semiannual":
+            tasks = bin_seasonal(cells, months=6, anchor=1)
+        elif self._frequency == "seasonal":
+            tasks = bin_seasonal(cells, months=3, anchor=12)
+        elif self._frequency == "nov-mar":
+            tasks = bin_seasonal(cells, months=5, anchor=11, extract_single_season=True)
+        elif self._frequency == "apr-oct":
+            tasks = bin_seasonal(cells, months=7, anchor=4, extract_single_season=True)
+        elif self._frequency == "annual-fy":
+            tasks = bin_seasonal(cells, months=12, anchor=7)
+        elif self._frequency == "annual":
+            tasks = bin_annual(cells)
+        elif temporal_range is not None:
+            tasks = bin_generic(cells, [temporal_range])
+        else:
+            tasks = bin_annual(cells)
+        # Remove duplicate source uuids.
+        # Duplicates occur when queried datasets are captured around UTC midnight
+        # and around weekly boundary
+        tasks = {k: set(dss) for k, dss in tasks.items()}
+        tasks_uuid = {k: [ds.id for ds in dss] for k, dss in tasks.items()}
 
-            n_tiles = len(cells)
-            msg(f"Total of {n_tiles:,d} spatial tiles")
+        all_ids = set()
+        for k, dss in tasks_uuid.items():
+            all_ids.update(dss)
+        msg(f"Total of {len(all_ids):,d} unique dataset IDs after filtering")
 
-            if self._frequency == "all":
-                tasks = bin_full_history(cells, start=dt_range.start, end=dt_range.end)
-            elif self._frequency == "semiannual":
-                tasks = bin_seasonal(cells, months=6, anchor=1)
-            elif self._frequency == "seasonal":
-                tasks = bin_seasonal(cells, months=3, anchor=12)
-            elif self._frequency == "nov-mar":
-                tasks = bin_seasonal(cells, months=5, anchor=11, extract_single_season=True)
-            elif self._frequency == "apr-oct":
-                tasks = bin_seasonal(cells, months=7, anchor=4, extract_single_season=True)
-            elif self._frequency == "annual-fy":
-                tasks = bin_seasonal(cells, months=12, anchor=7)
-            elif self._frequency == "annual":
-                tasks = bin_annual(cells)
-            elif temporal_range is not None:
-                tasks = bin_generic(cells, [temporal_range])
-            else:
-                tasks = bin_annual(cells)
-            # Remove duplicate source uuids.
-            # Duplicates occur when queried datasets are captured around UTC midnight
-            # and around weekly boundary
-            tasks = {k: set(dss) for k, dss in tasks.items()}
-            tasks_uuid = {k: [ds.id for ds in dss] for k, dss in tasks.items()}
+        msg(f"Saving tasks to disk ({len(tasks)})")
+        cache.add_grid_tiles(self._grid, tasks_uuid)
+        msg(".. done")
 
-            all_ids = set()
-            for k, dss in tasks_uuid.items():
-                all_ids.update(dss)
-            msg(f"Total of {len(all_ids):,d} unique dataset IDs after filtering")
-
-            msg(f"Saving tasks to disk ({len(tasks)})")
-            cache.add_grid_tiles(self._grid, tasks_uuid)
-            msg(".. done")
-
-            self._write_info(tasks, msg, cells, debug)
+        self._write_info(tasks, msg, cells, debug)
 
         return True
 
