@@ -44,6 +44,7 @@ def dataset(usgs_ls8_sr_definition):
     xx['band_red'].attrs['nodata'] = 0
     return xx
 
+
 @pytest.fixture
 def dataset_with_aerosol_band(dataset):
     aerosol_mask = 0b1100_0000
@@ -59,6 +60,7 @@ def dataset_with_aerosol_band(dataset):
     dataset["SR_QA_AEROSOL"] = (("spec", "y", "x"), band_aerosol)
     return dataset
 
+
 @pytest.fixture
 def dataset_with_atmos_opacity_band(dataset):
     band_atmos_opacity = np.array([
@@ -71,6 +73,7 @@ def dataset_with_atmos_opacity_band(dataset):
 
     dataset["SR_ATMOS_OPACITY"] = (("spec", "y", "x"), band_atmos_opacity)
     return dataset
+
 
 def test_meaurements(dataset):
     filters = {
@@ -88,6 +91,7 @@ def test_meaurements(dataset):
     expected_result = ("total", "clear", "clear_0_1_1", "clear_1_0_1", "clear_1_1_0", "clear_1_1_1", "clear_aerosol", "clear_0_1_1_aerosol", "clear_1_0_1_aerosol")
     measurements = pq.measurements
     assert (measurements == expected_result)
+
 
 def test_native_transform(dataset):
     pq = StatsPQLSBitmask()
@@ -111,6 +115,7 @@ def test_native_transform(dataset):
     erased_cloud = tr_result["erased"].data
     assert (erased_cloud == expected_result).all()
 
+
 def test_fuser(dataset):
     pq = StatsPQLSBitmask()
 
@@ -123,6 +128,7 @@ def test_fuser(dataset):
     )
     erased_cloud = fuser_result["erased"].data
     assert (erased_cloud == expected_result).all()
+
 
 def test_reduce(dataset):
     pq = StatsPQLSBitmask()
@@ -146,6 +152,7 @@ def test_reduce(dataset):
     )
     clear = reduce_result["clear"].data
     assert (clear == expected_result).all()
+
 
 def test_reduce_with_filter(dataset):
     filters = {
@@ -186,6 +193,7 @@ def test_reduce_with_filter(dataset):
     clear_2_1_1 = reduce_result["clear_2_1_1"].data
     assert (clear_2_1_1 == expected_result).all()
 
+
 def test_native_transform_for_aerosol(dataset_with_aerosol_band):
     pq = StatsPQLSBitmask(pq_band = "QA_PIXEL", aerosol_band = "SR_QA_AEROSOL")
 
@@ -200,6 +208,7 @@ def test_native_transform_for_aerosol(dataset_with_aerosol_band):
     erased_aerosol = tr_result["erased_aerosol"].data
     assert (erased_aerosol == expected_result).all()
 
+
 def test_fuse_for_aerosol(dataset_with_aerosol_band):
     pq = StatsPQLSBitmask(pq_band = "QA_PIXEL", aerosol_band = "SR_QA_AEROSOL")
 
@@ -212,6 +221,7 @@ def test_fuse_for_aerosol(dataset_with_aerosol_band):
     )
     erased_aerosol = fuser_result["erased_aerosol"].data
     assert (erased_aerosol == expected_result).all()
+
 
 def test_reduce_for_aerosol(dataset_with_aerosol_band):
     pq = StatsPQLSBitmask(pq_band = "QA_PIXEL", aerosol_band = "SR_QA_AEROSOL")
@@ -235,6 +245,7 @@ def test_reduce_for_aerosol(dataset_with_aerosol_band):
     )
     clear_aerosol = reduce_result["clear_aerosol"].data
     assert (clear_aerosol == expected_result).all()
+
 
 def test_reduce_for_aerosol_with_filter(dataset_with_aerosol_band):
     filters = {
@@ -265,6 +276,7 @@ def test_reduce_for_aerosol_with_filter(dataset_with_aerosol_band):
     clear_aerosol = reduce_result["clear_0_1_1_aerosol"].data
     assert (clear_aerosol == expected_result).all()
 
+
 def test_native_transform_for_atmos_opacity(dataset_with_atmos_opacity_band):
     pq = StatsPQLSBitmask(pq_band = "QA_PIXEL", aerosol_band = "SR_ATMOS_OPACITY")
 
@@ -279,6 +291,7 @@ def test_native_transform_for_atmos_opacity(dataset_with_atmos_opacity_band):
     erased_aerosol = tr_result["erased_aerosol"].data
     assert (erased_aerosol == expected_result).all()
 
+
 def test_fuse_for_atmos_opacity(dataset_with_atmos_opacity_band):
     pq = StatsPQLSBitmask(pq_band = "QA_PIXEL", aerosol_band = "SR_ATMOS_OPACITY")
 
@@ -291,6 +304,7 @@ def test_fuse_for_atmos_opacity(dataset_with_atmos_opacity_band):
     )
     erased_aerosol = fuser_result["erased_aerosol"].data
     assert (erased_aerosol == expected_result).all()
+
 
 def test_reduce_for_atmos_opacity(dataset_with_atmos_opacity_band):
     pq = StatsPQLSBitmask(pq_band = "QA_PIXEL", aerosol_band = "SR_ATMOS_OPACITY")

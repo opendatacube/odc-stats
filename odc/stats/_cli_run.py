@@ -148,13 +148,12 @@ def run(
     if cog_config is not None:
         _cfg["cog_opts"] = cog_config
 
-    if from_sqs: # if config or CLI has filedb, but run from sqs, throw this warning message.
+    if from_sqs:  # if config or CLI has filedb, but run from sqs, throw this warning message.
         _log.warning("The `filedb` from config or CLI will be a placeholder value. Actual filedb saved in SQS message")
     elif not _cfg.get('filedb'):
         _log.error("Must supply `filedb` either through config or CLI")
-        sys.exit(1)    
+        sys.exit(1)
 
-    
     tmp = _cfg.pop('dataset-filters', None)
     if dataset_filters is None:
         dataset_filters = tmp
@@ -166,7 +165,7 @@ def run(
     cfg = TaskRunnerConfig(**_cfg)
     _log.info(f"Using this config: {cfg}")
 
-    # Warnning, if run from sqs, the runner will skil rdr init
+    # Warning, if run from sqs, the runner will skip rdr init
     runner = TaskRunner(cfg, resolution=resolution, from_sqs=from_sqs)
 
     if dryrun:

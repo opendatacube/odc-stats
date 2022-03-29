@@ -7,7 +7,6 @@ from itertools import islice, chain, groupby
 import pickle
 import json
 import os
-from tqdm.auto import tqdm
 from urllib.parse import urlparse
 import logging
 import ciso8601
@@ -20,7 +19,7 @@ from datacube.utils.geometry import Geometry
 from datacube.utils.documents import transform_object_tree
 from datacube.utils.dates import normalise_dt
 
-from odc.dscache.tools import chopped_dss, bin_dataset_stream, dataset_count, all_datasets, ordered_dss
+from odc.dscache.tools import bin_dataset_stream, ordered_dss
 from odc.dscache.tools.tiling import parse_gridspec_with_name
 from odc.dscache.tools.profiling import ds_stream_test_func
 from ._text import split_and_check
@@ -78,6 +77,7 @@ def parse_task(s: str) -> TileIdx_txy:
     if t.startswith("x"):
         t, x, y = y, t, x
     return (t, int(x.lstrip("x")), int(y.lstrip("y")))
+
 
 def render_sqs(tidx: TileIdx_txy, filedb: str) -> Dict[str, str]:
     """
@@ -249,11 +249,11 @@ class SaveTasks:
 
         dss_slice = list(islice(dss, 0, 100))
         if len(dss_slice) == 0:
-            msg(f"found no datasets")
+            msg("found no datasets")
             return True
 
         if len(dss_slice) >= 100:
-            msg(f"Training compression dictionary ")
+            msg("Training compression dictionary")
             samples = dss_slice.copy()
             random.shuffle(samples)
             zdict = DatasetCache.train_dictionary(samples, 8 * 1024)
@@ -388,7 +388,7 @@ class TaskReader:
             cfg = cache.get_info_dict("stats/config")
             grid = cfg["grid"]
             gridspec = cache.grids[grid]
-        else: # if read from message, there is no filedb at beginning
+        else:  # if read from message, there is no filedb at beginning
             cfg = {}
 
         self._product = product
@@ -450,14 +450,13 @@ class TaskReader:
             _log.info(f"Changing resolution to {self.resolution[0], self.resolution[1]}")
             if self.is_compatible_resolution(self.resolution):
                 self.change_resolution(self.resolution)
-            else: # if resolution has issue, stop init
+            else:  # if resolution has issue, stop init
                 _log.error(
                     f"Requested resolution is not compatible with GridSpec in '{cfg.filedb}'"
                 )
                 raise ValueError(
                     f"Requested resolution is not compatible with GridSpec in '{cfg.filedb}'"
                 )
-
 
     def __del__(self):
         if self._cache_path is not None:
