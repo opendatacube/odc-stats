@@ -65,7 +65,7 @@ class TaskRunner:
         else:  # skip rdr and resolution compatible init
             _log.info(f"Skip rdr init for run from sqs: {cfg.filedb}")
             self.rdr = TaskReader("", self.product, resolution)
-            
+
         self._client = None
 
     def _init_dask(self) -> Client:
@@ -211,7 +211,7 @@ class TaskRunner:
             aux: Optional[xr.Dataset] = None
 
             # if no rgba setting in cog_ops:overrides, no rgba tif as ouput
-            if 'overrides' in cfg.cog_opts and 'rgba' in cfg.cog_opts['overrides']: 
+            if 'overrides' in cfg.cog_opts and 'rgba' in cfg.cog_opts['overrides']:
                 rgba = proc.rgba(ds)
                 if rgba is not None:
                     aux = xr.Dataset(dict(rgba=rgba))
@@ -272,7 +272,7 @@ class TaskRunner:
             return self._run(
                 self.rdr.stream_from_sqs(
                     sqs, visibility_timeout=cfg.job_queue_max_lease, ds_filters=ds_filters
-                ), 
+                ),
                 apply_eodatasets3
             )
         raise ValueError("Must supply one of tasks= or sqs=")

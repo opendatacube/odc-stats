@@ -75,6 +75,7 @@ def test_binning():
     tasks = bin_seasonal(cells, 6, 1)
     verify(tasks)
 
+
 def test_wo_season_binner():
     wo_apr_to_oct_seasons_rules = {
         4: "04--P7M",
@@ -117,6 +118,7 @@ def test_wo_season_binner():
     assert binner(datetime(2020, 5, 31)) == ""
     assert binner(datetime(2020, 10, 31)) == ""
     assert binner(datetime(2020, 12, 30)) == "2020-11--P5M"
+
 
 def test_season_binner():
     four_seasons_rules = {
