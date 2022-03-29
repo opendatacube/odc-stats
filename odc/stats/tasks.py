@@ -421,7 +421,7 @@ class TaskReader:
             gs.crs, gs.tile_size, resolution=resolution, origin=gs.origin
         )
 
-    def init_from_sqs(self, cache: Union[str, DatasetCache]):
+    def init_from_sqs(self, local_db_path: str):
         """
         Adding the missing _grid, _gridspec, _gridspec and _all_tiles which skip for sqs task init.
         Upading the cfg which used placeholder filedb path for sqs task init.
@@ -429,21 +429,16 @@ class TaskReader:
 
         _log = logging.getLogger(__name__)
 
-        self._cache_path = None
+        cache = DatasetCache.open_ro(local_db_path)
 
-        if isinstance(cache, str):
-            if cache.startswith("s3://"):
-                self._cache_path = s3_download(cache)
-                cache = self._cache_path
-            cache = DatasetCache.open_ro(cache)
-
-        # TODO: verify this things are set in the file
+        # TODO: Validate this information. Assumption is the ...
         cfg = cache.get_info_dict("stats/config")
         grid = cfg["grid"]
         gridspec = cache.grids[grid]
 
         cfg['filedb'] = cache
 
+        # Configure everything on the TaskReader
         self._dscache = cache
         self._cfg = cfg
         self._grid = grid
@@ -543,15 +538,25 @@ class TaskReader:
         for msg in get_messages(sqs_queue, visibility_timeout=visibility_timeout, **kw):
             token = SQSWorkToken(msg, visibility_timeout)
             tidx, filedb = parse_sqs(msg.body)
+            local_db_file = None
 
-            # avoid the download and update again, how ever, we have to setup an exception to handle the unit test filedb
+            # Avoid downloading the file multiple times.
             if urlparse(filedb).scheme == 's3':
-                bucket, key = s3_url_parse(filedb)
-            else: # if it is the test_tiles.db, we load it from local
-                key = filedb
-            local_cache_file = key.split("/")[-1]
-            if not os.path.isfile(local_cache_file):  # use the download filedb from S3 as the init context flag
-                self.init_from_sqs(filedb)
+                _, key = s3_url_parse(filedb)
+                local_db_file = key.split("/")[-1]
+                self._cache_path = local_db_file
+
+                # Make sure we have this DB downloaded
+                if not os.path.isfile(local_db_file):
+                    s3_download(filedb, destination=local_db_file)
+            else:
+                # Assume it's a local file if it's not an S3 URL
+                local_db_file = filedb
+
+            # Initialise TaskReader information from the DB
+            self.init_from_sqs(local_db_file)
+
+            # Load the task
             yield self.load_task(tidx, product, source=token, ds_filters=ds_filters)
 
 
