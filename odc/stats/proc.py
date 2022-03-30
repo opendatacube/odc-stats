@@ -202,40 +202,44 @@ class TaskRunner:
                     yield TaskResult(task, path, skipped=True)
                     continue
 
-            _log.debug("Building Dask Graph")
-            ds = proc.reduce(proc.input_data(task.datasets, task.geobox))
+            try:
+                _log.debug("Building Dask Graph")
+                ds = proc.reduce(proc.input_data(task.datasets, task.geobox))
 
-            _log.debug(f"Submitting to Dask ({task.location})")
-            ds = client.persist(ds, fifo_timeout="1ms")
+                _log.debug(f"Submitting to Dask ({task.location})")
+                ds = client.persist(ds, fifo_timeout="1ms")
 
-            aux: Optional[xr.Dataset] = None
+                aux: Optional[xr.Dataset] = None
 
-            # if no rgba setting in cog_ops:overrides, no rgba tif as ouput
-            if 'overrides' in cfg.cog_opts and 'rgba' in cfg.cog_opts['overrides']:
-                rgba = proc.rgba(ds)
-                if rgba is not None:
-                    aux = xr.Dataset(dict(rgba=rgba))
+                # if no rgba setting in cog_ops:overrides, no rgba tif as ouput
+                if 'overrides' in cfg.cog_opts and 'rgba' in cfg.cog_opts['overrides']:
+                    rgba = proc.rgba(ds)
+                    if rgba is not None:
+                        aux = xr.Dataset(dict(rgba=rgba))
 
-            cog = sink.dump(task, ds, aux, proc, apply_eodatasets3)
-            cog = client.compute(cog, fifo_timeout="1ms")
+                cog = sink.dump(task, ds, aux, proc, apply_eodatasets3)
+                cog = client.compute(cog, fifo_timeout="1ms")
 
-            _log.debug("Waiting for completion")
-            cancelled = False
+                _log.debug("Waiting for completion")
+                cancelled = False
 
-            for (dt, t_now) in wait_for_future(cog, cfg.future_poll_interval, t0=t0):
-                if cfg.heartbeat_filepath is not None:
-                    self._register_heartbeat(cfg.heartbeat_filepath)
-                if tk:
-                    tk.extend_if_needed(
-                        cfg.job_queue_max_lease, cfg.renew_safety_margin
-                    )
-                if cfg.max_processing_time > 0 and dt > cfg.max_processing_time:
-                    _log.error(
-                        f"Task {task.location} failed to finish on time: {dt}>{cfg.max_processing_time}"
-                    )
-                    cancelled = True
-                    cog.cancel()
-                    break
+                for (dt, t_now) in wait_for_future(cog, cfg.future_poll_interval, t0=t0):
+                    if cfg.heartbeat_filepath is not None:
+                        self._register_heartbeat(cfg.heartbeat_filepath)
+                    if tk:
+                        tk.extend_if_needed(
+                            cfg.job_queue_max_lease, cfg.renew_safety_margin
+                        )
+                    if cfg.max_processing_time > 0 and dt > cfg.max_processing_time:
+                        _log.error(
+                            f"Task {task.location} failed to finish on time: {dt}>{cfg.max_processing_time}"
+                        )
+                        cancelled = True
+                        cog.cancel()
+                        break
+            except Exception as e:
+                _log.error(f"Error during processing of {task.location} {e}")
+                result = TaskResult(task, error=str(e))
 
             if cancelled:
                 result = TaskResult(task, error="Cancelled due to timeout")
