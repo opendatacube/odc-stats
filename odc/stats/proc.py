@@ -238,7 +238,7 @@ class TaskRunner:
                         cog.cancel()
                         break
             except Exception as e:
-                _log.error(f"Error during processing of {task.location} {e}")
+                _log.exception(f"Error during processing of {task.location} {e}")
                 result = TaskResult(task, error=str(e))
 
             if cancelled:
