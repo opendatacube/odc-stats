@@ -183,7 +183,7 @@ class SaveTasks:
         cfg["query"] = sanitize_query(query)
 
         msg("Connecting to the database, streaming datasets")
-        dss = ordered_dss(dc, freq="w", key=lambda ds: (ds.center_time, ds.metadata.region_code)
+        dss = ordered_dss(dc, freq="y", key=lambda ds: (ds.center_time, ds.metadata.region_code)
                                                         if hasattr(ds.metadata, 'region_code') else (ds.center_time,),
                           **query)
         return dss, cfg
