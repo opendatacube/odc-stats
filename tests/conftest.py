@@ -6,6 +6,7 @@ from moto import mock_sqs
 from . import DummyPlugin
 
 TEST_DIR = pathlib.Path(__file__).parent.absolute()
+TEST_DATA_FOLDER = TEST_DIR / "data"
 
 
 @pytest.fixture
@@ -14,13 +15,18 @@ def aws_env(monkeypatch):
 
 
 @pytest.fixture
-def test_dir():
-    return TEST_DIR
+def test_db_path():
+    return str(TEST_DATA_FOLDER / "test_tiles.db")
 
 
 @pytest.fixture
-def test_db_path(test_dir):
-    return str(test_dir / "test_tiles.db")
+def test_geom_path():
+    return str(TEST_DATA_FOLDER / "testing_extent.geojson")
+
+
+@pytest.fixture
+def test_db_filter_path():
+    return str(TEST_DATA_FOLDER / "test_tiles_filter.db")
 
 
 @pytest.fixture
