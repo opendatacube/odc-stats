@@ -475,6 +475,14 @@ class TaskReader:
         return product
 
     @property
+    def cache(self) -> DatasetCache:
+        return self._dscache
+
+    @property
+    def grid(self) -> GridSpec:
+        return self._grid
+
+    @property
     def product(self) -> OutputProduct:
         return self._resolve_product(None)
 
