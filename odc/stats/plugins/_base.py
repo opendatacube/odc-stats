@@ -67,4 +67,4 @@ class StatsPluginInterface(ABC):
         """
         if self.rgb_bands is None:
             return None
-        return to_rgba(xx, clamp=self.rgb_clamp, bands=self.reg_bands)
+        return to_rgba(xx, clamp=self.rgb_clamp, bands=self.rgb_bands)
