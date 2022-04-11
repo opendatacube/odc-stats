@@ -34,7 +34,8 @@ jobs:
         python -m pip install --upgrade \
          toml \
          wheel \
-         twine
+         twine \
+         packaging
         python -m pip freeze
 
     - name: Build Clean Packages
