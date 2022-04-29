@@ -178,6 +178,7 @@ class StatsGMLS(StatsGM):
         mask_band: str = "fmask",
         cloud_classes: Tuple[str, ...] = ("cloud", "shadow"),
         nodata_classes: Optional[Tuple[str, ...]] = ("nodata",),
+        filters: Optional[Iterable[Tuple[str, int]]] = None,
         aux_names=dict(smad="sdev", emad="edev", bcmad="bcdev", count="count"),
         rgb_bands=None,
         **kwargs
@@ -198,6 +199,7 @@ class StatsGMLS(StatsGM):
             bands=bands,
             mask_band=mask_band,
             cloud_classes=cloud_classes,
+            filters=filters,
             nodata_classes=nodata_classes,
             aux_names=aux_names,
             rgb_bands=rgb_bands,
