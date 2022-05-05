@@ -4,6 +4,7 @@ Geomedian
 from typing import Optional, Mapping, Sequence, Tuple, Iterable
 import xarray as xr
 from datacube.model import Dataset
+from datacube.storage.masking import make_mask
 from datacube.utils.geometry import GeoBox
 from odc.algo import erase_bad, geomedian_with_mads
 from odc.algo.io import load_enum_filtered
