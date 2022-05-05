@@ -206,5 +206,21 @@ class StatsGMLS(StatsGM):
             **kwargs,
         )
 
+    def input_data(self, datasets: Sequence[Dataset], geobox: GeoBox) -> xr.Dataset:
+        xx = super().input_data(
+                datasets: Sequence[Dataset],
+                geobox: GeoBox
+                )
+
+        # Get valid pixels
+        clear_mask = make_mask(xx[self._mask_band], self._mask_band="valid")
+        xx = xx.where(clear_mask)
+        # Remove cloud
+        bad = enum_to_bool(xx[self._mask_band], self.cloud_classes)
+        # Mask the contiguity
+        bad |= xx["nbart_contiguity"] == 0
+        xx = erase_bad(xx, bad)
+
+        return xx
 
 register("gm-ls", StatsGMLS)
