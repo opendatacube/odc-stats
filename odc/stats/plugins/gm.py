@@ -207,10 +207,7 @@ class StatsGMLS(StatsGM):
         )
 
     def input_data(self, datasets: Sequence[Dataset], geobox: GeoBox) -> xr.Dataset:
-        xx = super().input_data(
-                datasets: Sequence[Dataset],
-                geobox: GeoBox
-                )
+        xx = super().input_data(datasets, geobox)
 
         # Get valid pixels
         clear_mask = make_mask(xx[self._mask_band], self._mask_band="valid")
