@@ -293,7 +293,7 @@ class S3COGSink:
         _u = urlparse(stac_file_path)
 
         if _u.scheme == "s3":
-            dataset_location = f"{_u.scheme}://{_u.netloc}/{'/'.join(_u.path.split('/')[:-1])}"
+            dataset_location = f"{_u.scheme}://{_u.netloc}/{_u.path}"
         else:
             dataset_location = str(Path(_u.path).parent)
 
