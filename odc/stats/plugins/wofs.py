@@ -20,7 +20,6 @@ import xarray as xr
 from datacube.model import Dataset
 from datacube.utils.geometry import GeoBox
 from odc.algo import safe_div, apply_numexpr, keep_good_only, binary_dilation
-from odc.stac import dc_load
 from ._registry import StatsPluginInterface, register
 
 
@@ -177,13 +176,12 @@ class StatsWofsFullHistory(StatsPluginInterface):
     def measurements(self) -> Tuple[str, ...]:
         return "count_wet", "count_clear", "frequency"
 
-    def input_data(self, datasets: Sequence[Dataset], geobox: GeoBox) -> xr.Dataset:
-        return dc_load(
-            datasets,
-            measurements=self.input_bands,
-            geobox=geobox,
-            chunks={},
-        )
+    def fuser(self, xx):
+        """
+            no fuse required since group by none
+            return loaded data
+        """
+        return xx
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         dtype = xx.count_clear.dtype

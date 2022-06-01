@@ -140,7 +140,7 @@ def run(
 
     _cfg.update(cfg_from_cli)
     if plugin_config is not None:
-        _cfg["plugin_config"] = plugin_config
+        _cfg["plugin_config"].update(plugin_config)
 
     if resampling is not None and len(resampling) > 0:
         _cfg.setdefault("plugin_config", {})["resampling"] = resampling
