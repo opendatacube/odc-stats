@@ -323,6 +323,9 @@ class SaveTasks:
             all_ids.update(dss)
         msg(f"Total of {len(all_ids):,d} unique dataset IDs after filtering")
 
+        if len(all_ids) == 0:
+            return True
+
         msg(f"Saving tasks to disk ({len(tasks)})")
         cache.add_grid_tiles(self._grid, tasks_uuid)
         msg(".. done")
