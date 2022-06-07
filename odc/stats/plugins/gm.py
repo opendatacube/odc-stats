@@ -78,18 +78,25 @@ class StatsGM(StatsPluginInterface):
         return xx
 
     def input_data(self, datasets: Sequence[Dataset], geobox: GeoBox) -> xr.Dataset:
-        erased = load_enum_filtered(
-            datasets,
-            self._mask_band,
-            geobox,
-            categories=self.cloud_classes,
-            filters=self.filters,
-            groupby=self.group_by,
-            resampling=self.resampling,
-            chunks={},
-        )
+        cloud_shadow_mask = None
+        for cloud_class, filter in zip(self.cloud_classes, self.filters):
+            erased = load_enum_filtered(
+                    datasets,
+                    self._mask_band,
+                    geobox,
+                    categories=cloud_class,
+                    filters=filter,
+                    groupby=self.group_by,
+                    resampling=self.resampling,
+                    chunks={},
+                )
+            if cloud_shadow_mask is None:
+                cloud_shadow_mask = erased
+            else:
+                cloud_shadow_mask |= erased
+
         xx = super().input_data(datasets, geobox)
-        xx = erase_bad(xx, erased)
+        xx = erase_bad(xx, cloud_shadow_mask)
         return xx
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
