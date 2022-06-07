@@ -1,7 +1,7 @@
 """
 Geomedian
 """
-from typing import Optional, Mapping, Sequence, Tuple, Iterable
+from typing import Optional, Mapping, Sequence, Tuple, Iterable, Dict
 import xarray as xr
 from datacube.model import Dataset
 from datacube.utils.geometry import GeoBox
@@ -23,6 +23,7 @@ class StatsGM(StatsPluginInterface):
         cloud_classes: Tuple[str, ...],
         nodata_classes: Optional[Tuple[str, ...]] = None,
         filters: Optional[Iterable[Tuple[str, int]]] = None,
+        cloud_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]]=None,
         basis_band=None,
         aux_names=dict(smad="smad", emad="emad", bcmad="bcmad", count="count"),
         work_chunks: Tuple[int, int] = (400, 400),
@@ -44,11 +45,8 @@ class StatsGM(StatsPluginInterface):
             **kwargs)
 
         self.cloud_classes = tuple(cloud_classes)
-        # if filters:
-        #     self.filters: Optional[Mapping] = dict(filters)
         self.filters = filters
-        # else:
-        #     self.filters = None
+        self.cloud_filters = cloud_filters
 
         self._renames = aux_names
         self.aux_bands = tuple(
@@ -79,25 +77,41 @@ class StatsGM(StatsPluginInterface):
 
     def input_data(self, datasets: Sequence[Dataset], geobox: GeoBox) -> xr.Dataset:
         cloud_shadow_mask = None
-        for cloud_class, filter in zip(self.cloud_classes, self.filters):
-            erased = load_enum_filtered(
-                    datasets,
-                    self._mask_band,
-                    geobox,
-                    categories=cloud_class,
-                    filters=filter,
-                    groupby=self.group_by,
-                    resampling=self.resampling,
-                    chunks={},
-                )
-            if cloud_shadow_mask is None:
-                cloud_shadow_mask = erased
-            else:
-                cloud_shadow_mask |= erased
+        # Apply the same filter to all cloud classes
+        if self.filters is not None and self.cloud_classes is not None:
+             cloud_shadow_mask = load_enum_filtered(
+                        datasets,
+                        self._mask_band,
+                        geobox,
+                        categories=self.cloud_classes,
+                        filters=self.filters,
+                        groupby=self.group_by,
+                        resampling=self.resampling,
+                        chunks={},
+                    )
+        # Apply different filters to different cloud classes
+        elif self.cloud_filters is not None:
+            for cloud_class, filter in self.cloud_filters.items():
+                erased = load_enum_filtered(
+                        datasets,
+                        self._mask_band,
+                        geobox,
+                        categories=(cloud_class,),
+                        filters=filter,
+                        groupby=self.group_by,
+                        resampling=self.resampling,
+                        chunks={},
+                    )
+                if cloud_shadow_mask is None:
+                    cloud_shadow_mask = erased
+                else:
+                    cloud_shadow_mask |= erased
+
 
         xx = super().input_data(datasets, geobox)
         xx = erase_bad(xx, cloud_shadow_mask)
         return xx
+
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         scale = 1 / 10_000
@@ -186,6 +200,7 @@ class StatsGMLS(StatsGM):
         cloud_classes: Tuple[str, ...] = ("cloud", "shadow"),
         nodata_classes: Optional[Tuple[str, ...]] = ("nodata",),
         filters: Optional[Iterable[Tuple[str, int]]] = None,
+        cloud_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]]=None,
         aux_names=dict(smad="sdev", emad="edev", bcmad="bcdev", count="count"),
         rgb_bands=None,
         **kwargs
@@ -207,6 +222,7 @@ class StatsGMLS(StatsGM):
             mask_band=mask_band,
             cloud_classes=cloud_classes,
             filters=filters,
+            cloud_filters=cloud_filters,
             nodata_classes=nodata_classes,
             aux_names=aux_names,
             rgb_bands=rgb_bands,
