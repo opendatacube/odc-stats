@@ -20,11 +20,9 @@ class StatsGM(StatsPluginInterface):
         self,
         bands: Tuple[str, ...],
         mask_band: str,
-        cloud_classes: Tuple[str, ...],
         nodata_classes: Optional[Tuple[str, ...]] = None,
-        filters: Optional[Iterable[Tuple[str, int]]] = None,
-        cloud_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]]=None,
-        basis_band=None,
+        cloud_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
+        basis_band = None,
         aux_names=dict(smad="smad", emad="emad", bcmad="bcmad", count="count"),
         work_chunks: Tuple[int, int] = (400, 400),
         **kwargs,
@@ -44,10 +42,7 @@ class StatsGM(StatsPluginInterface):
             basis=basis_band or self.bands[0],
             **kwargs)
 
-        self.cloud_classes = tuple(cloud_classes)
-        self.filters = filters
         self.cloud_filters = cloud_filters
-
         self._renames = aux_names
         self.aux_bands = tuple(
             self._renames.get(k, k) for k in ("smad", "emad", "bcmad", "count")
@@ -77,20 +72,8 @@ class StatsGM(StatsPluginInterface):
 
     def input_data(self, datasets: Sequence[Dataset], geobox: GeoBox) -> xr.Dataset:
         cloud_shadow_mask = None
-        # Apply the same filter to all cloud classes
-        if self.filters is not None and self.cloud_classes is not None:
-             cloud_shadow_mask = load_enum_filtered(
-                        datasets,
-                        self._mask_band,
-                        geobox,
-                        categories=self.cloud_classes,
-                        filters=self.filters,
-                        groupby=self.group_by,
-                        resampling=self.resampling,
-                        chunks={},
-                    )
         # Apply different filters to different cloud classes
-        elif self.cloud_filters is not None:
+        if self.cloud_filters is not None:
             for cloud_class, filter in self.cloud_filters.items():
                 erased = load_enum_filtered(
                         datasets,
@@ -141,18 +124,17 @@ class StatsGMS2(StatsGM):
     SHORT_NAME = NAME
     VERSION = "0.0.0"
     PRODUCT_FAMILY = "geomedian"
-
+    DEFAULT_FILTER = [("opening", 2), ("dilation", 5)]
     def __init__(
         self,
         bands: Optional[Tuple[str, ...]] = None,
         mask_band: str = "SCL",
-        cloud_classes: Tuple[str, ...] = (
-            "cloud shadows",
-            "cloud medium probability",
-            "cloud high probability",
-            "thin cirrus",
-        ),
-        filters: Optional[Iterable[Tuple[str, int]]] = [("opening", 2), ("dilation",5)],
+        cloud_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = {
+                                'cloud shadows': DEFAULT_FILTER,
+                                'cloud medium probability': DEFAULT_FILTER,
+                                'cloud high probability': DEFAULT_FILTER,
+                                'thin cirrus': DEFAULT_FILTER},
+
         aux_names=dict(smad="SMAD", emad="EMAD", bcmad="BCMAD", count="COUNT"),
         rgb_bands=None,
         **kwargs
@@ -176,8 +158,7 @@ class StatsGMS2(StatsGM):
         super().__init__(
             bands=bands,
             mask_band=mask_band,
-            cloud_classes=cloud_classes,
-            filters=filters,
+            cloud_filters=cloud_filters,
             aux_names=aux_names,
             rgb_bands=rgb_bands,
             **kwargs
@@ -197,10 +178,8 @@ class StatsGMLS(StatsGM):
         self,
         bands: Optional[Tuple[str, ...]] = None,
         mask_band: str = "fmask",
-        cloud_classes: Tuple[str, ...] = ("cloud", "shadow"),
         nodata_classes: Optional[Tuple[str, ...]] = ("nodata",),
-        filters: Optional[Iterable[Tuple[str, int]]] = None,
-        cloud_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]]=None,
+        cloud_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
         aux_names=dict(smad="sdev", emad="edev", bcmad="bcdev", count="count"),
         rgb_bands=None,
         **kwargs
@@ -220,8 +199,6 @@ class StatsGMLS(StatsGM):
         super().__init__(
             bands=bands,
             mask_band=mask_band,
-            cloud_classes=cloud_classes,
-            filters=filters,
             cloud_filters=cloud_filters,
             nodata_classes=nodata_classes,
             aux_names=aux_names,
