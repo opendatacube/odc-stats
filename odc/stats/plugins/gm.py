@@ -21,7 +21,7 @@ class StatsGM(StatsPluginInterface):
         bands: Tuple[str, ...],
         mask_band: str,
         nodata_classes: Optional[Tuple[str, ...]] = None,
-        cloud_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
+        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
         basis_band = None,
         aux_names=dict(smad="smad", emad="emad", bcmad="bcmad", count="count"),
         work_chunks: Tuple[int, int] = (400, 400),
@@ -129,7 +129,7 @@ class StatsGMS2(StatsGM):
         self,
         bands: Optional[Tuple[str, ...]] = None,
         mask_band: str = "SCL",
-        cloud_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = {
+        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = {
                                 'cloud shadows': DEFAULT_FILTER,
                                 'cloud medium probability': DEFAULT_FILTER,
                                 'cloud high probability': DEFAULT_FILTER,
@@ -179,7 +179,7 @@ class StatsGMLS(StatsGM):
         bands: Optional[Tuple[str, ...]] = None,
         mask_band: str = "fmask",
         nodata_classes: Optional[Tuple[str, ...]] = ("nodata",),
-        cloud_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
+        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
         aux_names=dict(smad="sdev", emad="edev", bcmad="bcdev", count="count"),
         rgb_bands=None,
         **kwargs
