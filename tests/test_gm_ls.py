@@ -127,6 +127,7 @@ def test_masking():
     data_dir = f"{project_root}/tests/data/ga_ls8c_ard_3_2015--P1Y.db"
     product = product_for_plugin(StatsGMLS(), location="/tmp/")
 
+    print("****", data_dir)
     rdr = TaskReader(data_dir, product=product)
     tidx = ("2015--P1Y", 40, 8)
     tasks = [rdr.load_task(tidx)]
