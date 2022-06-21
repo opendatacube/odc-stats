@@ -107,7 +107,7 @@ def save_tasks(
       - output product config
 
     """
-    setup_logging(0)
+    setup_logging()
 
     import logging
     from datacube import Datacube
@@ -122,10 +122,8 @@ def save_tasks(
     if config is None:
         config = {}
 
-    _log.debug(f"read in config : {config}")
-    _cfg = {k: config.get(k) for k in CONFIG_ITEMS}
+    _cfg = {k: config.get(k) for k in CONFIG_ITEMS if config.get(k) is not None}
 
-    _log.debug(f"read in config : {_cfg}")
     cfg_from_cli = {
         k: v
         for k, v in dict(
@@ -141,6 +139,7 @@ def save_tasks(
 
     _log.info(f"Config overrides: {cfg_from_cli}")
     _cfg.update(cfg_from_cli)
+    _log.info(f"Using config: {_cfg}")
 
     gqa = _cfg.pop("gqa", None)
     products = _cfg.pop("products", None)
