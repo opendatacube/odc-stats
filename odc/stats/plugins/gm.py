@@ -79,13 +79,6 @@ class StatsGM(StatsPluginInterface):
         xx = keep_good_only(xx, ~bad)
         return xx
 
-    def input_data(
-        self, datasets: Sequence[Dataset], geobox: GeoBox
-    ) -> xr.Dataset:
-
-        xx = super().input_data(datasets, geobox)
-        return xx
-
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         scale = 1 / 10_000
         cfg = dict(
