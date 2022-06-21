@@ -62,17 +62,20 @@ class StatsGM(StatsPluginInterface):
         if not self._mask_band in xx.data_vars:
             return xx
 
+        # Apply the contiguity flag
+        non_contiguent = xx["nbart_contiguity"] == 0
+
         # Erase Data Pixels for which mask == nodata
         mask = xx[self._mask_band]
-        xx = xx.drop_vars([self._mask_band])
         bad = enum_to_bool(mask, self._nodata_classes)
+        bad = bad | non_contiguent
 
         for cloud_class, filter in self.cloud_filters.items():
             cloud_mask = enum_to_bool(mask, (cloud_class,))
-
             cloud_mask_buffered = mask_cleanup(cloud_mask, mask_filters=filter)
             bad = cloud_mask_buffered | bad
 
+        xx = xx.drop_vars([self._mask_band] + ["nbart_contiguity"])
         xx = keep_good_only(xx, ~bad)
         return xx
 
@@ -180,6 +183,7 @@ class StatsGMLS(StatsGM):
                 "nir",
                 "swir1",
                 "swir2",
+                "nbart_contiguity",
             )
             if rgb_bands is None:
                 rgb_bands = ("red", "green", "blue")
