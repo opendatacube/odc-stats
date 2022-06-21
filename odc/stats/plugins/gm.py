@@ -47,7 +47,19 @@ class StatsGM(StatsPluginInterface):
         self.cloud_filters = cloud_filters
         self._renames = aux_names
         self.aux_bands = tuple(
-            self._renames.get(k, k) for k in ("smad", "emad", "bcmad", "count")
+            self._renames.get(k, k)
+            for k in (
+                "smad",
+                "emad",
+                "bcmad",
+                "count",
+                "red",
+                "green",
+                "blue",
+                "nir",
+                "swir1",
+                "swir2",
+            )
         )
 
         self._work_chunks = work_chunks
@@ -164,7 +176,18 @@ class StatsGMLS(StatsGM):
         mask_band: str = "fmask",
         nodata_classes: Optional[Tuple[str, ...]] = ("nodata",),
         cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
-        aux_names=dict(smad="sdev", emad="edev", bcmad="bcdev", count="count"),
+        aux_names=dict(
+            smad="sdev",
+            emad="edev",
+            bcmad="bcdev",
+            count="count",
+            red="nbart_red",
+            green="nbart_green",
+            blue="nbart_blue",
+            nir="nbart_nir",
+            swir1="nbart_swir_1",
+            swir2="nbart_swir_2",
+        ),
         rgb_bands=None,
         **kwargs,
     ):
