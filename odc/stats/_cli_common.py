@@ -77,12 +77,14 @@ def click_resolution(*args, **kw):
     """
     @click_resolution("--custom-flag-for-resolution", help="Whatever help")
     """
+
     def _parse(ctx, param, value):
         if value is not None:
             try:
                 return parse_resolution(value)
             except ValueError as e:
                 raise click.ClickException(str(e)) from None
+
     if len(args) == 0:
         args = ["--resolution"]
     return click.option(*args, callback=_parse, **kw)
@@ -92,9 +94,11 @@ def click_yaml_cfg(*args, **kw):
     """
     @click_yaml_cfg("--custom-flag", help="Whatever help")
     """
+
     def _parse(ctx, param, value):
         if value is not None:
             from urllib.parse import urlparse
+
             r = urlparse(value)
             if all([r.scheme, r.netloc]):
                 try:
@@ -103,10 +107,12 @@ def click_yaml_cfg(*args, **kw):
                     raise click.ClickException(str(e)) from None
             else:
                 from odc.io.text import parse_yaml_file_or_inline
+
                 try:
                     return parse_yaml_file_or_inline(value)
                 except Exception as e:
                     raise click.ClickException(str(e)) from None
+
     return click.option(*args, callback=_parse, **kw)
 
 
