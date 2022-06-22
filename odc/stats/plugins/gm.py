@@ -53,12 +53,6 @@ class StatsGM(StatsPluginInterface):
                 "emad",
                 "bcmad",
                 "count",
-                "red",
-                "green",
-                "blue",
-                "nir",
-                "swir1",
-                "swir2",
             )
         )
 
@@ -181,28 +175,22 @@ class StatsGMLS(StatsGM):
             emad="edev",
             bcmad="bcdev",
             count="count",
-            red="nbart_red",
-            green="nbart_green",
-            blue="nbart_blue",
-            nir="nbart_nir",
-            swir1="nbart_swir_1",
-            swir2="nbart_swir_2",
         ),
         rgb_bands=None,
         **kwargs,
     ):
         if bands is None:
             bands = (
-                "red",
-                "green",
-                "blue",
-                "nir",
-                "swir1",
-                "swir2",
+                "nbart_red",
+                "nbart_red",
+                "nbart_blue",
+                "nbart_nir",
+                "nbart_swir_1",
+                "nbart_swir_2",
                 "nbart_contiguity",
             )
             if rgb_bands is None:
-                rgb_bands = ("red", "green", "blue")
+                rgb_bands = ("nbart_red", "nbart_red", "nbart_blue")
 
         super().__init__(
             bands=bands,
