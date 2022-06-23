@@ -182,7 +182,7 @@ class StatsGMLS(StatsGM):
         if bands is None:
             bands = (
                 "nbart_red",
-                "nbart_red",
+                "nbart_green",
                 "nbart_blue",
                 "nbart_nir",
                 "nbart_swir_1",
@@ -190,7 +190,7 @@ class StatsGMLS(StatsGM):
                 "nbart_contiguity",
             )
             if rgb_bands is None:
-                rgb_bands = ("nbart_red", "nbart_red", "nbart_blue")
+                rgb_bands = ("nbart_red", "nbart_green", "nbart_blue")
 
         super().__init__(
             bands=bands,
