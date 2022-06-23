@@ -42,7 +42,10 @@ def bin_generic(
 
 
 def bin_seasonal(
-    cells: Dict[Tuple[int, int], Cell], months: int, anchor: int, extract_single_season=False
+    cells: Dict[Tuple[int, int], Cell],
+    months: int,
+    anchor: int,
+    extract_single_season=False,
 ) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
     # mk_single_season_rules is different from mk_season_rules
     # because the mk_season_rules will split the whole year to 2/3/4 seasons
@@ -90,7 +93,7 @@ def bin_annual(
 
     return tasks
 
-    
+
 def mk_single_season_rules(months: int, anchor: int) -> Dict[int, str]:
     """
     Construct rules for a each year single season summary
@@ -245,9 +248,7 @@ def fuse_products(type_1: DatasetType, type_2: DatasetType) -> DatasetType:
     name = f"fused__{def_1['name']}__{def_2['name']}"
 
     fused_def["name"] = name
-    fused_def["metadata"] = {
-        "product": {"name": name}
-    }
+    fused_def["metadata"] = {"product": {"name": name}}
 
     if file_format is not None:
         fused_def["metadata"]["odc:file_format"] = file_format
@@ -304,7 +305,9 @@ def fuse_ds(
         label_title_doc_1 = label_title_doc_1.replace(doc_1["product"]["name"], "")
         label_title_doc_2 = label_title_doc_2.replace(doc_2["product"]["name"], "")
         if label_title_doc_1 != label_title_doc_2:
-            raise ValueError(f"Label/Title field {label_title_doc_1} is not the same as {label_title_doc_2}")
+            raise ValueError(
+                f"Label/Title field {label_title_doc_1} is not the same as {label_title_doc_2}"
+            )
 
         fused_doc["label"] = f"{product.name}{label_title_doc_1}"
 

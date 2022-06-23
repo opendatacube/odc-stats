@@ -191,8 +191,7 @@ class OutputProduct:
     classifier: str = "level3"
     maturity: str = "final"
     collection_number: int = 3
-    nodata : Optional[Dict[str, int]] = None
-
+    nodata: Optional[Dict[str, int]] = None
 
     def __post_init__(self):
         if self.href == "":
@@ -323,10 +322,15 @@ class Task:
 
         # TODO: replace this and test
         # if 'fused' in ds.metadata._doc['properties'].keys():
-        if 'fused' in ds.type.name:
-            lineage = tuple(set(
-                x for ds in self.datasets for y in ds.metadata.sources.values() for x in y.values()
-            ))
+        if "fused" in ds.type.name:
+            lineage = tuple(
+                set(
+                    x
+                    for ds in self.datasets
+                    for y in ds.metadata.sources.values()
+                    for x in y.values()
+                )
+            )
         else:
             lineage = tuple(ds.id for ds in self.datasets)
 
@@ -342,14 +346,19 @@ class Task:
         maturity = self.product.maturity
 
         if relative_to == "dataset":
-            return file_prefix if (maturity is None) \
-                                    else file_prefix + "_" + maturity
+            return file_prefix if (maturity is None) else file_prefix + "_" + maturity
         elif relative_to == "product":
-            return self.location + "/" + file_prefix if (maturity is None) \
-                                    else self.location + "/" + file_prefix + "_" + maturity
+            return (
+                self.location + "/" + file_prefix
+                if (maturity is None)
+                else self.location + "/" + file_prefix + "_" + maturity
+            )
         else:
-            return parent_folder + "/" + file_prefix if (maturity is None) \
-                                     else parent_folder + "/" + file_prefix + "_" + maturity
+            return (
+                parent_folder + "/" + file_prefix
+                if (maturity is None)
+                else parent_folder + "/" + file_prefix + "_" + maturity
+            )
 
     def paths(
         self, relative_to: str = "dataset", ext: str = EXT_TIFF
@@ -382,52 +391,69 @@ class Task:
         return f"{prefix}_{name}.{ext}"
 
     def render_assembler_metadata(
-        self, ext: str = EXT_TIFF, output_dataset: xr.Dataset = None, processing_dt: Optional[datetime] = None
+        self,
+        ext: str = EXT_TIFF,
+        output_dataset: xr.Dataset = None,
+        processing_dt: Optional[datetime] = None,
     ) -> DatasetAssembler:
         """
         Put together metadata document for the output of this task. It needs the source_dataset to inherit
         several properties and lineages. It also needs the output_dataset to get the measurement information.
         """
-        dataset_assembler = DatasetAssembler(naming_conventions=self.product.naming_conventions_values,
-                                             dataset_location=Path(self.product.explorer_path),
-                                             allow_absolute_paths=True)
-        
+        dataset_assembler = DatasetAssembler(
+            naming_conventions=self.product.naming_conventions_values,
+            dataset_location=Path(self.product.explorer_path),
+            allow_absolute_paths=True,
+        )
+
         # ignore the tons of Inheritable property warnings
-        warnings.simplefilter(action='ignore', category=UserWarning)
+        warnings.simplefilter(action="ignore", category=UserWarning)
 
         platforms, instruments = ([], [])
 
         for dataset in self.datasets:
-            if 'fused' in dataset.type.name:
-                sources = [e['id'] for e in dataset.metadata.sources.values()]
-                platforms.append(dataset.metadata_doc['properties']['eo:platform'])
-                instruments.append(dataset.metadata_doc['properties']['eo:instrument'])
-                dataset_assembler.note_source_datasets(self.product.classifier,
-                                                       *sources)
+            if "fused" in dataset.type.name:
+                sources = [e["id"] for e in dataset.metadata.sources.values()]
+                platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
+                instruments.append(dataset.metadata_doc["properties"]["eo:instrument"])
+                dataset_assembler.note_source_datasets(
+                    self.product.classifier, *sources
+                )
             else:
-                source_datasetdoc = serialise.from_doc(dataset.metadata_doc, skip_validation=True)
-                dataset_assembler.add_source_dataset(source_datasetdoc,
-                                                    classifier=self.product.classifier,
-                                                    auto_inherit_properties=True, # it will grab all useful input dataset preperties
-                                                    inherit_geometry=False,
-                                                    inherit_skip_properties=self.product.inherit_skip_properties)
+                source_datasetdoc = serialise.from_doc(
+                    dataset.metadata_doc, skip_validation=True
+                )
+                dataset_assembler.add_source_dataset(
+                    source_datasetdoc,
+                    classifier=self.product.classifier,
+                    auto_inherit_properties=True,  # it will grab all useful input dataset preperties
+                    inherit_geometry=False,
+                    inherit_skip_properties=self.product.inherit_skip_properties,
+                )
 
-                if 'eo:platform' in source_datasetdoc.properties:
-                    platforms.append(source_datasetdoc.properties['eo:platform'])
-                if 'eo:instrument' in source_datasetdoc.properties:
-                    instruments.append(source_datasetdoc.properties['eo:instrument'])
+                if "eo:platform" in source_datasetdoc.properties:
+                    platforms.append(source_datasetdoc.properties["eo:platform"])
+                if "eo:instrument" in source_datasetdoc.properties:
+                    instruments.append(source_datasetdoc.properties["eo:instrument"])
 
-        dataset_assembler.platform = ','.join(sorted(set(platforms)))
+        dataset_assembler.platform = ",".join(sorted(set(platforms)))
         dataset_assembler.instrument = "_".join(sorted(set(instruments)))
 
         dataset_assembler.geometry = self.geobox.extent.geom
 
         dataset_assembler.datetime = format_datetime(self.time_range.start)
-        dataset_assembler.properties["dtr:start_datetime"] = format_datetime(self.time_range.start)
-        dataset_assembler.properties["dtr:end_datetime"] = format_datetime(self.time_range.end)
+        dataset_assembler.properties["dtr:start_datetime"] = format_datetime(
+            self.time_range.start
+        )
+        dataset_assembler.properties["dtr:end_datetime"] = format_datetime(
+            self.time_range.end
+        )
 
         # inherit properties from cfg
-        for product_property_name, product_property_value in self.product.properties.items():
+        for (
+            product_property_name,
+            product_property_value,
+        ) in self.product.properties.items():
             dataset_assembler.properties[product_property_name] = product_property_value
 
         dataset_assembler.product_name = self.product.name
@@ -435,7 +461,7 @@ class Task:
         dataset_assembler.region_code = self.product.region_code(self.tile_index)
 
         # set the warning message back
-        warnings.filterwarnings('default')
+        warnings.filterwarnings("default")
 
         if processing_dt is None:
             processing_dt = datetime.utcnow()
@@ -447,13 +473,19 @@ class Task:
         if output_dataset is not None:
             for band, path in self.paths(ext=ext).items():
                 # when we pass grid, the eodatasets will not load file from path
-                dataset_assembler.note_measurement(band,
-                                                    path,
-                                                    expand_valid_data=False,
-                                                    grid=GridSpec(shape=self.geobox.shape,
-                                                                    transform=self.geobox.transform,
-                                                                    crs=CRS.from_epsg(self.geobox.crs.to_epsg())),
-                                                    nodata=output_dataset[band].nodata if 'nodata' in output_dataset[band].attrs else None)
+                dataset_assembler.note_measurement(
+                    band,
+                    path,
+                    expand_valid_data=False,
+                    grid=GridSpec(
+                        shape=self.geobox.shape,
+                        transform=self.geobox.transform,
+                        crs=CRS.from_epsg(self.geobox.crs.to_epsg()),
+                    ),
+                    nodata=output_dataset[band].nodata
+                    if "nodata" in output_dataset[band].attrs
+                    else None,
+                )
 
         return dataset_assembler
 
@@ -492,7 +524,7 @@ class Task:
             geometry=geobox_wgs84.json,
             bbox=[bbox.left, bbox.bottom, bbox.right, bbox.top],
             datetime=self.time_range.start.replace(tzinfo=timezone.utc),
-            properties=properties
+            properties=properties,
         )
         ProjectionExtension.add_to(item)
         proj_ext = ProjectionExtension.ext(item)
@@ -548,7 +580,7 @@ def product_for_plugin(
     classifier: str = "level3",
     maturity: Optional[str] = None,
     collection_number: int = 3,
-    nodata: Optional[Dict[str, int]] = None
+    nodata: Optional[Dict[str, int]] = None,
 ) -> OutputProduct:
     """
     :param plugin: An instance of a subclass of StatsPluginInterface, used for name defaults.

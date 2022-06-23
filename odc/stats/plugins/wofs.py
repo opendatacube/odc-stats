@@ -45,11 +45,7 @@ class StatsWofs(StatsPluginInterface):
     # these get padded out if dilation was requested
     BAD_BITS_MASK = 0b0110_1000  # Cloud/Shadow + Terrain Shadow
 
-    def __init__(
-        self,
-        dilation: int = 0,
-        **kwargs
-    ):
+    def __init__(self, dilation: int = 0, **kwargs):
         super().__init__(input_bands=["water"], **kwargs)
         self._dilation = dilation  # number of pixels to pad around BAD pixels
 
@@ -170,7 +166,7 @@ class StatsWofsFullHistory(StatsPluginInterface):
     PRODUCT_FAMILY = "wo_summary"
 
     def __init__(self, **kwargs):
-        super().__init__(input_bands=['count_wet', 'count_clear'])
+        super().__init__(input_bands=["count_wet", "count_clear"])
 
     @property
     def measurements(self) -> Tuple[str, ...]:
@@ -178,8 +174,8 @@ class StatsWofsFullHistory(StatsPluginInterface):
 
     def fuser(self, xx):
         """
-            no fuse required since group by none
-            return loaded data
+        no fuse required since group by none
+        return loaded data
         """
         return xx
 

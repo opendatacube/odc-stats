@@ -11,29 +11,32 @@ from odc.algo import geomedian_with_mads, keep_good_only, erase_bad
 from odc.algo._masking import _xr_fuse, _first_valid_np, mask_cleanup, _fuse_or_np
 from ._registry import StatsPluginInterface, register
 
+
 class StatsGMLSBitmask(StatsPluginInterface):
     NAME = "gm_ls_bitmask"
     SHORT_NAME = NAME
     VERSION = "0.0.1"
 
     def __init__(
-            self,
-            bands: Optional[Sequence[str]] = None,
-            mask_band: str = "QA_PIXEL",
-            # provide flags with high cloud bits definition
-            flags: Dict[str, Optional[Any]] = dict(
-                cloud="high_confidence",
-                cirrus="high_confidence",
-            ),
-            nodata_flags: Dict[str, Optional[Any]] = dict(nodata=False),
-            filters: Optional[Iterable[Tuple[str, int]]] = None, # e.g. [("closing", 10),("opening", 2),("dilation", 2)]
-            aux_names=dict(smad="smad", emad="emad", bcmad="bcmad", count="count"),
-            work_chunks: Tuple[int, int] = (400, 400),
-            scale: float = 0.0000275,
-            offset: float = -0.2,
-            output_scale: int = 10000, # gm rescaling - making SR range match sentinel-2 gm
-            output_dtype: str = "uint16", # dtype of gm rescaling
-            **kwargs,
+        self,
+        bands: Optional[Sequence[str]] = None,
+        mask_band: str = "QA_PIXEL",
+        # provide flags with high cloud bits definition
+        flags: Dict[str, Optional[Any]] = dict(
+            cloud="high_confidence",
+            cirrus="high_confidence",
+        ),
+        nodata_flags: Dict[str, Optional[Any]] = dict(nodata=False),
+        filters: Optional[
+            Iterable[Tuple[str, int]]
+        ] = None,  # e.g. [("closing", 10),("opening", 2),("dilation", 2)]
+        aux_names=dict(smad="smad", emad="emad", bcmad="bcmad", count="count"),
+        work_chunks: Tuple[int, int] = (400, 400),
+        scale: float = 0.0000275,
+        offset: float = -0.2,
+        output_scale: int = 10000,  # gm rescaling - making SR range match sentinel-2 gm
+        output_dtype: str = "uint16",  # dtype of gm rescaling
+        **kwargs,
     ):
         if bands is None:
             self.bands = (
@@ -96,7 +99,11 @@ class StatsGMLSBitmask(StatsPluginInterface):
         """
 
         # remove negative pixels - a pixel is invalid if any of the band is smaller than masking_scale
-        valid = (xx[self.bands] > (-1.0 * self.offset/self.scale)).to_array(dim='band').all(dim='band')
+        valid = (
+            (xx[self.bands] > (-1.0 * self.offset / self.scale))
+            .to_array(dim="band")
+            .all(dim="band")
+        )
 
         mask_band = xx[self.mask_band]
         xx = xx.drop_vars([self.mask_band])
@@ -111,8 +118,8 @@ class StatsGMLSBitmask(StatsPluginInterface):
         nodata_mask, _ = masking.create_mask_value(flags_def, **self.nodata_flags)
         keeps = (mask_band & nodata_mask) == 0
 
-        xx = keep_good_only(xx, valid)   # remove negative pixels
-        xx = keep_good_only(xx, keeps)   # remove nodata pixels
+        xx = keep_good_only(xx, valid)  # remove negative pixels
+        xx = keep_good_only(xx, keeps)  # remove nodata pixels
         xx["cloud_mask"] = cloud_mask
 
         return xx
@@ -143,19 +150,22 @@ class StatsGMLSBitmask(StatsPluginInterface):
 
         # rescale gm bands into surface reflectance scale
         for band in gm.data_vars.keys():
-            if band in self.bands or band == self.renames['emad']:
+            if band in self.bands or band == self.renames["emad"]:
                 # set nodata_mask - use for resetting nodata pixel after rescale
-                nodata_mask = gm[band] == gm[band].attrs.get('nodata')
+                nodata_mask = gm[band] == gm[band].attrs.get("nodata")
                 # rescale
-                if band == self.renames['emad']:
+                if band == self.renames["emad"]:
                     gm[band] = self.scale * self.output_scale * gm[band]
                 else:
-                    gm[band] = self.scale * self.output_scale * gm[band] + self.offset * self.output_scale
+                    gm[band] = (
+                        self.scale * self.output_scale * gm[band]
+                        + self.offset * self.output_scale
+                    )
                 #  apply nodata_mask - reset nodata pixels to output-nodata
                 gm[band] = gm[band].where(~nodata_mask, self.output_nodata)
                 # set data-type and nodata attrs
                 gm[band] = gm[band].round().astype(self.output_dtype)
-                gm[band].attrs['nodata'] = self.output_nodata
+                gm[band].attrs["nodata"] = self.output_nodata
 
         return gm
 
@@ -164,7 +174,9 @@ class StatsGMLSBitmask(StatsPluginInterface):
         Fuse cloud_mask with OR
         """
         cloud_mask = xx["cloud_mask"]
-        xx = _xr_fuse(xx.drop_vars(["cloud_mask"]), partial(_first_valid_np, nodata=0), '')
+        xx = _xr_fuse(
+            xx.drop_vars(["cloud_mask"]), partial(_first_valid_np, nodata=0), ""
+        )
         xx["cloud_mask"] = _xr_fuse(cloud_mask, _fuse_or_np, cloud_mask.name)
 
         return xx

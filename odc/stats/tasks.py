@@ -28,7 +28,14 @@ from odc.aws import s3_download, s3_url_parse
 
 from .model import DateTimeRange, Task, OutputProduct, TileIdx, TileIdx_txy, TileIdx_xy
 from ._gjson import gs_bounds, compute_grid_info, gjson_from_tasks
-from .utils import bin_annual, bin_full_history, bin_generic, bin_seasonal, fuse_ds, fuse_products
+from .utils import (
+    bin_annual,
+    bin_full_history,
+    bin_generic,
+    bin_seasonal,
+    fuse_ds,
+    fuse_products,
+)
 
 TilesRange2d = Tuple[Tuple[int, int], Tuple[int, int]]
 CompressedDataset = namedtuple("CompressedDataset", ["id", "time"])
@@ -135,8 +142,13 @@ class SaveTasks:
                 ds_group = tuple(ds_group)
                 if len(ds_group) == group_size:
                     yield ds_group
-        grouped_dss = groupby(dss, key=lambda ds: (ds.center_time, ds.metadata.region_code)
-                                                   if hasattr(ds.metadata, 'region_code') else (ds.center_time,))
+
+        grouped_dss = groupby(
+            dss,
+            key=lambda ds: (ds.center_time, ds.metadata.region_code)
+            if hasattr(ds.metadata, "region_code")
+            else (ds.center_time,),
+        )
         grouped_dss = match_dss(grouped_dss, group_size)
         map_fuse_func = lambda x: fuse_ds(*x, product=product)
         dss = map(map_fuse_func, grouped_dss)
@@ -183,9 +195,14 @@ class SaveTasks:
         cfg["query"] = sanitize_query(query)
 
         msg("Connecting to the database, streaming datasets")
-        dss = ordered_dss(dc, freq="y", key=lambda ds: (ds.center_time, ds.metadata.region_code)
-                                                        if hasattr(ds.metadata, 'region_code') else (ds.center_time,),
-                          **query)
+        dss = ordered_dss(
+            dc,
+            freq="y",
+            key=lambda ds: (ds.center_time, ds.metadata.region_code)
+            if hasattr(ds.metadata, "region_code")
+            else (ds.center_time,),
+            **query,
+        )
         return dss, cfg
 
     def save(
@@ -238,9 +255,13 @@ class SaveTasks:
 
         product_list = re.split(r"\+|-", products)
         product_list = list(filter(None, product_list))
-        dss, cfg = self._get_dss(dc, product_list, msg, dataset_filter, temporal_range, tiles)
+        dss, cfg = self._get_dss(
+            dc, product_list, msg, dataset_filter, temporal_range, tiles
+        )
         if "+" in products:
-            products = [dc.index.products.get_by_name(product) for product in product_list]
+            products = [
+                dc.index.products.get_by_name(product) for product in product_list
+            ]
             fused_product = fuse_products(*products)
             dss = self.ds_align(dss, fused_product, len(products))
 
@@ -377,7 +398,7 @@ class TaskReader:
         self,
         cache: Union[str, DatasetCache],
         product: Optional[OutputProduct] = None,
-        resolution: Optional[Tuple[float, float]] = None
+        resolution: Optional[Tuple[float, float]] = None,
     ):
         self._cache_path = None
 
@@ -439,7 +460,7 @@ class TaskReader:
         grid = cfg["grid"]
         gridspec = cache.grids[grid]
 
-        cfg['filedb'] = cache
+        cfg["filedb"] = cache
 
         # Configure everything on the TaskReader
         self._dscache = cache
@@ -450,7 +471,9 @@ class TaskReader:
 
         # first time to access the filedb, then it can do the resolution check
         if self.resolution is not None:
-            _log.info(f"Changing resolution to {self.resolution[0], self.resolution[1]}")
+            _log.info(
+                f"Changing resolution to {self.resolution[0], self.resolution[1]}"
+            )
             if self.is_compatible_resolution(self.resolution):
                 self.change_resolution(self.resolution)
             else:  # if resolution has issue, stop init
@@ -523,7 +546,10 @@ class TaskReader:
         )
 
     def stream(
-        self, tiles: Iterable[TileIdx_txy], product: Optional[OutputProduct] = None, ds_filters: Optional[str] = None,
+        self,
+        tiles: Iterable[TileIdx_txy],
+        product: Optional[OutputProduct] = None,
+        ds_filters: Optional[str] = None,
     ) -> Iterator[Task]:
         product = self._resolve_product(product)
         for tidx in tiles:
@@ -551,7 +577,7 @@ class TaskReader:
             local_db_file = None
 
             # Avoid downloading the file multiple times.
-            if urlparse(filedb).scheme == 's3':
+            if urlparse(filedb).scheme == "s3":
                 _, key = s3_url_parse(filedb)
                 local_db_file = key.split("/")[-1]
                 self._cache_path = local_db_file
@@ -571,9 +597,8 @@ class TaskReader:
 
 
 class DatasetChecker:
-
     def __init__(self, ds_filters):
-        ds_filters = ds_filters.split('|')
+        ds_filters = ds_filters.split("|")
         self.ds_filters = tuple(json.loads(ds_filter) for ds_filter in ds_filters)
 
     @staticmethod
@@ -585,7 +610,7 @@ class DatasetChecker:
     def check_ds_1(self, ds_filter, ds):
         valid = True
         for key in ds_filter.keys():
-            if key == 'datetime':
+            if key == "datetime":
                 valid &= self.check_dt(ds_filter, ds.metadata_doc["properties"][key])
             else:
                 valid &= ds_filter[key] == ds.metadata_doc["properties"][key]

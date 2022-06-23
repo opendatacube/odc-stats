@@ -36,7 +36,11 @@ import eodatasets3
 WriteResult = namedtuple("WriteResult", ["path", "sha1", "error"])
 
 _log = logging.getLogger(__name__)
-DEFAULT_COG_OPTS = dict(compress="deflate", zlevel=6, blocksize=512,)
+DEFAULT_COG_OPTS = dict(
+    compress="deflate",
+    zlevel=6,
+    blocksize=512,
+)
 
 
 def load_creds(profile: Optional[str] = None) -> ReadOnlyCredentials:
@@ -85,7 +89,7 @@ def _sha1_digest(*write_results):
 def _xarray_to_list(image, dest_shape):
     # apply the OWS styling, the return image must have red, green, blue and alpha.
     display_pixels = []
-    for display_band in ['red', 'green', 'blue']:
+    for display_band in ["red", "green", "blue"]:
         display_pixels.append(image[display_band].values.reshape(dest_shape))
     return display_pixels
 
@@ -215,7 +219,9 @@ class S3COGSink:
             out.append(self._write_blob(cog_bytes, url, ContentType="image/tiff"))
         return out
 
-    def _apply_color_ramp(self, ds: xr.Dataset, ows_style_dict: dict, time: datetime64) -> Delayed:
+    def _apply_color_ramp(
+        self, ds: xr.Dataset, ows_style_dict: dict, time: datetime64
+    ) -> Delayed:
         from datacube_ows.styles.api import StandaloneStyle
         from datacube_ows.styles.api import apply_ows_style
 
@@ -226,36 +232,54 @@ class S3COGSink:
         img = dask.delayed(apply_ows_style)(ows_style, dst)
         return img
 
+    def _get_thumbnail(
+        self, display_pixels: list, input_geobox: GridSpec, odc_file_path: str
+    ) -> Delayed:
+        thumbnail_bytes = dask.delayed(FileWrite().create_thumbnail_from_numpy)(
+            rgb=display_pixels,
+            static_stretch=(0, 255),
+            out_scale=10,
+            input_geobox=input_geobox,
+            nodata=None,
+        )
 
-    def _get_thumbnail(self, display_pixels:list, input_geobox: GridSpec, odc_file_path: str) -> Delayed:
-        thumbnail_bytes = dask.delayed(FileWrite().create_thumbnail_from_numpy)(rgb=display_pixels,
-                                                                                static_stretch=(0, 255),
-                                                                                out_scale=10,
-                                                                                input_geobox=input_geobox,
-                                                                                nodata=None)
-
-        return self._write_blob(thumbnail_bytes, odc_file_path.split('.')[0] + f"_thumbnail.jpg", ContentType="image/jpeg")
+        return self._write_blob(
+            thumbnail_bytes,
+            odc_file_path.split(".")[0] + f"_thumbnail.jpg",
+            ContentType="image/jpeg",
+        )
 
     def _ds_to_thumbnail_cog(self, ds: xr.Dataset, task: Task) -> List[Delayed]:
         odc_file_path = task.metadata_path("absolute", ext=self._odc_meta_ext)
 
         thumbnail_cogs = []
 
-        input_geobox = GridSpec(shape=task.geobox.shape, 
-                                transform=task.geobox.transform, 
-                                crs=CRS.from_epsg(task.geobox.crs.to_epsg()))
+        input_geobox = GridSpec(
+            shape=task.geobox.shape,
+            transform=task.geobox.transform,
+            crs=CRS.from_epsg(task.geobox.crs.to_epsg()),
+        )
 
         if task.product.preview_image_ows_style:
             _log.info("Generate thumbnail")
             try:
-                image = self._apply_color_ramp(ds, task.product.preview_image_ows_style, task.time_range.start)
+                image = self._apply_color_ramp(
+                    ds, task.product.preview_image_ows_style, task.time_range.start
+                )
             except AttributeError as e:
-                _log.error(f"{e} Cannot parse OWS styling: {task.product.preview_image_ows_style}.")
+                _log.error(
+                    f"{e} Cannot parse OWS styling: {task.product.preview_image_ows_style}."
+                )
             except ImportError as e:
-                raise type(e)(str(e) + '. Please run python -m pip install "odc-stats[ows]" to setup environment to generate thumbnail.')
+                raise type(e)(
+                    str(e)
+                    + '. Please run python -m pip install "odc-stats[ows]" to setup environment to generate thumbnail.'
+                )
             else:
                 display_pixels = _xarray_to_list(image, task.geobox.shape[0:2])
-                thumbnail_cog = self._get_thumbnail(display_pixels, input_geobox, odc_file_path)
+                thumbnail_cog = self._get_thumbnail(
+                    display_pixels, input_geobox, odc_file_path
+                )
                 thumbnail_cogs.append(thumbnail_cog)
 
         return thumbnail_cogs
@@ -284,7 +308,9 @@ class S3COGSink:
         else:
             raise ValueError(f"Can't handle url: {uri}")
 
-    def get_eo3_stac_meta(self, task: Task, meta: DatasetDoc, stac_file_path: str, odc_file_path: str) -> str:
+    def get_eo3_stac_meta(
+        self, task: Task, meta: DatasetDoc, stac_file_path: str, odc_file_path: str
+    ) -> str:
         """
         Convert the eodatasets3 DatasetDoc to stac meta format string.
         The stac_meta is Python dict, please use json_fallback() to format it. Also pass dataset_location
@@ -297,15 +323,20 @@ class S3COGSink:
         else:
             dataset_location = str(Path(_u.path).parent)
 
-        stac_meta = eo3stac.to_stac_item(dataset=meta,
-                                        stac_item_destination_url=stac_file_path,
-                                        dataset_location=dataset_location,
-                                        odc_dataset_metadata_url =odc_file_path,
-                                        explorer_base_url = task.product.explorer_path
-                                        )
-        return json.dumps(stac_meta, default=json_fallback) # stac_meta is Python str, but content is 'Dict format'
+        stac_meta = eo3stac.to_stac_item(
+            dataset=meta,
+            stac_item_destination_url=stac_file_path,
+            dataset_location=dataset_location,
+            odc_dataset_metadata_url=odc_file_path,
+            explorer_base_url=task.product.explorer_path,
+        )
+        return json.dumps(
+            stac_meta, default=json_fallback
+        )  # stac_meta is Python str, but content is 'Dict format'
 
-    def dump_with_pystac(self, task: Task, ds: Dataset, aux: Optional[Dataset] = None) -> Delayed:
+    def dump_with_pystac(
+        self, task: Task, ds: Dataset, aux: Optional[Dataset] = None
+    ) -> Delayed:
         """
         Dump files with STAC metadata file, which generated from PySTAC
         """
@@ -335,10 +366,19 @@ class S3COGSink:
         sha1_done = self._write_blob(sha1_digest, sha1_url, ContentType="text/plain")
 
         return self._write_blob(
-            json_data, json_url, ContentType=self._stac_meta_contentype, with_deps=sha1_done,
+            json_data,
+            json_url,
+            ContentType=self._stac_meta_contentype,
+            with_deps=sha1_done,
         )
 
-    def dump_with_eodatasets3(self, task: Task, ds: Dataset, aux: Optional[Dataset] = None, proc: StatsPluginInterface = None) -> Delayed:
+    def dump_with_eodatasets3(
+        self,
+        task: Task,
+        ds: Dataset,
+        aux: Optional[Dataset] = None,
+        proc: StatsPluginInterface = None,
+    ) -> Delayed:
         """
         Dump files with metadata files, which generated from eodatasets3
         """
@@ -346,59 +386,91 @@ class S3COGSink:
         odc_file_path = task.metadata_path("absolute", ext=self._odc_meta_ext)
         sha1_url = task.metadata_path("absolute", ext="sha1")
         proc_info_url = task.metadata_path("absolute", ext=self._proc_info_ext)
-        dataset_assembler = task.render_assembler_metadata(ext=self._band_ext, output_dataset=ds)
+        dataset_assembler = task.render_assembler_metadata(
+            ext=self._band_ext, output_dataset=ds
+        )
 
-        dataset_assembler.extend_user_metadata("input-products", sorted(set([e.type.name for e in task.datasets])))
+        dataset_assembler.extend_user_metadata(
+            "input-products", sorted(set([e.type.name for e in task.datasets]))
+        )
 
         dataset_assembler.extend_user_metadata("odc-stats-config", vars(task.product))
 
-        dataset_assembler.note_software_version("eodatasets3",
-                                                "https://github.com/GeoscienceAustralia/eo-datasets",
-                                                eodatasets3.__version__,)
+        dataset_assembler.note_software_version(
+            "eodatasets3",
+            "https://github.com/GeoscienceAustralia/eo-datasets",
+            eodatasets3.__version__,
+        )
 
-        dataset_assembler.note_software_version('odc-stats',
-                                                "https://github.com/opendatacube/odc-tools",
-                                                __version__)
+        dataset_assembler.note_software_version(
+            "odc-stats", "https://github.com/opendatacube/odc-tools", __version__
+        )
 
-        dataset_assembler.note_software_version(proc.NAME,
-                                                "https://github.com/opendatacube/odc-tools",
-                                                proc.VERSION)
+        dataset_assembler.note_software_version(
+            proc.NAME, "https://github.com/opendatacube/odc-tools", proc.VERSION
+        )
 
         if task.product.preview_image_ows_style:
             try:
                 import datacube_ows
-                thumbnail_path = odc_file_path.split('.')[0] + f"_thumbnail.jpg"
-                dataset_assembler._accessories["thumbnail"] = Path(urlparse(thumbnail_path).path).name
 
-                dataset_assembler.note_software_version("datacube-ows",
-                                                        "https://github.com/opendatacube/datacube-ows",
-                                                        # Just realized the odc-stats does not have version.
-                                                        datacube_ows.__version__)
+                thumbnail_path = odc_file_path.split(".")[0] + f"_thumbnail.jpg"
+                dataset_assembler._accessories["thumbnail"] = Path(
+                    urlparse(thumbnail_path).path
+                ).name
+
+                dataset_assembler.note_software_version(
+                    "datacube-ows",
+                    "https://github.com/opendatacube/datacube-ows",
+                    # Just realized the odc-stats does not have version.
+                    datacube_ows.__version__,
+                )
             except ImportError as e:
-                raise type(e)(str(e) + '. Please run python -m pip install "odc-stats[ows]" to setup environment to generate thumbnail.')
+                raise type(e)(
+                    str(e)
+                    + '. Please run python -m pip install "odc-stats[ows]" to setup environment to generate thumbnail.'
+                )
 
-        dataset_assembler._accessories["checksum:sha1"] = Path(urlparse(sha1_url).path).name
-        dataset_assembler._accessories["metadata:processor"] = Path(urlparse(proc_info_url).path).name
+        dataset_assembler._accessories["checksum:sha1"] = Path(
+            urlparse(sha1_url).path
+        ).name
+        dataset_assembler._accessories["metadata:processor"] = Path(
+            urlparse(proc_info_url).path
+        ).name
 
         meta = dataset_assembler.to_dataset_doc()
         # already add all information to dataset_assembler, now convert to odc and stac metadata format
 
         stac_meta = self.get_eo3_stac_meta(task, meta, stac_file_path, odc_file_path)
 
-        odc_meta_stream = io.StringIO("") # too short, not worth to move to another method.
+        odc_meta_stream = io.StringIO(
+            ""
+        )  # too short, not worth to move to another method.
         serialise.to_stream(odc_meta_stream, meta)
-        odc_meta = odc_meta_stream.getvalue() # odc_meta is Python str
+        odc_meta = odc_meta_stream.getvalue()  # odc_meta is Python str
 
         proc_info_meta_stream = io.StringIO("")
-        serialise._init_yaml().dump({**dataset_assembler._user_metadata, "software_versions": dataset_assembler._software_versions}, proc_info_meta_stream)
+        serialise._init_yaml().dump(
+            {
+                **dataset_assembler._user_metadata,
+                "software_versions": dataset_assembler._software_versions,
+            },
+            proc_info_meta_stream,
+        )
         proc_info_meta = proc_info_meta_stream.getvalue()
 
         # fake write result for metadata output, we want metadata file to be
         # the last file written, so need to delay it until after sha1 files is
         # written.
-        stac_meta_sha1 = dask.delayed(WriteResult(stac_file_path, mk_sha1(stac_meta), None))
-        odc_meta_sha1 = dask.delayed(WriteResult(odc_file_path, mk_sha1(odc_meta), None))
-        proc_info_sha1 = dask.delayed(WriteResult(proc_info_url, mk_sha1(proc_info_meta), None))
+        stac_meta_sha1 = dask.delayed(
+            WriteResult(stac_file_path, mk_sha1(stac_meta), None)
+        )
+        odc_meta_sha1 = dask.delayed(
+            WriteResult(odc_file_path, mk_sha1(odc_meta), None)
+        )
+        proc_info_sha1 = dask.delayed(
+            WriteResult(proc_info_url, mk_sha1(proc_info_meta), None)
+        )
 
         paths = task.paths("absolute", ext=self._band_ext)
         cogs = self._ds_to_cog(ds, paths)
@@ -414,19 +486,43 @@ class S3COGSink:
 
         # this will raise IOError if any write failed, hence preventing json
         # from being written
-        sha1_digest = _sha1_digest(stac_meta_sha1, odc_meta_sha1, proc_info_sha1, *cogs, *thumbnail_cogs)
+        sha1_digest = _sha1_digest(
+            stac_meta_sha1, odc_meta_sha1, proc_info_sha1, *cogs, *thumbnail_cogs
+        )
         sha1_done = self._write_blob(sha1_digest, sha1_url, ContentType="text/plain")
 
-        proc_info_done = self._write_blob(proc_info_meta, proc_info_url, ContentType=self._prod_info_meta_contentype, with_deps=sha1_done)
-        odc_meta_done = self._write_blob(odc_meta, odc_file_path, ContentType=self._odc_meta_contentype, with_deps=proc_info_done)
-        cog_done = self._write_blob(stac_meta, stac_file_path, ContentType=self._stac_meta_contentype, with_deps=odc_meta_done)
+        proc_info_done = self._write_blob(
+            proc_info_meta,
+            proc_info_url,
+            ContentType=self._prod_info_meta_contentype,
+            with_deps=sha1_done,
+        )
+        odc_meta_done = self._write_blob(
+            odc_meta,
+            odc_file_path,
+            ContentType=self._odc_meta_contentype,
+            with_deps=proc_info_done,
+        )
+        cog_done = self._write_blob(
+            stac_meta,
+            stac_file_path,
+            ContentType=self._stac_meta_contentype,
+            with_deps=odc_meta_done,
+        )
 
         # The uploading DAG is:
         # sha1_done -> proc_info_done -> odc_meta_done -> stac_meta_done
         return cog_done
 
-    def dump(self, task: Task, ds: Dataset, aux: Optional[Dataset] = None, proc: StatsPluginInterface = None, apply_eodatasets3: Optional[bool] = False) -> Delayed:
-        
+    def dump(
+        self,
+        task: Task,
+        ds: Dataset,
+        aux: Optional[Dataset] = None,
+        proc: StatsPluginInterface = None,
+        apply_eodatasets3: Optional[bool] = False,
+    ) -> Delayed:
+
         if apply_eodatasets3:
             return self.dump_with_eodatasets3(task, ds, aux, proc)
         else:

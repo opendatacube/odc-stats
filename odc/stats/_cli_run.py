@@ -2,6 +2,27 @@ import sys
 import click
 from ._cli_common import main, setup_logging, click_resolution, click_yaml_cfg
 
+CONFIG_ITEMS = [
+    "product",
+    "filedb",
+    "plugin",
+    "threads",
+    "memory_limit",
+    "output_location",
+    "s3_acl",
+    "overwrite",
+    "max_processing_time",
+    "heartbeat_filepath",
+    "plugin_config",
+    "cog_opts",
+    "dataset-filters",
+    "apply_eodatasets3",
+    "aws_unsigned",
+    "job_queue_max_lease",
+    "renew_safety_margin",
+    "future_poll_interval",
+]
+
 
 @main.command("run")
 @click.option("--threads", type=int, help="Number of worker threads")
@@ -46,7 +67,9 @@ from ._cli_common import main, setup_logging, click_resolution, click_yaml_cfg
 @click.option("--from-sqs", type=str, help="Read tasks from SQS", default="")
 @click_yaml_cfg("--config", help="Runner Config")
 @click.option(
-    "--plugin", type=str, help="Which stats plugin to run",
+    "--plugin",
+    type=str,
+    help="Which stats plugin to run",
 )
 @click_yaml_cfg(
     "--plugin-config", help="Config for plugin in yaml format, file or text"
@@ -117,8 +140,8 @@ def run(
     if config is None:
         config = {}
 
-    _cfg = dict(**config)
-    s3_acl = 'public-read' if public else None
+    _cfg = {k: config.get(k) for k in CONFIG_ITEMS if config.get(k) is not None}
+    s3_acl = "public-read" if public else None
 
     cfg_from_cli = {
         k: v
@@ -148,17 +171,21 @@ def run(
     if cog_config is not None:
         _cfg["cog_opts"] = cog_config
 
-    if from_sqs:  # if config or CLI has filedb, but run from sqs, throw this warning message.
-        _log.warning("The `filedb` from config or CLI will be a placeholder value. Actual filedb saved in SQS message")
-    elif not _cfg.get('filedb'):
+    if (
+        from_sqs
+    ):  # if config or CLI has filedb, but run from sqs, throw this warning message.
+        _log.warning(
+            "The `filedb` from config or CLI will be a placeholder value. Actual filedb saved in SQS message"
+        )
+    elif not _cfg.get("filedb"):
         _log.error("Must supply `filedb` either through config or CLI")
         sys.exit(1)
 
-    tmp = _cfg.pop('dataset-filters', None)
+    tmp = _cfg.pop("dataset-filters", None)
     if dataset_filters is None:
         dataset_filters = tmp
 
-    tmp = _cfg.pop('apply_eodatasets3', False)
+    tmp = _cfg.pop("apply_eodatasets3", False)
     if not apply_eodatasets3:
         apply_eodatasets3 = tmp
 
@@ -170,7 +197,9 @@ def run(
 
     if dryrun:
         check_exists = runner.verify_setup()
-        for task in runner.dry_run(tasks, check_exists=check_exists, ds_filters=dataset_filters):
+        for task in runner.dry_run(
+            tasks, check_exists=check_exists, ds_filters=dataset_filters
+        ):
             print(task.meta)
         sys.exit(0)
 
@@ -178,7 +207,17 @@ def run(
         print("Failed to verify setup, exiting")
         sys.exit(1)
 
-    result_stream = runner.run(sqs=from_sqs, ds_filters=dataset_filters, apply_eodatasets3=apply_eodatasets3) if from_sqs else runner.run(tasks=tasks, ds_filters=dataset_filters, apply_eodatasets3=apply_eodatasets3)
+    result_stream = (
+        runner.run(
+            sqs=from_sqs,
+            ds_filters=dataset_filters,
+            apply_eodatasets3=apply_eodatasets3,
+        )
+        if from_sqs
+        else runner.run(
+            tasks=tasks, ds_filters=dataset_filters, apply_eodatasets3=apply_eodatasets3
+        )
+    )
 
     total = 0
     finished = 0

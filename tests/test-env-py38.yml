@@ -9,7 +9,7 @@ dependencies:
   - python=3.8
 
   # Datacube
-  - datacube>=1.8.6
+  - datacube>=1.8.7
 
   # odc.{aws,aio}: aiobotocore/boto3
   #  pin aiobotocore for easier resolution of dependencies

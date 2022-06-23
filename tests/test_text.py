@@ -1,7 +1,13 @@
 import pytest
-from odc.stats._text import read_int, parse_slice, parse_range2d_int, \
-                            parse_yaml, parse_yaml_file_or_inline, \
-                            split_and_check, load_yaml_remote
+from odc.stats._text import (
+    read_int,
+    parse_slice,
+    parse_range2d_int,
+    parse_yaml,
+    parse_yaml_file_or_inline,
+    split_and_check,
+    load_yaml_remote,
+)
 
 
 def test_read_int():
@@ -30,7 +36,8 @@ b: foo
 
 
 def test_load_yaml_remote(httpserver):
-    httpserver.expect_request("/ga_ls_fc_pc_cyear_3.yaml").respond_with_data("""
+    httpserver.expect_request("/ga_ls_fc_pc_cyear_3.yaml").respond_with_data(
+        """
     a: 3
     b: foo
     """
@@ -58,7 +65,8 @@ def test_parse_slice():
     assert parse_slice("1:4:2") == s_[1:4:2]
     assert parse_slice("1::2") == s_[1::2]
 
+
 def test_parse_2d_range():
-    assert parse_range2d_int("1:2,3:4") == ((1,2),(3,4))
+    assert parse_range2d_int("1:2,3:4") == ((1, 2), (3, 4))
     with pytest.raises(ValueError):
         parse_range2d_int("1,2:3,4")
