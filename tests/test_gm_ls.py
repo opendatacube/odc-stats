@@ -2,6 +2,7 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 from pathlib import Path
+import os
 import pytest
 
 from odc.stats.model import product_for_plugin
@@ -163,6 +164,8 @@ def test_result_aux_bands_to_match_inputs(dataset):
 
 
 def test_masking():
+    default_region = os.environ["AWS_DEFAULT_REGION"]
+    os.environ["AWS_DEFAULT_REGION"] = "ap-southeast-2"
     project_root = Path(__file__).parents[1]
     data_dir = f"{project_root}/tests/data//ga_ls8c_ard_3_2015-01--P3M.db"
 
@@ -192,7 +195,9 @@ def test_masking():
     gm_0_1 = gm_ls_0_1.reduce(xx_0_1)
     result_0_1 = gm_0_1.compute()
 
-    zero_buffering_count = np.array(result_0_0.nbart_red.data == -999).flatten().sum()
+    zero_buffering_count = (
+        np.array(result_0_0.nbart_red.data == -999).flatten().sum()
+    )
 
     non_zero_bufferig_count = (
         np.array(result_0_1.nbart_red.data == -999).flatten().sum()
@@ -202,3 +207,5 @@ def test_masking():
     # radious of one, hence the count of nodata values should be
     # less than 4 * non_buffering
     assert non_zero_bufferig_count <= (zero_buffering_count * 4)
+
+    os.environ["AWS_DEFAULT_REGION"] = default_region
