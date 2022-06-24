@@ -146,6 +146,8 @@ jobs:
           datacube system init
 
         env:
+          AWS_DEFAULT_REGION: ap-southeast-2
+          AWS_NO_SIGN_REQUEST: yes
           DATACUBE_DB_URL: postgresql:///datacube
 
       - name: Run Tests
