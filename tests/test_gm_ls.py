@@ -195,9 +195,7 @@ def test_masking():
     gm_0_1 = gm_ls_0_1.reduce(xx_0_1)
     result_0_1 = gm_0_1.compute()
 
-    zero_buffering_count = (
-        np.array(result_0_0.nbart_red.data == -999).flatten().sum()
-    )
+    zero_buffering_count = np.array(result_0_0.nbart_red.data == -999).flatten().sum()
 
     non_zero_bufferig_count = (
         np.array(result_0_1.nbart_red.data == -999).flatten().sum()
