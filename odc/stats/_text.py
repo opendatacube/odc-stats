@@ -6,6 +6,7 @@ PathLike = Union[str, Path]
 
 # Copied from odc.io.text
 
+
 def read_int(path: PathLike, default=None, base=10) -> Optional[int]:
     """
     Read single integer from a text file.
@@ -20,7 +21,7 @@ def read_int(path: PathLike, default=None, base=10) -> Optional[int]:
 
 
 def split_and_check(
-        s: str, separator: str, n: Union[int, Tuple[int, ...]]
+    s: str, separator: str, n: Union[int, Tuple[int, ...]]
 ) -> Tuple[str, ...]:
     """Turn string into tuple, checking that there are exactly as many parts as expected.
     :param s: String to parse
@@ -83,10 +84,11 @@ def parse_yaml_file_or_inline(s: str) -> Dict[str, Any]:
 
 def load_yaml_remote(yaml_url: str) -> Dict[str, Any]:
     """
-       Open a yaml file remotely and return the parsed yaml document 
+    Open a yaml file remotely and return the parsed yaml document
     """
     import fsspec
     import yaml
+
     try:
         with fsspec.open(yaml_url, mode="r") as f:
             return next(yaml.safe_load_all(f))
@@ -98,8 +100,12 @@ def load_yaml_remote(yaml_url: str) -> Dict[str, Any]:
 def parse_range2d_int(s: str) -> Tuple[Tuple[int, int], Tuple[int, int]]:
     """Parse string like "0:3,4:5" -> ((0,3), (4,5))"""
     from ._text import split_and_check
+
     try:
-        return tuple(tuple(int(x) for x in split_and_check(p, ":", 2)) for p in split_and_check(s, ",", 2))
+        return tuple(
+            tuple(int(x) for x in split_and_check(p, ":", 2))
+            for p in split_and_check(s, ",", 2)
+        )
     except ValueError:
         raise ValueError(
             'Expect <int>:<int>,<int>:<int> syntax, got "{}"'.format(s)

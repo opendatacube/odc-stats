@@ -20,7 +20,9 @@ def resolve(name: str) -> PluginFactory:
         maker = pydoc.locate(name)
         if maker is not None:
             if not issubclass(maker, (StatsPluginInterface,)):
-                raise ValueError(f"Custom StatsPlugin '{name}' is not derived from StatsPluginInterface")
+                raise ValueError(
+                    f"Custom StatsPlugin '{name}' is not derived from StatsPluginInterface"
+                )
             return partial(_new, maker)
 
     if maker is None:
@@ -52,4 +54,3 @@ def import_all():
             importlib.import_module(mod)
         except ModuleNotFoundError:
             pass
-

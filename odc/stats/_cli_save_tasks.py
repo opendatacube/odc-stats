@@ -2,7 +2,17 @@ import json
 
 import click
 import sys
-from ._cli_common import main, click_range2d
+from ._cli_common import main, click_range2d, click_yaml_cfg, setup_logging
+
+CONFIG_ITEMS = [
+    "grid",
+    "frequency",
+    "complevel",
+    "overwrite",
+    "gqa",
+    "products",
+    "dataset_filter",
+]
 
 
 @main.command("save-tasks")
@@ -13,10 +23,6 @@ from ._cli_common import main, click_range2d
         "Grid name or spec: au-{10|20|30|60},africa-{10|20|30|60}, albers-au-25 (legacy one)"
         "'crs;pixel_resolution;shape_in_pixels'"
     ),
-    prompt="""Enter GridSpec
- one of au-{10|20|30|60}, africa-{10|20|30|60}, albers_au_25 (legacy one)
- or custom like 'epsg:3857;30;5000' (30m pixels 5,000 per side in epsg:3857)
- >""",
     default=None,
 )
 @click.option(
@@ -69,11 +75,13 @@ from ._cli_common import main, click_range2d
     "--dataset-filter",
     type=str,
     default=None,
-    help='Filter to apply on datasets - {"collection_category": "T1"}'
+    help='Filter to apply on datasets - {"collection_category": "T1"}',
 )
-@click.argument("products", type=str, nargs=1)
+@click_yaml_cfg("--config", help="Save tasks Config")
+@click.option("--products", type=str, default="")
 @click.argument("output", type=str, nargs=1, default="")
 def save_tasks(
+    config,
     grid,
     year,
     temporal_range,
@@ -99,17 +107,69 @@ def save_tasks(
       - output product config
 
     """
+    setup_logging()
+
+    import logging
     from datacube import Datacube
     from .tasks import SaveTasks
     from .model import DateTimeRange
 
-    filter = {}
-    if dataset_filter:
-        filter = json.loads(dataset_filter)
-
+    _log = logging.getLogger(__name__)
     if temporal_range is not None and year is not None:
         print("Can only supply one of --year or --temporal_range", file=sys.stderr)
         sys.exit(1)
+
+    if config is None:
+        config = {}
+
+    _cfg = {k: config.get(k) for k in CONFIG_ITEMS if config.get(k) is not None}
+
+    cfg_from_cli = {
+        k: v
+        for k, v in dict(
+            grid=grid,
+            frequency=frequency,
+            gqa=gqa,
+            products=products,
+            complevel=complevel,
+            dataset_filter=dataset_filter,
+        ).items()
+        if v is not None and v != ""
+    }
+
+    _log.info(f"Config overrides: {cfg_from_cli}")
+    _cfg.update(cfg_from_cli)
+    _log.info(f"Using config: {_cfg}")
+
+    gqa = _cfg.pop("gqa", None)
+    products = _cfg.pop("products", None)
+    dataset_filter = _cfg.pop("dataset_filter", None)
+
+    if products is None:
+        print("Input products has to be specified", file=sys.stderr)
+        sys.exit(1)
+
+    if _cfg.get("grid") is None:
+        print(
+            "grid must  be  one of au-{10|20|30|60}, africa-{10|20|30|60}, albers_au_25 (legacy one) \
+               or custom like 'epsg:3857;30;5000' (30m pixels 5,000 per side in epsg:3857) "
+        )
+        sys.exit(1)
+
+    if _cfg.get("frequency") is not None:
+        if _cfg.get("frequency") not in (
+            "annual",
+            "annual-fy",
+            "semiannual",
+            "seasonal",
+            "nov-mar",
+            "apr-oct",
+            "all",
+        ):
+            print(
+                f"Frequency must be one of annual|annual-fy|semiannual|seasonal|nov-mar|apr-oct|all and not '{frequency}'"
+            )
+            sys.exit(1)
 
     if temporal_range is not None:
         try:
@@ -121,11 +181,6 @@ def save_tasks(
     if year is not None:
         temporal_range = DateTimeRange.year(year)
 
-    if frequency is not None:
-        if frequency not in ("annual", "annual-fy", "semiannual", "seasonal", "nov-mar", "apr-oct", "all"):
-            print(f"Frequency must be one of annual|annual-fy|semiannual|seasonal|nov-mar|apr-oct|all and not '{frequency}'")
-            sys.exit(1)
-
     if output == "":
         if temporal_range is not None:
             output = f"{products}_{temporal_range.short}.db"
@@ -133,9 +188,7 @@ def save_tasks(
             output = f"{products}_all.db"
 
     try:
-        tasks = SaveTasks(
-            output, grid, frequency=frequency, overwrite=overwrite, complevel=complevel
-        )
+        tasks = SaveTasks(output, **_cfg)
     except ValueError as e:
         print(str(e))
         sys.exit(1)
@@ -158,6 +211,10 @@ def save_tasks(
         predicate = gqa_predicate
     if usgs_collection_category is not None:
         predicate = collection_category_predicate
+
+    filter = {}
+    if dataset_filter:
+        filter = json.loads(dataset_filter)
 
     dc = Datacube(env=env)
     try:

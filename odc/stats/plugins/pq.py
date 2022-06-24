@@ -19,15 +19,15 @@ cloud_classes = (
 # filters - dict of band name and list of iterable tuples of morphological operations
 #           in the order you want them to perform
 default_filters = {
-  "clear_2_5": [("opening", 2), ("dilation", 5)],
-  "clear_0_5": [("opening", 0), ("dilation", 5)]
+    "clear_2_5": [("opening", 2), ("dilation", 5)],
+    "clear_0_5": [("opening", 0), ("dilation", 5)],
 }
 
 
 class StatsPQ(StatsPluginInterface):
     NAME = "pc_s2_annual"
     SHORT_NAME = NAME
-    VERSION = '0.0.1'
+    VERSION = "0.0.1"
     PRODUCT_FAMILY = "pixel_quality_statistics"
 
     def __init__(
@@ -43,11 +43,7 @@ class StatsPQ(StatsPluginInterface):
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        measurements = [
-            "total",
-            "clear",
-            *list(self.filters)
-        ]
+        measurements = ["total", "clear", *list(self.filters)]
 
         return tuple(measurements)
 
@@ -68,7 +64,9 @@ class StatsPQ(StatsPluginInterface):
         if is_native:
             for band, mask_filters in self.filters.items():
                 erased_filter_band_name = band.replace("clear", "erased")
-                xx[erased_filter_band_name] = mask_cleanup(xx["erased"], mask_filters=mask_filters)
+                xx[erased_filter_band_name] = mask_cleanup(
+                    xx["erased"], mask_filters=mask_filters
+                )
 
         return xx
 

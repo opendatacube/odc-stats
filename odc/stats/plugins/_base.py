@@ -15,15 +15,16 @@ class StatsPluginInterface(ABC):
     VERSION = "0.0.0"
     PRODUCT_FAMILY = "statistics"
 
-    def __init__(self,
-                 resampling: str = "bilinear",
-                 input_bands: Sequence[str] = [],
-                 chunks: Mapping[str, int] = {"y": -1, "x": -1},
-                 basis: Optional[str] = None,
-                 group_by: str = "solar_day",
-                 rgb_bands: Optional[Sequence[str]] = None,
-                 rgb_clamp: Tuple[float, float] = (1.0, 3_000.0)
-                ):
+    def __init__(
+        self,
+        resampling: str = "bilinear",
+        input_bands: Sequence[str] = [],
+        chunks: Mapping[str, int] = {"y": -1, "x": -1},
+        basis: Optional[str] = None,
+        group_by: str = "solar_day",
+        rgb_bands: Optional[Sequence[str]] = None,
+        rgb_clamp: Tuple[float, float] = (1.0, 3_000.0),
+    ):
         self.resampling = resampling
         self.input_bands = input_bands
         self.chunks = chunks

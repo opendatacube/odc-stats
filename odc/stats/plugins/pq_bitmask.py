@@ -48,32 +48,30 @@ from ._registry import register
 class StatsPQLSBitmask(StatsPluginInterface):
     NAME = "pc_ls_bitmask"
     SHORT_NAME = NAME
-    VERSION = '0.0.1'
+    VERSION = "0.0.1"
     PRODUCT_FAMILY = "pixel_quality_statistics"
 
     def __init__(
-            self,
-            pq_band: str = "QA_PIXEL",
-            aerosol_band: Optional[str] = None,
-            # provide flags with high cloud bits definition
-            flags: Dict[str, Optional[Any]] = dict(
-                cloud="high_confidence",
-                cirrus="high_confidence",
-            ),
-            nodata_flags: Dict[str, Optional[Any]] = dict(nodata=False),
-            filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
-            aerosol_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
-            resampling: str = "nearest",
-            **kwargs
+        self,
+        pq_band: str = "QA_PIXEL",
+        aerosol_band: Optional[str] = None,
+        # provide flags with high cloud bits definition
+        flags: Dict[str, Optional[Any]] = dict(
+            cloud="high_confidence",
+            cirrus="high_confidence",
+        ),
+        nodata_flags: Dict[str, Optional[Any]] = dict(nodata=False),
+        filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
+        aerosol_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
+        resampling: str = "nearest",
+        **kwargs,
     ):
         self.pq_band = pq_band
         self.aerosol_band = aerosol_band
         input_bands = [self.pq_band]
         if self.aerosol_band:
             input_bands.append(self.aerosol_band)
-        super().__init__(
-                         input_bands=input_bands, resampling=resampling,
-                         **kwargs)
+        super().__init__(input_bands=input_bands, resampling=resampling, **kwargs)
         self.flags = flags
         self.nodata_flags = nodata_flags
         self.filters = filters or {}
@@ -84,11 +82,7 @@ class StatsPQLSBitmask(StatsPluginInterface):
         """
         Output product measurements
         """
-        measurements = [
-            "total",
-            "clear",
-            *list(self.filters)
-        ]
+        measurements = ["total", "clear", *list(self.filters)]
 
         if self.aerosol_band:
             measurements.append("clear_aerosol")
@@ -111,7 +105,9 @@ class StatsPQLSBitmask(StatsPluginInterface):
 
         for band, mask_filters in self.filters.items():
             erased_filter_band_name = band.replace("clear", "erased")
-            xx[erased_filter_band_name] = mask_cleanup(xx["erased"], mask_filters=mask_filters)
+            xx[erased_filter_band_name] = mask_cleanup(
+                xx["erased"], mask_filters=mask_filters
+            )
 
         erased_bands = [str(n) for n in xx.data_vars if str(n).startswith("erased")]
         valid = xx["keeps"]
@@ -119,7 +115,9 @@ class StatsPQLSBitmask(StatsPluginInterface):
         for band in erased_bands:
             clear_band_name = band.replace("erased", "clear")
             if "aerosol" in band:
-                pq[clear_band_name] = (valid & (~xx[band] & ~xx["erased"])).sum(axis=0, dtype="uint16")
+                pq[clear_band_name] = (valid & (~xx[band] & ~xx["erased"])).sum(
+                    axis=0, dtype="uint16"
+                )
             else:
                 pq[clear_band_name] = (valid & (~xx[band])).sum(axis=0, dtype="uint16")
 
@@ -127,9 +125,14 @@ class StatsPQLSBitmask(StatsPluginInterface):
             for band, mask_filters in self.aerosol_filters.items():
                 erased_aerosol_filter_band_name = band.replace("clear", "erased")
                 if erased_aerosol_filter_band_name not in xx:
-                    xx[erased_aerosol_filter_band_name] = mask_cleanup(xx["erased"], mask_filters=mask_filters)
+                    xx[erased_aerosol_filter_band_name] = mask_cleanup(
+                        xx["erased"], mask_filters=mask_filters
+                    )
 
-                pq[band] = (valid & (~xx[erased_aerosol_filter_band_name] & ~xx["erased_aerosol"])).sum(axis=0, dtype="uint16")
+                pq[band] = (
+                    valid
+                    & (~xx[erased_aerosol_filter_band_name] & ~xx["erased_aerosol"])
+                ).sum(axis=0, dtype="uint16")
 
         return pq
 
@@ -161,7 +164,7 @@ class StatsPQLSBitmask(StatsPluginInterface):
             if self.aerosol_band == "SR_QA_AEROSOL":
                 aerosol_level = da.bitwise_and(aerosol_band, 0b1100_0000) / 64
             elif self.aerosol_band == "SR_ATMOS_OPACITY":
-                opacity = (aerosol_band.where(aerosol_band != -9999) * 0.001)
+                opacity = aerosol_band.where(aerosol_band != -9999) * 0.001
 
         # drops nodata pixels
         xx = keep_good_only(xx, keeps)
@@ -186,10 +189,12 @@ class StatsPQLSBitmask(StatsPluginInterface):
             high_aerosol_mask = xx["erased_aerosol"]
             xx = xx.drop_vars(["erased_aerosol"])
 
-        fuser_result = _xr_fuse(xx, partial(_first_valid_np, nodata=0), '')
+        fuser_result = _xr_fuse(xx, partial(_first_valid_np, nodata=0), "")
         fuser_result["erased"] = _xr_fuse(cloud_mask, _fuse_or_np, cloud_mask.name)
         if self.aerosol_band:
-            fuser_result["erased_aerosol"] = _xr_fuse(high_aerosol_mask, _fuse_or_np, high_aerosol_mask.name)
+            fuser_result["erased_aerosol"] = _xr_fuse(
+                high_aerosol_mask, _fuse_or_np, high_aerosol_mask.name
+            )
 
         return fuser_result
 
