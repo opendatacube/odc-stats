@@ -238,6 +238,7 @@ jobs:
           pytest --timeout=30 tests
 
         env:
-          AWS_DEFAULT_REGION: us-west-2
+          AWS_DEFAULT_REGION: ap-southeast-2
+          AWS_NO_SIGN_REQUEST: yes
           DASK_TEMPORARY_DIRECTORY: /tmp/dask
           DATACUBE_DB_URL: postgresql:///datacube
