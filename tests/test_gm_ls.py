@@ -7,7 +7,7 @@ import pytest
 from odc.stats.model import product_for_plugin
 from odc.stats.plugins.gm import StatsGMLS
 from odc.stats.tasks import TaskReader
-from odc.stats.plugins import resolve
+
 
 @pytest.fixture
 def dataset():
@@ -107,7 +107,7 @@ def test_result_bands_to_match_inputs(dataset):
     stats_gmls = StatsGMLS(cloud_filters=mask_filters, nodata_classes=(-999,))
     xx = stats_gmls.native_transform(dataset)
     result = stats_gmls.reduce(xx)
-   
+
     assert set(result.data_vars.keys()) == set(
         [
             "nbart_red",
@@ -133,7 +133,7 @@ def test_result_aux_bands_to_match_inputs(dataset):
     }
 
     dataset = dataset.copy()
-    aux_names = dict(        
+    aux_names = dict(
         smad="SDEV",
         emad="EDEV",
         bcmad="BCDEV",
@@ -164,7 +164,7 @@ def test_result_aux_bands_to_match_inputs(dataset):
 
 def test_masking():
     project_root = Path(__file__).parents[1]
-    data_dir = f"{project_root}/tests/data/ga_ls8c_ard_3_2015-01--P3M.db"
+    data_dir = f"{project_root}/tests/data//ga_ls8c_ard_3_2015-01--P3M.db"
 
     mask_filters_0_0 = {
         "cloud": [("closing", 0), ("dilation", 0)],
@@ -192,9 +192,7 @@ def test_masking():
     gm_0_1 = gm_ls_0_1.reduce(xx_0_1)
     result_0_1 = gm_0_1.compute()
 
-    zero_buffering_count = (
-        np.array(result_0_0.nbart_red.data == -999).flatten().sum()
-    )
+    zero_buffering_count = np.array(result_0_0.nbart_red.data == -999).flatten().sum()
 
     non_zero_bufferig_count = (
         np.array(result_0_1.nbart_red.data == -999).flatten().sum()
