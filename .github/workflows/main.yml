@@ -146,8 +146,6 @@ jobs:
           datacube system init
 
         env:
-          AWS_DEFAULT_REGION: ap-southeast-2
-          AWS_NO_SIGN_REQUEST: yes
           DATACUBE_DB_URL: postgresql:///datacube
 
       - name: Run Tests
@@ -162,8 +160,8 @@ jobs:
           --timeout=30 \
           tests
 
-        envi:
-          AWS_NO_SIGN_REQUEST: yes
+        env:
+          AWS_DEFAULT_REGION: us-west-2
           DASK_TEMPORARY_DIRECTORY: /tmp/dask
           DATACUBE_DB_URL: postgresql:///datacube
 
@@ -240,7 +238,7 @@ jobs:
           pytest --timeout=30 tests
 
         env:
-          AWS_DEFAULT_REGION: ap-southeast-2
-          AWS_NO_SIGN_REQUEST: yes
+          AWS_DEFAULT_REGION: us-west-2
           DASK_TEMPORARY_DIRECTORY: /tmp/dask
           DATACUBE_DB_URL: postgresql:///datacube
+
