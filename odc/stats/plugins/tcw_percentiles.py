@@ -5,6 +5,7 @@ from functools import partial
 from typing import Sequence, Tuple, Iterable, Dict
 import xarray as xr
 import numpy as np
+import logging
 from odc.algo import keep_good_only
 from odc.algo._percentile import xr_quantile_bands
 from odc.algo._masking import (
@@ -15,6 +16,7 @@ from odc.algo._masking import (
 )
 from ._registry import StatsPluginInterface, register
 
+_log = logging.getLogger(__name__)
 NODATA = -9999  # output NODATA
 
 
@@ -115,10 +117,13 @@ class StatsTCWPC(StatsPluginInterface):
         non_contiguent = xx["nbart_contiguity"] == 0
         bad = nodata | non_contiguent
         # Now exclude cloud and cloud shadow (including buffered pixels)
-        for cloud_class, c_filter in self.cloud_filters.items():
-            cloud_mask = enum_to_bool(mask, (cloud_class,))
-            cloud_mask_buffered = mask_cleanup(cloud_mask, mask_filters=c_filter)
-            bad = cloud_mask_buffered | bad
+        if self.cloud_filters is not None:
+            for cloud_class, c_filter in self.cloud_filters.items():
+                cloud_mask = enum_to_bool(mask, (cloud_class,))
+                cloud_mask_buffered = mask_cleanup(cloud_mask, mask_filters=c_filter)
+                bad = cloud_mask_buffered | bad
+        else:
+            _log.info("There is no cloud/shadow buffering.")
 
         for band in xx.data_vars.keys():
             bad = bad | (xx[band] == -999)
