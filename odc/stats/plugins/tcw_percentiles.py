@@ -124,6 +124,8 @@ class StatsTCWPC(StatsPluginInterface):
                 bad = cloud_mask_buffered | bad
         else:
             _log.info("There is no cloud/shadow buffering.")
+            cloud_shadow_mask = enum_to_bool(mask, ("cloud", "shadow"))
+            bad = bad | cloud_shadow_mask
 
         for band in xx.data_vars.keys():
             bad = bad | (xx[band] == -999)
