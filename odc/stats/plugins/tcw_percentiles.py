@@ -93,11 +93,11 @@ class StatsTCWPC(StatsPluginInterface):
             if input_bands is None
             else input_bands
         )
-        super().__init__(input_bands=None, **kwargs)
+
+        super().__init__(input_bands=self.input_bands, **kwargs)
         self.output_bands = (
             ["wet", "bright", "green"] if output_bands is None else output_bands
         )
-        self.cloud_filters = cloud_filters
 
     @property
     def measurements(self) -> Tuple[str, ...]:
