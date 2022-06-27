@@ -2,12 +2,17 @@
 Tasseled cap index Percentiles
 """
 from functools import partial
-from typing import Optional, Sequence, Tuple, Dict
+from typing import Sequence, Tuple, Iterable, Dict
 import xarray as xr
 import numpy as np
 from odc.algo import keep_good_only
 from odc.algo._percentile import xr_quantile_bands
-from odc.algo._masking import _xr_fuse, _fuse_mean_np, enum_to_bool
+from odc.algo._masking import (
+    _xr_fuse,
+    _fuse_mean_np,
+    enum_to_bool,
+    mask_cleanup,
+)
 from ._registry import StatsPluginInterface, register
 
 NODATA = -9999  # output NODATA
@@ -22,48 +27,77 @@ class StatsTCWPC(StatsPluginInterface):
 
     def __init__(
         self,
-        coefficients: Dict[str, Dict[str, float]] = {
-            "wet": {
-                "blue": 0.0315,
-                "green": 0.2021,
-                "red": 0.3102,
-                "nir": 0.1594,
-                "swir1": -0.6806,
-                "swir2": -0.6109,
-            },
-            "bright": {
-                "blue": 0.2043,
-                "green": 0.4158,
-                "red": 0.5524,
-                "nir": 0.5741,
-                "swir1": 0.3124,
-                "swir2": 0.2303,
-            },
-            "green": {
-                "blue": -0.1603,
-                "green": -0.2819,
-                "red": -0.4934,
-                "nir": 0.7940,
-                "swir1": -0.0002,
-                "swir2": -0.1446,
-            },
-        },
-        input_bands: Sequence[str] = [
-            "blue",
-            "green",
-            "red",
-            "nir",
-            "swir1",
-            "swir2",
-            "fmask",
-            "nbart_contiguity",
-        ],
-        output_bands: Sequence[str] = ["wet", "bright", "green"],
+        coefficients: Dict[str, Dict[str, float]] = None,
+        input_bands: Sequence[str] = None,
+        output_bands: Sequence[str] = None,
+        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
         **kwargs,
     ):
-        super().__init__(input_bands=input_bands, **kwargs)
-        self.coefficients = coefficients
-        self.output_bands = output_bands
+
+        self.cloud_filters = cloud_filters if cloud_filters is not None else {}
+        if coefficients is None:
+            self.coefficients = dict(
+                [
+                    (
+                        "wet",
+                        dict(
+                            [
+                                ("blue", 0.0315),
+                                ("green", 0.2021),
+                                ("red", 0.3102),
+                                ("nir", 0.1594),
+                                ("swir1", -0.6806),
+                                ("swir2", -0.6109),
+                            ]
+                        ),
+                    ),
+                    (
+                        "bright",
+                        dict(
+                            [
+                                ("blue", 0.2043),
+                                ("green", 0.4158),
+                                ("red", 0.5524),
+                                ("nir", 0.5741),
+                                ("swir1", 0.3124),
+                                ("swir2", 0.2303),
+                            ]
+                        ),
+                    ),
+                    (
+                        "green",
+                        dict(
+                            [
+                                ("blue", -0.1603),
+                                ("green", -0.2819),
+                                ("red", -0.4934),
+                                ("nir", 0.7940),
+                                ("swir1", -0.0002),
+                                ("swir2", -0.1446),
+                            ]
+                        ),
+                    ),
+                ]
+            )
+        self.input_bands = (
+            [
+                "blue",
+                "green",
+                "red",
+                "nir",
+                "swir1",
+                "swir2",
+                "fmask",
+                "nbart_contiguity",
+            ]
+            if input_bands is None
+            else input_bands
+        )
+        super().__init__(input_bands=None, **kwargs)
+        self.output_bands = (
+            ["wet", "bright", "green"] if output_bands is None else output_bands
+        )
+        self.cloud_filters = cloud_filters
 
     @property
     def measurements(self) -> Tuple[str, ...]:
@@ -76,10 +110,15 @@ class StatsTCWPC(StatsPluginInterface):
         """
         Loads data in its native projection.
         """
-        bad = enum_to_bool(
-            xx["fmask"], ("nodata", "cloud", "shadow")
-        )  # a pixel is bad if any of the cloud, shadow, or no-data value
-        bad |= xx["nbart_contiguity"] == 0  # or the nbart contiguity bit is 0
+        mask = xx["fmask"]
+        nodata = enum_to_bool(mask, ("nodata",))
+        non_contiguent = xx["nbart_contiguity"] == 0
+        bad = nodata | non_contiguent
+        # Now exclude cloud and cloud shadow (including buffered pixels)
+        for cloud_class, c_filter in self.cloud_filters.items():
+            cloud_mask = enum_to_bool(mask, (cloud_class,))
+            cloud_mask_buffered = mask_cleanup(cloud_mask, mask_filters=c_filter)
+            bad = cloud_mask_buffered | bad
 
         for band in xx.data_vars.keys():
             bad = bad | (xx[band] == -999)
