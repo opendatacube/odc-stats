@@ -163,6 +163,9 @@ def run(
 
     _cfg.update(cfg_from_cli)
     if plugin_config is not None:
+        if "plugin_config" not in _cfg:
+            _cfg["plugin_config"] = {}
+
         _cfg["plugin_config"].update(plugin_config)
 
     if resampling is not None and len(resampling) > 0:
