@@ -161,6 +161,7 @@ jobs:
           tests
 
         env:
+          AWS_NO_SIGN_REQUEST: YES
           AWS_DEFAULT_REGION: us-west-2
           DASK_TEMPORARY_DIRECTORY: /tmp/dask
           DATACUBE_DB_URL: postgresql:///datacube
@@ -241,4 +242,3 @@ jobs:
           AWS_DEFAULT_REGION: us-west-2
           DASK_TEMPORARY_DIRECTORY: /tmp/dask
           DATACUBE_DB_URL: postgresql:///datacube
-
