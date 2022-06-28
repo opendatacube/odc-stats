@@ -157,7 +157,7 @@ jobs:
           pytest --cov=. \
           --cov-report=html \
           --cov-report=xml:coverage.xml \
-          --timeout=30 \
+          --timeout=360 \
           tests
 
         env:
@@ -236,7 +236,7 @@ jobs:
           datacube system check
 
           echo "Running Tests"
-          pytest --timeout=240 tests
+          pytest --timeout=30 tests
 
         env:
           AWS_DEFAULT_REGION: us-west-2
