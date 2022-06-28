@@ -187,6 +187,7 @@ def test_masking(monkeypatch):
     tasks[0].datasets = tasks[0].datasets[:1]
 
     xx_0_0 = gm_ls_0_0.input_data(tasks[0].datasets, tasks[0].geobox)
+    xx_0_0 = xx_0_0.sel(indexers={'x': slice(None, None, 50), 'y': slice(None, None, 50)})
     gm_0_0 = gm_ls_0_0.reduce(xx_0_0)
     result_0_0 = gm_0_0.compute()
 
@@ -197,6 +198,7 @@ def test_masking(monkeypatch):
 
     gm_ls_0_1 = StatsGMLS(cloud_filters=mask_filters_0_1)
     xx_0_1 = gm_ls_0_1.input_data(tasks[0].datasets, tasks[0].geobox)
+    xx_0_1 = xx_0_1.sel(indexers={'x': slice(None, None, 50), 'y': slice(None, None, 50)})
     gm_0_1 = gm_ls_0_1.reduce(xx_0_1)
     result_0_1 = gm_0_1.compute()
 
