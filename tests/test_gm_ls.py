@@ -163,9 +163,11 @@ def test_result_aux_bands_to_match_inputs(dataset):
     )
 
 
-def test_masking():
-    default_region = os.environ["AWS_DEFAULT_REGION"]
-    os.environ["AWS_DEFAULT_REGION"] = "ap-southeast-2"
+def test_masking(monkeypatch):
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "ap-southeast-2")
+    # Our test data is in dea-public-data, which for now is free to read anonymously
+    monkeypatch.setenv("AWS_NO_SIGN_REQUEST", "YES")
+
     project_root = Path(__file__).parents[1]
     data_dir = f"{project_root}/tests/data//ga_ls8c_ard_3_2015-01--P3M.db"
 
@@ -180,6 +182,9 @@ def test_masking():
     rdr = TaskReader(data_dir, product=product)
     tidx = ("2015--P1Y", 40, 8)
     tasks = [rdr.load_task(tidx)]
+
+    # This test only requires a single dataset, which will make it run much faster
+    tasks[0].datasets = tasks[0].datasets[:1]
 
     xx_0_0 = gm_ls_0_0.input_data(tasks[0].datasets, tasks[0].geobox)
     gm_0_0 = gm_ls_0_0.reduce(xx_0_0)
@@ -205,5 +210,3 @@ def test_masking():
     # radious of one, hence the count of nodata values should be
     # less than 4 * non_buffering
     assert non_zero_bufferig_count <= (zero_buffering_count * 4)
-
-    os.environ["AWS_DEFAULT_REGION"] = default_region
