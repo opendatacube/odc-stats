@@ -162,7 +162,20 @@ def test_result_aux_bands_to_match_inputs(dataset):
     )
 
 
-def test_masking(monkeypatch):
+def test_no_cloud_buffering(monkeypatch):
+    gm_ls_0_0 = StatsGMLS()
+    assert gm_ls_0_0.cloud_filters is None
+
+    mask_filters_0_0 = {
+        "cloud": [("closing", 0), ("dilation", 0)],
+        "shadow": [("closing", 0), ("dilation", 0)],
+    }
+
+    gm_ls_0_0 = StatsGMLS(cloud_filters=mask_filters_0_0)
+    assert gm_ls_0_0.cloud_filters == mask_filters_0_0
+
+
+def test_no_buffering_vs_masking(monkeypatch):
     monkeypatch.setenv("AWS_DEFAULT_REGION", "ap-southeast-2")
     # Our test data is in dea-public-data, which for now is free to read anonymously
     monkeypatch.setenv("AWS_NO_SIGN_REQUEST", "YES")
@@ -180,38 +193,34 @@ def test_masking(monkeypatch):
 
     rdr = TaskReader(data_dir, product=product)
     tidx = ("2015--P1Y", 40, 8)
-    tasks = [rdr.load_task(tidx)]
+    task = rdr.load_task(tidx)
 
     # This test only requires a single dataset, which will make it run much faster
-    tasks[0].datasets = tasks[0].datasets[:1]
+    task.datasets = task.datasets[2:3]
 
-    xx_0_0 = gm_ls_0_0.input_data(tasks[0].datasets, tasks[0].geobox)
+    xx_0_0 = gm_ls_0_0.input_data(task.datasets, task.geobox)
     xx_0_0 = xx_0_0.sel(
-        indexers={"x": slice(None, None, 50), "y": slice(None, None, 50)}
+        indexers={"x": slice(None, None, 100), "y": slice(None, None, 100)}
     )
     gm_0_0 = gm_ls_0_0.reduce(xx_0_0)
     result_0_0 = gm_0_0.compute()
 
-    mask_filters_0_1 = {
-        "cloud": [("closing", 0), ("dilation", 1)],
-        "shadow": [("closing", 0), ("dilation", 1)],
-    }
-
-    gm_ls_0_1 = StatsGMLS(cloud_filters=mask_filters_0_1)
-    xx_0_1 = gm_ls_0_1.input_data(tasks[0].datasets, tasks[0].geobox)
+    gm_ls_0_1 = StatsGMLS()
+    xx_0_1 = gm_ls_0_1.input_data(task.datasets, task.geobox)
     xx_0_1 = xx_0_1.sel(
-        indexers={"x": slice(None, None, 50), "y": slice(None, None, 50)}
+        indexers={"x": slice(None, None, 100), "y": slice(None, None, 100)}
     )
+
     gm_0_1 = gm_ls_0_1.reduce(xx_0_1)
     result_0_1 = gm_0_1.compute()
 
     zero_buffering_count = np.array(result_0_0.nbart_red.data == -999).flatten().sum()
 
-    non_zero_bufferig_count = (
-        np.array(result_0_1.nbart_red.data == -999).flatten().sum()
+    no_bufferig_count = np.array(result_0_1.nbart_red.data == -999).flatten().sum()
+    print(
+        "No Buffering: ",
+        no_bufferig_count,
+        "  Zero Buffering:  ",
+        zero_buffering_count,
     )
-
-    # In the non-zero buffering scenario, each cloud pixel is dilated with
-    # radious of one, hence the count of nodata values should be
-    # less than 4 * non_buffering
-    assert non_zero_bufferig_count <= (zero_buffering_count * 4)
+    assert no_bufferig_count == zero_buffering_count
