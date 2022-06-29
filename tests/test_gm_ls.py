@@ -223,4 +223,5 @@ def test_no_buffering_vs_masking(monkeypatch):
         "  Zero Buffering:  ",
         zero_buffering_count,
     )
+    assert no_bufferig_count > 0
     assert no_bufferig_count == zero_buffering_count
