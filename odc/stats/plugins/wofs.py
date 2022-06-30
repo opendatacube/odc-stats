@@ -20,15 +20,9 @@ of time summary from existing annual summaries.
 from typing import Tuple, Dict, Iterable
 import numpy as np
 import xarray as xr
-from odc.algo import (
-    safe_div,
-    apply_numexpr,
-    keep_good_only,
-    mask_cleanup,
-    _xr_fuse,
-    _fuse_and_np,
-    _fuse_or_np,
-)
+from odc.algo import safe_div, apply_numexpr, keep_good_only
+
+from odc.algo._masking import _or_fuser, mask_cleanup
 from ._registry import StatsPluginInterface, register
 
 
@@ -77,7 +71,7 @@ class StatsWofs(StatsPluginInterface):
             7   6   5   4     3   2   1   0
             |   |   |   |     |   |   |   |
             |   |   |   |     |   |   |   x---> NODATA: 1 -- all bands were nodata
-            |   |   |   |     |   |   o-------> Non Contiguous - some bands were nodata)
+            |   |   |   |     |   |   o-------> Non Contiguous - some bands were nodata
             |   |   |   |     |   x-----------> Low Solar Angle
             |   |   |   |     o---------------> Terrain Shadow
             |   |   |   |
@@ -87,36 +81,32 @@ class StatsWofs(StatsPluginInterface):
             o---------------------------------> Water
 
         out:
-          .bad<Bool>   - pixel should not be counted
-          .some<Bool>  - there is data (x.water & 0b11) == 0,
+          .bad<Bool>   - non-clear pixel should not be counted
+          .some<Bool>  - there is data (x.water & 0b1) == 0,
                          to distinguish "count=0" resulted from "nodata"
-                         or "not up to the classification criteria"
+                         or "non-clear" = bad + dry + wet
           .dry<Bool>   - pixel has dry classification and is not ``bad``
           .wet<Bool>   - pixel has wet classification and is not ``bad``
         """
 
-        xx["bad"] = apply_numexpr(
-            "(water & (~(1<<7))) > 0", xx, dtype="bool", name="bad"
-        )
-        xx["some"] = apply_numexpr(
-            "((water<<30)>>30)==0", xx, dtype="bool", name="some"
-        )
+        xx["class"] = (xx.water & 1) == 0
+        xx["class"] &= (xx.water & (~(1 << 7) | 1)) > 0  # bad
 
-        # dilate both 'some' and 'bad'
+        # dilate 'bad'
         for key, val in self.BAD_BITS_MASK.items():
             if self.cloud_filters.get(key) is not None:
                 raw_mask = (xx["water"] & val) > 0
                 raw_mask = mask_cleanup(
                     raw_mask, mask_filters=self.cloud_filters.get(key)
                 )
-                xx["some"] |= raw_mask
-                xx["bad"] |= raw_mask
-
-        xx["dry"] = apply_numexpr("(water==0) & (~bad)", xx, dtype="bool", name="dry")
-        xx["wet"] = apply_numexpr(
-            "(water==(1<<7)) & (~bad)", xx, dtype="bool", name="wet"
-        )
-        xx = xx.drop_vars(["water", "bad"])
+                xx["class"] |= raw_mask
+        xx["class"] = xx["class"].astype("uint8")  # bad: 0001
+        xx["wet"] = ((xx.water == (1 << 7)) & ~(xx["class"] == 1)).astype("uint8")
+        xx["class"] += apply_numexpr("wet<<1", xx, name="convert_wet")  # wet: 0010
+        xx["dry"] = ((xx.water == 0) & ~(xx["class"] == 1)).astype("uint8")
+        xx["class"] += apply_numexpr("dry<<2", xx, name="convert_dry")  # dry: 0100
+        # nodata: 0000
+        xx = xx.drop_vars(["water", "wet", "dry"])
         for dv in xx.data_vars.values():
             dv.attrs.pop("nodata", None)
 
@@ -124,27 +114,22 @@ class StatsWofs(StatsPluginInterface):
 
     @staticmethod
     def fuser(xx):
-        """
-        xx.wet  -- is wet
-        xx.dry  -- is dry
-        xx.some -- there was at least one non-nodata observation at that pixel
-        """
-        # both wet = T => wet = T
-        # both dry = T => dry = T
-        # either some = T => some = T
-
-        wet = _xr_fuse(xx["wet"], _fuse_and_np, "wet")
-        dry = _xr_fuse(xx["dry"], _fuse_and_np, "dry")
-        some = _xr_fuse(xx["some"], _fuse_or_np, "some")
-
-        return xr.Dataset(dict(wet=wet, dry=dry, some=some))
+        return _or_fuser(xx)
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
+        """
+        bad + anything -> bad xxx1
+        wet + wet/nodata -> wet 0010
+        dry + dry/nodata -> dry 0100
+        nodata + anything -> anything
+        """
         nodata = -999
-        count_some = xx.some.sum(axis=0, dtype="int16")
-        count_wet = xx.wet.sum(axis=0, dtype="int16")
-        count_dry = xx.dry.sum(axis=0, dtype="int16")
+        count_wet = (xx["class"] == (1 << 1)).sum(axis=0, dtype="int16")
+        count_dry = (xx["class"] == (1 << 2)).sum(axis=0, dtype="int16")
         count_clear = count_wet + count_dry
+        count_some = (
+            ((xx["class"] & 1) > 0).sum(axis=0, dtype="int16") + count_wet + count_dry
+        )
         frequency = safe_div(count_wet, count_clear, dtype="float32")
 
         count_wet.attrs["nodata"] = nodata
