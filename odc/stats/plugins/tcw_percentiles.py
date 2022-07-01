@@ -36,7 +36,7 @@ class StatsTCWPC(StatsPluginInterface):
         **kwargs,
     ):
 
-        self.cloud_filters = cloud_filters if cloud_filters is not None else {}
+        self.cloud_filters = cloud_filters
         if coefficients is None:
             self.coefficients = dict(
                 [
