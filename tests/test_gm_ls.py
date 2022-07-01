@@ -12,25 +12,28 @@ from odc.stats.tasks import TaskReader
 @pytest.fixture
 def dataset():
     no_data = 0
+    cloud = 2
+    shadow = 3
+
     contiguity = np.array(
         [
             [[1, 1], [1, 1]],
             [[1, 1], [1, 1]],
-            [[1, 1], [1, 1]],
+            [[1, 1], [1, 0]],
         ]
     )
     band = np.array(
         [
             [[255, 57], [20, 0]],
             [[30, 10], [70, 80]],
-            [[25, 1], [120, 0]],
+            [[25, 1], [120, 121]],
         ]
     )
     band_fmask = np.array(
         [
-            [[0, 0], [0, no_data]],
-            [[3, no_data], [3, 3]],
-            [[0, 0], [no_data, 0]],
+            [[1, 1], [1, no_data]],
+            [[cloud, no_data], [cloud, shadow]],
+            [[1, 5], [no_data, 1]],
         ]
     )
 
@@ -80,20 +83,24 @@ def dataset():
 
 def test_native_transform(dataset):
     _ = pytest.importorskip("hdstats")
-    mask_filters = {
-        "cloud": [("closing", 0), ("dilation", 0)],
-        "shadow": [("closing", 0), ("dilation", 0)],
-    }
 
     dataset = dataset.copy()
-    stats_gmls = StatsGMLS(cloud_filters=mask_filters, nodata_classes=(-999,))
+    stats_gmls = StatsGMLS(nodata_classes=(0,))
     xx = stats_gmls.native_transform(dataset)
     result = xx.compute()
 
-    expected_result = np.array(
-        [[[255, 57], [20, -999]], [[30, -999], [70, 80]], [[25, 1], [-999, 0]]]
+    assert "fmask" not in [x for x in result.data_vars]
+    assert "nbart_contiguity" not in [x for x in result.data_vars]
+
+    expected_result_band = np.array(
+        [
+            [[255, 57], [20, 0]],
+            [[0, 0], [0, 0]],
+            [[25, 1], [0, 0]],
+        ]
     )
-    assert (result == expected_result).all()
+
+    assert (expected_result_band == result.nbart_green.data).all()
 
 
 def test_result_bands_to_match_inputs(dataset):
@@ -125,7 +132,6 @@ def test_result_bands_to_match_inputs(dataset):
 
 
 def test_result_aux_bands_to_match_inputs(dataset):
-    _ = pytest.importorskip("hdstats")
     _ = pytest.importorskip("hdstats")
     mask_filters = {
         "cloud": [("closing", 2), ("dilation", 1)],
@@ -162,20 +168,19 @@ def test_result_aux_bands_to_match_inputs(dataset):
     )
 
 
-def test_no_cloud_buffering(monkeypatch):
-    gm_ls_0_0 = StatsGMLS()
-    assert gm_ls_0_0.cloud_filters is None
-
-    mask_filters_0_0 = {
-        "cloud": [("closing", 0), ("dilation", 0)],
-        "shadow": [("closing", 0), ("dilation", 0)],
+def test_resampling(dataset):
+    _ = pytest.importorskip("hdstats")
+    mask_filters = {
+        "cloud": [("closing", 2), ("dilation", 1)],
+        "shadow": [("closing", 0), ("dilation", 5)],
     }
 
-    gm_ls_0_0 = StatsGMLS(cloud_filters=mask_filters_0_0)
-    assert gm_ls_0_0.cloud_filters == mask_filters_0_0
+    dataset = dataset.copy()
+    stats_gmls = StatsGMLS(cloud_filters=mask_filters, nodata_classes=(-999,))
+    assert stats_gmls.resampling == "nearest"
 
 
-def test_no_buffering_vs_masking(monkeypatch):
+def test_no_data_value(monkeypatch):
     monkeypatch.setenv("AWS_DEFAULT_REGION", "ap-southeast-2")
     # Our test data is in dea-public-data, which for now is free to read anonymously
     monkeypatch.setenv("AWS_NO_SIGN_REQUEST", "YES")
@@ -183,13 +188,13 @@ def test_no_buffering_vs_masking(monkeypatch):
     project_root = Path(__file__).parents[1]
     data_dir = f"{project_root}/tests/data//ga_ls8c_ard_3_2015-01--P3M.db"
 
-    mask_filters_0_0 = {
+    mask_filters = {
         "cloud": [("closing", 0), ("dilation", 0)],
         "shadow": [("closing", 0), ("dilation", 0)],
     }
 
-    gm_ls_0_0 = StatsGMLS(cloud_filters=mask_filters_0_0)
-    product = product_for_plugin(gm_ls_0_0, location="/tmp/")
+    gm_ls = StatsGMLS(cloud_filters=mask_filters)
+    product = product_for_plugin(gm_ls, location="/tmp/")
 
     rdr = TaskReader(data_dir, product=product)
     tidx = ("2015--P1Y", 40, 8)
@@ -198,30 +203,13 @@ def test_no_buffering_vs_masking(monkeypatch):
     # This test only requires a single dataset, which will make it run much faster
     task.datasets = task.datasets[2:3]
 
-    xx_0_0 = gm_ls_0_0.input_data(task.datasets, task.geobox)
+    xx_0_0 = gm_ls.input_data(task.datasets, task.geobox)
     xx_0_0 = xx_0_0.sel(
         indexers={"x": slice(None, None, 100), "y": slice(None, None, 100)}
     )
-    gm_0_0 = gm_ls_0_0.reduce(xx_0_0)
-    result_0_0 = gm_0_0.compute()
+    gm = gm_ls.reduce(xx_0_0)
+    result = gm.compute()
 
-    gm_ls_0_1 = StatsGMLS()
-    xx_0_1 = gm_ls_0_1.input_data(task.datasets, task.geobox)
-    xx_0_1 = xx_0_1.sel(
-        indexers={"x": slice(None, None, 100), "y": slice(None, None, 100)}
-    )
-
-    gm_0_1 = gm_ls_0_1.reduce(xx_0_1)
-    result_0_1 = gm_0_1.compute()
-
-    zero_buffering_count = np.array(result_0_0.nbart_red.data == -999).flatten().sum()
-
-    no_bufferig_count = np.array(result_0_1.nbart_red.data == -999).flatten().sum()
-    print(
-        "No Buffering: ",
-        no_bufferig_count,
-        "  Zero Buffering:  ",
-        zero_buffering_count,
-    )
-    assert no_bufferig_count > 0
-    assert no_bufferig_count == zero_buffering_count
+    bands = [x for x in result.data_vars]
+    for x in bands:
+        assert result.nbart_green.attrs.get("nodata", 0) == -999
