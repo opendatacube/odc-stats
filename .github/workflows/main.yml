@@ -111,7 +111,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
       - uses: rickstaa/action-black@v1
         with:
           black_args: "--check odc/stats"
@@ -157,7 +156,7 @@ jobs:
           pytest --cov=. \
           --cov-report=html \
           --cov-report=xml:coverage.xml \
-          --timeout=30 \
+          --timeout=60 \
           tests
 
         env:

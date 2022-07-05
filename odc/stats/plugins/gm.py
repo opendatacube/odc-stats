@@ -1,13 +1,15 @@
 """
 Geomedian
 """
-from typing import Optional, Mapping, Sequence, Tuple, Iterable, Dict
+from typing import Optional, Tuple, Iterable, Dict
 import xarray as xr
-from datacube.model import Dataset
-from datacube.utils.geometry import GeoBox
-from odc.algo import erase_bad, geomedian_with_mads
+from odc.algo import geomedian_with_mads
 from ._registry import StatsPluginInterface, register
-from odc.algo import enum_to_bool, mask_cleanup
+from odc.algo import enum_to_bool, keep_good_only
+from odc.algo import mask_cleanup
+import logging
+
+_log = logging.getLogger(__name__)
 
 
 class StatsGM(StatsPluginInterface):
@@ -23,15 +25,22 @@ class StatsGM(StatsPluginInterface):
         nodata_classes: Optional[Tuple[str, ...]] = None,
         cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
         basis_band=None,
-        aux_names=dict(smad="smad", emad="emad", bcmad="bcmad", count="count"),
+        aux_names: Dict[str, str] = None,
+        resampling: str = "nearest",
         work_chunks: Tuple[int, int] = (400, 400),
         **kwargs,
     ):
+        aux_names = (
+            dict(smad="smad", emad="emad", bcmad="bcmad", count="count")
+            if aux_names is None
+            else aux_names
+        )
         self.bands = tuple(bands)
         self._mask_band = mask_band
         if nodata_classes is not None:
             nodata_classes = tuple(nodata_classes)
         self._nodata_classes = nodata_classes
+        self.resampling = resampling
         input_bands = self.bands
         if self._nodata_classes is not None:
             # NOTE: this ends up loading Mask band twice, once to compute
@@ -41,6 +50,7 @@ class StatsGM(StatsPluginInterface):
         super().__init__(
             input_bands=input_bands,
             basis=basis_band or self.bands[0],
+            resampling=self.resampling,
             **kwargs,
         )
 
@@ -63,9 +73,7 @@ class StatsGM(StatsPluginInterface):
         return self.bands + self.aux_bands
 
     def native_transform(self, xx: xr.Dataset) -> xr.Dataset:
-        from odc.algo import enum_to_bool, keep_good_only
-
-        if not self._mask_band in xx.data_vars:
+        if self._mask_band not in xx.data_vars:
             return xx
 
         # Apply the contiguity flag
@@ -75,11 +83,15 @@ class StatsGM(StatsPluginInterface):
         mask = xx[self._mask_band]
         bad = enum_to_bool(mask, self._nodata_classes)
         bad = bad | non_contiguent
-
-        for cloud_class, filter in self.cloud_filters.items():
-            cloud_mask = enum_to_bool(mask, (cloud_class,))
-            cloud_mask_buffered = mask_cleanup(cloud_mask, mask_filters=filter)
-            bad = cloud_mask_buffered | bad
+        if self.cloud_filters is not None:
+            for cloud_class, c_filter in self.cloud_filters.items():
+                cloud_mask = enum_to_bool(mask, (cloud_class,))
+                cloud_mask_buffered = mask_cleanup(cloud_mask, mask_filters=c_filter)
+                bad = cloud_mask_buffered | bad
+        else:
+            cloud_shadow_mask = enum_to_bool(mask, ("cloud", "shadow"))
+            bad = cloud_shadow_mask | bad
+            _log.info("Applying cloud/shadow mask without buffering.")
 
         xx = xx.drop_vars([self._mask_band] + ["nbart_contiguity"])
         xx = keep_good_only(xx, ~bad)
@@ -119,16 +131,28 @@ class StatsGMS2(StatsGM):
         self,
         bands: Optional[Tuple[str, ...]] = None,
         mask_band: str = "SCL",
-        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = {
-            "cloud shadows": DEFAULT_FILTER,
-            "cloud medium probability": DEFAULT_FILTER,
-            "cloud high probability": DEFAULT_FILTER,
-            "thin cirrus": DEFAULT_FILTER,
-        },
-        aux_names=dict(smad="SMAD", emad="EMAD", bcmad="BCMAD", count="COUNT"),
+        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
+        aux_names: Dict[str, str] = None,
         rgb_bands=None,
         **kwargs,
     ):
+        cloud_filters = (
+            {
+                "cloud shadows": self.DEFAULT_FILTER,
+                "cloud medium probability": self.DEFAULT_FILTER,
+                "cloud high probability": self.DEFAULT_FILTER,
+                "thin cirrus": self.DEFAULT_FILTER,
+            }
+            if cloud_filters is None
+            else cloud_filters
+        )
+
+        aux_names = (
+            dict(smad="SMAD", emad="EMAD", bcmad="BCMAD", count="COUNT")
+            if aux_names is None
+            else aux_names
+        )
+
         if bands is None:
             bands = (
                 "B02",
@@ -170,15 +194,21 @@ class StatsGMLS(StatsGM):
         mask_band: str = "fmask",
         nodata_classes: Optional[Tuple[str, ...]] = ("nodata",),
         cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
-        aux_names=dict(
-            smad="sdev",
-            emad="edev",
-            bcmad="bcdev",
-            count="count",
-        ),
+        aux_names: Dict[str, str] = None,
         rgb_bands=None,
         **kwargs,
     ):
+        aux_names = (
+            dict(
+                smad="sdev",
+                emad="edev",
+                bcmad="bcdev",
+                count="count",
+            )
+            if aux_names is None
+            else aux_names
+        )
+
         if bands is None:
             bands = (
                 "nbart_red",
