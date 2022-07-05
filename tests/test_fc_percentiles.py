@@ -157,6 +157,7 @@ def test_reduce(dataset):
     stats_fcp = StatsFCP(count_valid=True)
     xx = stats_fcp.native_transform(dataset)
     xx = xx.groupby("solar_day").map(partial(StatsFCP.fuser, None))
+    xx = xx.compute()
     xx = stats_fcp.reduce(xx)
 
     result = xx.compute()["band_1_pc_10"].data
@@ -165,7 +166,7 @@ def test_reduce(dataset):
     assert (result[1, 1] == 255).all()
 
     expected_result = np.array(
-        [[1, 0], [0, 1], [1, 1]],
+        [[1, 1], [0, 1], [1, 1]],
     )
     result = xx.compute()["qa"].data
     print(result)
