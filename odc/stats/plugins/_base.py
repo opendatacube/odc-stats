@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Mapping, Optional, Sequence, Tuple
+from typing import Mapping, Optional, Sequence, Tuple
 
 import xarray as xr
 from datacube.model import Dataset
@@ -18,8 +18,8 @@ class StatsPluginInterface(ABC):
     def __init__(
         self,
         resampling: str = "bilinear",
-        input_bands: Sequence[str] = [],
-        chunks: Mapping[str, int] = {"y": -1, "x": -1},
+        input_bands: Sequence[str] = None,
+        chunks: Mapping[str, int] = None,
         basis: Optional[str] = None,
         group_by: str = "solar_day",
         rgb_bands: Optional[Sequence[str]] = None,
@@ -27,7 +27,7 @@ class StatsPluginInterface(ABC):
     ):
         self.resampling = resampling
         self.input_bands = input_bands
-        self.chunks = chunks
+        self.chunks = chunks if chunks is not None else {"y": -1, "x": -1}
         self.basis = basis
         self.group_by = group_by
         self.rgb_bands = rgb_bands
