@@ -1,6 +1,11 @@
 import sys
 import click
+import logging
+from .model import TaskRunnerConfig
+from .proc import TaskRunner
+from .plugins import import_all
 from ._cli_common import main, setup_logging, click_resolution, click_yaml_cfg
+
 
 CONFIG_ITEMS = [
     "product",
@@ -15,7 +20,7 @@ CONFIG_ITEMS = [
     "heartbeat_filepath",
     "plugin_config",
     "cog_opts",
-    "dataset-filters",
+    "dataset_filters",
     "apply_eodatasets3",
     "aws_unsigned",
     "job_queue_max_lease",
@@ -58,7 +63,10 @@ CONFIG_ITEMS = [
     "--apply_eodatasets3",
     is_flag=True,
     default=False,
-    help="Apply eodatasets3 plugin to generate metadata files (default: use PySTAC to generate metadata files)",
+    help=(
+        "Apply eodatasets3 plugin to generate metadata files "
+        "(default: use PySTAC to generate metadata files)"
+    ),
 )
 @click.option(
     "--location", type=str, help="Output location prefix as a uri: s3://bucket/path/"
@@ -79,6 +87,8 @@ CONFIG_ITEMS = [
 @click_resolution("--resolution", help="Override output resolution")
 @click.argument("filedb", type=str, nargs=1, default="")
 @click.argument("tasks", type=str, nargs=-1)
+# pylint: disable=too-many-arguments, too-many-locals, logging-fstring-interpolation
+# pylint: disable=too-many-branches, too-many-statements
 def run(
     filedb,
     tasks,
@@ -116,14 +126,10 @@ def run(
        1::10 -- every tenth but skip first one 1, 11, 21 ..
         :100 -- first 100 tasks
 
-    If no tasks are supplied and --from-sqs is not used, the whole file will be processed.
+    If no tasks are supplied and --from-sqs is not used,
+    the whole file will be processed.
     """
     setup_logging()
-
-    import logging
-    from .model import TaskRunnerConfig
-    from .proc import TaskRunner
-    from .plugins import import_all
 
     _log = logging.getLogger(__name__)
 
@@ -163,10 +169,7 @@ def run(
 
     _cfg.update(cfg_from_cli)
     if plugin_config is not None:
-        if "plugin_config" not in _cfg:
-            _cfg["plugin_config"] = {}
-
-        _cfg["plugin_config"].update(plugin_config)
+        _cfg.get("plugin_config", {}).update(plugin_config)
 
     if resampling is not None and len(resampling) > 0:
         _cfg.setdefault("plugin_config", {})["resampling"] = resampling
@@ -178,13 +181,14 @@ def run(
         from_sqs
     ):  # if config or CLI has filedb, but run from sqs, throw this warning message.
         _log.warning(
-            "The `filedb` from config or CLI will be a placeholder value. Actual filedb saved in SQS message"
+            "The `filedb` from config or CLI will be a placeholder value. \
+                    Actual filedb saved in SQS message"
         )
     elif not _cfg.get("filedb"):
         _log.error("Must supply `filedb` either through config or CLI")
         sys.exit(1)
 
-    tmp = _cfg.pop("dataset-filters", None)
+    tmp = _cfg.pop("dataset_filters", None)
     if dataset_filters is None:
         dataset_filters = tmp
 
@@ -243,7 +247,8 @@ def run(
         _log.info(f"T:{total:,d}, OK:{finished:,d}, S:{skipped:,d}, E:{errored:,d}")
 
     _log.info(
-        f"Completed processing {total:,d} tasks, OK:{finished:,d}, S:{skipped:,d}, E:{errored:,d}"
+        f"""Completed processing {total:,d} tasks, OK:{finished:,d},
+        S:{skipped:,d}, E:{errored:,d}"""
     )
 
     _log.info("Shutting down Dask cluster")

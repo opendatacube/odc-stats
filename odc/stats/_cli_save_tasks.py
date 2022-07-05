@@ -2,6 +2,11 @@ import json
 
 import click
 import sys
+import logging
+from datacube import Datacube
+from .tasks import SaveTasks
+from .model import DateTimeRange
+
 from ._cli_common import main, click_range2d, click_yaml_cfg, setup_logging
 
 CONFIG_ITEMS = [
@@ -10,7 +15,7 @@ CONFIG_ITEMS = [
     "complevel",
     "overwrite",
     "gqa",
-    "products",
+    "input_products",
     "dataset_filter",
 ]
 
@@ -20,25 +25,34 @@ CONFIG_ITEMS = [
     "--grid",
     type=str,
     help=(
-        "Grid name or spec: au-{10|20|30|60},africa-{10|20|30|60}, albers-au-25 (legacy one)"
-        "'crs;pixel_resolution;shape_in_pixels'"
+        "Grid name or spec: au-{10|20|30|60},africa-{10|20|30|60},"
+        "albers-au-25 (legacy one) 'crs;pixel_resolution;shape_in_pixels'"
     ),
     default=None,
 )
 @click.option(
     "--year",
     type=int,
-    help="Only extract datasets for a given year. This is a shortcut for --temporal-range=<int>--P1Y",
+    help=(
+        "Only extract datasets for a given year."
+        "This is a shortcut for --temporal-range=<int>--P1Y"
+    ),
 )
 @click.option(
     "--temporal-range",
     type=str,
-    help="Only extract datasets for a given time range, Example '2020-05--P1M' month of May 2020",
+    help=(
+        "Only extract datasets for a given time range,"
+        "Example '2020-05--P1M' month of May 2020"
+    ),
 )
 @click.option(
     "--frequency",
     type=str,
-    help="Specify temporal binning: annual|annual-fy|semiannual|seasonal|nov-mar|apr-oct|all",
+    help=(
+        "Specify temporal binning: "
+        "annual|annual-fy|semiannual|seasonal|nov-mar|apr-oct|all"
+    ),
 )
 @click.option("--env", "-E", type=str, help="Datacube environment name")
 @click.option(
@@ -49,7 +63,7 @@ CONFIG_ITEMS = [
     help="Compression setting for zstandard 1-fast, 9+ good but slow",
 )
 @click.option(
-    "--overwrite", is_flag=True, default=False, help="Overwrite output if it exists"
+    "--overwrite", is_flag=True, default=None, help="Overwrite output if it exists"
 )
 @click.option(
     "--tiles", help='Limit query to tiles example: "0:3,2:4"', callback=click_range2d
@@ -69,7 +83,10 @@ CONFIG_ITEMS = [
 @click.option(
     "--usgs-collection-category",
     type=str,
-    help="Only save datasets that pass `collection_category == usgs_collection_category` test",
+    help=(
+        "Only save datasets that pass "
+        "`collection_category == usgs_collection_category` test"
+    ),
 )
 @click.option(
     "--dataset-filter",
@@ -78,8 +95,10 @@ CONFIG_ITEMS = [
     help='Filter to apply on datasets - {"collection_category": "T1"}',
 )
 @click_yaml_cfg("--config", help="Save tasks Config")
-@click.option("--products", type=str, default="")
+@click.option("--input-products", type=str, default="")
 @click.argument("output", type=str, nargs=1, default="")
+# pylint: disable=too-many-arguments, too-many-locals
+# pylint: disable=too-many-branches, too-many-statements
 def save_tasks(
     config,
     grid,
@@ -87,11 +106,11 @@ def save_tasks(
     temporal_range,
     frequency,
     output,
-    products,
+    input_products,
     dataset_filter,
     env,
     complevel,
-    overwrite=False,
+    overwrite,
     tiles=None,
     debug=False,
     gqa=None,
@@ -104,15 +123,10 @@ def save_tasks(
 
     \b
     Not yet implemented features:
-      - output product config
+      - output
 
     """
     setup_logging()
-
-    import logging
-    from datacube import Datacube
-    from .tasks import SaveTasks
-    from .model import DateTimeRange
 
     _log = logging.getLogger(__name__)
     if temporal_range is not None and year is not None:
@@ -130,29 +144,32 @@ def save_tasks(
             grid=grid,
             frequency=frequency,
             gqa=gqa,
-            products=products,
+            input_products=input_products,
             complevel=complevel,
             dataset_filter=dataset_filter,
+            overwrite=overwrite,
         ).items()
         if v is not None and v != ""
     }
 
-    _log.info(f"Config overrides: {cfg_from_cli}")
+    _log.info("Config overrides: %s", cfg_from_cli)
     _cfg.update(cfg_from_cli)
-    _log.info(f"Using config: {_cfg}")
+    _log.info("Using config: %s", _cfg)
 
     gqa = _cfg.pop("gqa", None)
-    products = _cfg.pop("products", None)
+    input_products = _cfg.pop("input_products", None)
     dataset_filter = _cfg.pop("dataset_filter", None)
 
-    if products is None:
+    if input_products is None:
         print("Input products has to be specified", file=sys.stderr)
         sys.exit(1)
 
     if _cfg.get("grid") is None:
         print(
-            "grid must  be  one of au-{10|20|30|60}, africa-{10|20|30|60}, albers_au_25 (legacy one) \
-               or custom like 'epsg:3857;30;5000' (30m pixels 5,000 per side in epsg:3857) "
+            "grid must  be  one of au-{10|20|30|60}, africa-{10|20|30|60}, \
+             albers_au_25 (legacy one) or custom like 'epsg:3857;30;5000' \
+             (30m pixels 5,000 per side in epsg:3857) ",
+            file=sys.stderr,
         )
         sys.exit(1)
 
@@ -167,7 +184,9 @@ def save_tasks(
             "all",
         ):
             print(
-                f"Frequency must be one of annual|annual-fy|semiannual|seasonal|nov-mar|apr-oct|all and not '{frequency}'"
+                f"""Frequency must be one of annual|annual-fy|semiannual|seasonal|nov-mar|apr-oct|all
+                and not '{frequency}'""",
+                file=sys.stderr,
             )
             sys.exit(1)
 
@@ -175,7 +194,10 @@ def save_tasks(
         try:
             temporal_range = DateTimeRange(temporal_range)
         except ValueError:
-            print(f"Failed to parse supplied temporal_range: '{temporal_range}'")
+            print(
+                f"Failed to parse supplied temporal_range: '{temporal_range}'",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
     if year is not None:
@@ -183,14 +205,14 @@ def save_tasks(
 
     if output == "":
         if temporal_range is not None:
-            output = f"{products}_{temporal_range.short}.db"
+            output = f"{input_products}_{temporal_range.short}.db"
         else:
-            output = f"{products}_all.db"
+            output = f"{input_products}_all.db"
 
     try:
         tasks = SaveTasks(output, **_cfg)
     except ValueError as e:
-        print(str(e))
+        print(str(e), file=sys.stderr)
         sys.exit(1)
 
     def on_message(msg):
@@ -212,16 +234,16 @@ def save_tasks(
     if usgs_collection_category is not None:
         predicate = collection_category_predicate
 
-    filter = {}
+    ds_filter = {}
     if dataset_filter:
-        filter = json.loads(dataset_filter)
+        ds_filter = json.loads(dataset_filter)
 
     dc = Datacube(env=env)
     try:
         ok = tasks.save(
             dc,
-            products,
-            dataset_filter=filter,
+            input_products,
+            dataset_filter=ds_filter,
             temporal_range=temporal_range,
             tiles=tiles,
             predicate=predicate,
