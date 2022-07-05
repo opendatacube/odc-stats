@@ -130,6 +130,7 @@ class StatsTCWPC(StatsPluginInterface):
         for band in xx.data_vars.keys():
             bad = bad | (xx[band] == -999)
 
+        print(self.input_bands)
         yy = xx.drop_vars(self.input_bands)
         for m in self.output_bands:
             yy[m] = sum(
