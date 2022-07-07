@@ -43,7 +43,7 @@ class StatsWofs(StatsPluginInterface):
 
     NAME = "ga_ls_wo_summary"
     SHORT_NAME = NAME
-    VERSION = "1.6.0"
+    VERSION = "1.6.1"
     PRODUCT_FAMILY = "wo_summary"
 
     # these get padded out if cloud_filter is not None

@@ -185,7 +185,7 @@ register("gm-s2", StatsGMS2)
 class StatsGMLS(StatsGM):
     NAME = "gm_ls_annual"
     SHORT_NAME = NAME
-    VERSION = "3.0.0"
+    VERSION = "3.0.1"
     PRODUCT_FAMILY = "geomedian"
 
     def __init__(
