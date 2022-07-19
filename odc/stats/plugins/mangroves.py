@@ -1,18 +1,15 @@
 """
 Mangroves canopy cover classes
 """
-from functools import partial
-from itertools import product
-from typing import Optional, Tuple
+from typing import Tuple
 
 import numpy as np
 import xarray as xr
 import dask
 import os
 from odc.algo import keep_good_only, erase_bad
-from odc.algo._masking import _fuse_mean_np, _fuse_or_np, _or_fuser, _xr_fuse
-from odc.algo._percentile import xr_quantile_bands
-from osgeo import gdal, ogr, osr
+import fiona
+from rasterio import features
 
 from ._registry import StatsPluginInterface, register
 
@@ -23,7 +20,7 @@ class Mangroves(StatsPluginInterface):
 
     NAME = "mangroves"
     SHORT_NAME = NAME
-    VERSION = "0.0.1"
+    VERSION = "0.0.2"
     PRODUCT_FAMILY = "mangroves"
 
     def __init__(
@@ -42,31 +39,21 @@ class Mangroves(StatsPluginInterface):
         _measurements = ["canopy_cover_class"]
         return _measurements
 
-    def rasterize_mangroves_extent(
-        self, shape_file, array_shape, orig_coords, resolution=(30, -30)
-    ):
-        source_ds = ogr.Open(shape_file)
-        source_layer = source_ds.GetLayer()
+    def rasterize_mangroves_extent(self, shape_file, transform, dst_shape):
+        with fiona.open(shape_file) as source_ds:
+            geoms = [s["geometry"] for s in source_ds]
 
-        yt, xt = array_shape[1:]
-        xres, yres = resolution
-        no_data = 0
-        xcoord, ycoord = orig_coords
-
-        geotransform = (xcoord - (xres * 0.5), xres, 0, ycoord - (yres * 0.5), 0, yres)
-
-        target_ds = gdal.GetDriverByName("MEM").Create("", xt, yt, gdal.GDT_Byte)
-        target_ds.SetGeoTransform(geotransform)
-        albers = osr.SpatialReference()
-        albers.ImportFromEPSG(3577)
-        target_ds.SetProjection(albers.ExportToWkt())
-        band = target_ds.GetRasterBand(1)
-        band.SetNoDataValue(no_data)
-
-        gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[1])
-        return dask.array.from_array(
-            band.ReadAsArray().reshape(array_shape), name=False
+        mangrove_extent = features.rasterize(
+            geoms,
+            transform=transform,
+            out_shape=dst_shape[1:],
+            all_touched=False,
+            fill=0,
+            default_value=1,
+            dtype="uint8",
         )
+
+        return dask.array.from_array(mangrove_extent.reshape(dst_shape), name=False)
 
     def fuser(self, xx):
         """
@@ -84,9 +71,7 @@ class Mangroves(StatsPluginInterface):
             if not os.path.exists(self.mangroves_extent):
                 raise FileNotFoundError(f"{self.mangroves_extent} not found")
             extent_mask = self.rasterize_mangroves_extent(
-                self.mangroves_extent,
-                xx.pv_pc_10.shape,
-                (xx.coords["x"].min(), xx.coords["y"].max()),
+                self.mangroves_extent, xx.geobox.transform, xx.pv_pc_10.shape
             )
         else:
             extent_mask = dask.array.ones(xx.pv_pc_10.shape)

@@ -50,7 +50,10 @@ class StatsWofs(StatsPluginInterface):
     BAD_BITS_MASK = dict(cloud=(1 << 6), cloud_shadow=(1 << 5), terrain_shadow=(1 << 3))
 
     def __init__(
-        self, cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None, **kwargs
+        self,
+        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
+        resampling="nearest",
+        **kwargs
     ):
         super().__init__(input_bands=["water"], **kwargs)
         # dilation scheme for cloud/shadow
