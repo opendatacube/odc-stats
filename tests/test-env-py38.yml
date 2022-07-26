@@ -33,6 +33,7 @@ dependencies:
   - xarray
   - gdal
   - fsspec>=2022.1.0
+  - fiona
 
   # For tests
   - pytest
