@@ -114,11 +114,11 @@ def test_reduce(dataset):
     assert out_xx.count_clear.attrs.get("nodata", 0) == -999
     out_xx.load()
     expected = np.array([[1, 0], [0, 0], [1, -999]])
-    assert (out_xx.count_wet == expected).all()
+    assert (out_xx.count_wet.data == expected).all()
     expected = np.array([[2, 0], [0, 1], [1, -999]])
-    assert (out_xx.count_clear == expected).all()
+    assert (out_xx.count_clear.data == expected).all()
     expected = np.array([[0.5, np.nan], [np.nan, 0.0], [1.0, np.nan]])
     assert (
-        out_xx.frequency.where(~np.isnan(out_xx.frequency), -1)
+        out_xx.frequency.where(~np.isnan(out_xx.frequency.data), -1)
         == np.where(~np.isnan(expected), expected, -1)
     ).all()
