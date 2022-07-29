@@ -49,12 +49,30 @@ def test_native_transform(dataset):
     out_xx.load()
     expected = np.array(
         [
-            [[0b0100, 0b0010], [0b0010, 0], [0b0010, 0]],
-            [[0b0100, 1], [0b0100, 1], [0b0010, 0]],
-            [[0b0010, 1], [1, 0b0100], [1, 0]],
+            [[True, False], [False, False], [False, False]],
+            [[True, False], [True, False], [False, False]],
+            [[False, False], [False, True], [False, False]],
         ]
     )
-    assert (out_xx["class"] == expected).all()
+    assert (out_xx["dry"].data == expected).all()
+
+    expected = np.array(
+        [
+            [[False, True], [True, False], [True, False]],
+            [[False, False], [False, False], [True, False]],
+            [[True, False], [False, False], [False, False]],
+        ]
+    )
+    assert (out_xx["wet"].data == expected).all()
+
+    expected = np.array(
+        [
+            [[False, False], [False, False], [False, False]],
+            [[False, True], [False, True], [False, False]],
+            [[False, True], [True, False], [True, False]],
+        ]
+    )
+    assert (out_xx["bad"].data == expected).all()
 
 
 def test_fusing(dataset):
@@ -64,11 +82,27 @@ def test_fusing(dataset):
     out_xx.load()
     expected = np.array(
         [
-            [[0b0100, 0b0011], [0b0110, 1], [0b0010, 0]],
-            [[0b0010, 1], [1, 0b0100], [1, 0]],
+            [[True, False], [True, False], [False, False]],
+            [[False, False], [False, True], [False, False]],
         ]
     )
-    assert (out_xx["class"] == expected).all()
+    assert (out_xx["dry"].data == expected).all()
+
+    expected = np.array(
+        [
+            [[False, True], [True, False], [True, False]],
+            [[True, False], [False, False], [False, False]],
+        ]
+    )
+    assert (out_xx["wet"].data == expected).all()
+
+    expected = np.array(
+        [
+            [[False, True], [False, True], [False, False]],
+            [[False, True], [True, False], [True, False]],
+        ]
+    )
+    assert (out_xx["bad"].data == expected).all()
 
 
 def test_reduce(dataset):
@@ -80,11 +114,11 @@ def test_reduce(dataset):
     assert out_xx.count_clear.attrs.get("nodata", 0) == -999
     out_xx.load()
     expected = np.array([[1, 0], [0, 0], [1, -999]])
-    assert (out_xx.count_wet == expected).all()
+    assert (out_xx.count_wet.data == expected).all()
     expected = np.array([[2, 0], [0, 1], [1, -999]])
-    assert (out_xx.count_clear == expected).all()
+    assert (out_xx.count_clear.data == expected).all()
     expected = np.array([[0.5, np.nan], [np.nan, 0.0], [1.0, np.nan]])
     assert (
-        out_xx.frequency.where(~np.isnan(out_xx.frequency), -1)
+        out_xx.frequency.where(~np.isnan(out_xx.frequency.data), -1)
         == np.where(~np.isnan(expected), expected, -1)
     ).all()

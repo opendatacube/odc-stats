@@ -30,9 +30,11 @@ dependencies:
   - pystac>=1.1.0
   - toolz
   - tqdm
-  - xarray
+  # pin xarray version since groupby bug on multi-indexed dataset in 2022.6.0
+  - xarray==2022.3.0
   - gdal
   - fsspec>=2022.1.0
+  - fiona
 
   # For tests
   - pytest

@@ -1,11 +1,10 @@
 import click
-import itertools
 import re
 import tempfile
 import pandas as pd
 from os import path
 from io import StringIO
-from osgeo import gdal, ogr, osr
+from osgeo import ogr, osr
 from ._cli_common import main
 
 

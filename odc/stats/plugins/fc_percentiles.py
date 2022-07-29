@@ -20,7 +20,7 @@ class StatsFCP(StatsPluginInterface):
 
     NAME = "ga_fc_percentiles"
     SHORT_NAME = NAME
-    VERSION = "0.0.2"
+    VERSION = "0.0.3"
     PRODUCT_FAMILY = "fc_percentiles"
 
     BAD_BITS_MASK = dict(cloud=(1 << 6), cloud_shadow=(1 << 5), terrain_shadow=(1 << 3))

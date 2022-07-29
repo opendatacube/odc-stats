@@ -24,7 +24,7 @@ class StatsTCWPC(StatsPluginInterface):
 
     NAME = "ga_tc_percentiles"
     SHORT_NAME = NAME
-    VERSION = "1.0.0"
+    VERSION = "1.0.1"
     PRODUCT_FAMILY = "tci"
 
     def __init__(

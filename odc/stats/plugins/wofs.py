@@ -4,7 +4,7 @@ Water Observations Summaries
 Water Observations Summaries are made up of:
 
 - `count_clear`: a count of every time a pixel was observed
-  (not obscured by terrain or clouds)
+                (not obscured by terrain or clouds)
 - `count_wet`: a count of every time a pixel was observed and wet
 - `frequency`: what fraction of time (wet/clear) was the pixel wet
 
@@ -16,14 +16,12 @@ and the second generates a summary of summaries, which is used when generating a
 of time summary from existing annual summaries.
 
 """
-
-from typing import Tuple, Dict, Iterable
+from typing import Dict, Tuple, Iterable
 import numpy as np
 import xarray as xr
 from odc.algo import safe_div, apply_numexpr, keep_good_only
-
-from odc.algo._masking import _or_fuser, mask_cleanup
 from ._registry import StatsPluginInterface, register
+from odc.algo._masking import _or_fuser, mask_cleanup
 
 
 class StatsWofs(StatsPluginInterface):
@@ -43,17 +41,18 @@ class StatsWofs(StatsPluginInterface):
 
     NAME = "ga_ls_wo_summary"
     SHORT_NAME = NAME
-    VERSION = "1.6.0"
+    VERSION = "1.6.1"
     PRODUCT_FAMILY = "wo_summary"
 
-    # these get padded out if cloud_filter is not None
-    BAD_BITS_MASK = dict(cloud=(1 << 6), cloud_shadow=(1 << 5), terrain_shadow=(1 << 3))
+    # these get padded out if dilation was requested
+    BAD_BITS_MASK = dict(
+        cloud=(1 << 6), cloud_shadow=(1 << 5), terrain_shadow=(1 << 3)
+    )  # Cloud/Shadow + Terrain Shadow
 
     def __init__(
         self, cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None, **kwargs
     ):
         super().__init__(input_bands=["water"], **kwargs)
-        # dilation scheme for cloud/shadow
         self.cloud_filters = cloud_filters if cloud_filters is not None else {}
 
     @property
@@ -71,7 +70,7 @@ class StatsWofs(StatsPluginInterface):
             7   6   5   4     3   2   1   0
             |   |   |   |     |   |   |   |
             |   |   |   |     |   |   |   x---> NODATA: 1 -- all bands were nodata
-            |   |   |   |     |   |   o-------> Non Contiguous - some bands were nodata
+            |   |   |   |     |   |   o-------> Non Contiguous - some bands were nodata)
             |   |   |   |     |   x-----------> Low Solar Angle
             |   |   |   |     o---------------> Terrain Shadow
             |   |   |   |
@@ -88,9 +87,8 @@ class StatsWofs(StatsPluginInterface):
           .dry<Bool>   - pixel has dry classification and is not ``bad``
           .wet<Bool>   - pixel has wet classification and is not ``bad``
         """
-
-        xx["class"] = (xx.water & 1) == 0
-        xx["class"] &= (xx.water & (~(1 << 7) | 1)) > 0  # bad
+        xx["bad"] = (xx.water & 1) == 0
+        xx["bad"] &= (xx.water & (~(1 << 7) | 1)) > 0  # bad
 
         # dilate 'bad'
         for key, val in self.BAD_BITS_MASK.items():
@@ -99,14 +97,11 @@ class StatsWofs(StatsPluginInterface):
                 raw_mask = mask_cleanup(
                     raw_mask, mask_filters=self.cloud_filters.get(key)
                 )
-                xx["class"] |= raw_mask
-        xx["class"] = xx["class"].astype("uint8")  # bad: 0001
-        xx["wet"] = ((xx.water == (1 << 7)) & ~(xx["class"] == 1)).astype("uint8")
-        xx["class"] += apply_numexpr("wet<<1", xx, name="convert_wet")  # wet: 0010
-        xx["dry"] = ((xx.water == 0) & ~(xx["class"] == 1)).astype("uint8")
-        xx["class"] += apply_numexpr("dry<<2", xx, name="convert_dry")  # dry: 0100
-        # nodata: 0000
-        xx = xx.drop_vars(["water", "wet", "dry"])
+                xx["bad"] |= raw_mask
+
+        xx["dry"] = (xx.water == 0) & ~xx["bad"]
+        xx["wet"] = (xx.water == 128) & ~xx["bad"]
+        xx = xx.drop_vars("water")
         for dv in xx.data_vars.values():
             dv.attrs.pop("nodata", None)
 
@@ -118,19 +113,22 @@ class StatsWofs(StatsPluginInterface):
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         """
-        bad + anything -> bad xxx1
-        wet + wet/nodata -> wet 0010
-        dry + dry/nodata -> dry 0100
+        bad + anything -> bad
+        wet + wet/nodata -> wet
+        dry + dry/nodata -> dry
         nodata + anything -> anything
         """
+
         nodata = -999
-        count_wet = (xx["class"] == (1 << 1)).sum(axis=0, dtype="int16")
-        count_dry = (xx["class"] == (1 << 2)).sum(axis=0, dtype="int16")
+
+        wet = apply_numexpr("wet & (~dry) & (~bad)", xx, dtype="bool")
+        dry = apply_numexpr("dry & (~wet) & (~bad)", xx, dtype="bool")
+
+        count_wet = wet.sum(axis=0, dtype="int16")
+        count_dry = dry.sum(axis=0, dtype="int16")
         count_clear = count_wet + count_dry
-        count_some = (
-            ((xx["class"] & 1) > 0).sum(axis=0, dtype="int16") + count_wet + count_dry
-        )
         frequency = safe_div(count_wet, count_clear, dtype="float32")
+        count_some = xx.bad.sum(axis=0, dtype="int16") + count_clear
 
         count_wet.attrs["nodata"] = nodata
         count_clear.attrs["nodata"] = nodata
@@ -162,8 +160,8 @@ class StatsWofsFullHistory(StatsPluginInterface):
     - `count_wet`: `int16`
     - `frequency`: `float32`
 
-    Special care is taken with no-data values, both to pass them through and
-    when calculating the counts and frequencies.
+    Special care is taken with no-data values, both to pass them through
+    and when calculating the counts and frequencies.
     """
 
     NAME = "ga_ls_wo_fq_myear_3"
@@ -190,8 +188,8 @@ class StatsWofsFullHistory(StatsPluginInterface):
         nodata = dtype.type(xx.count_clear.nodata)
 
         # `missing` is a record of all pixels that were never observed.
-        # Store it separately first, then substitute it back in after
-        # computing the counts and frequency.
+        # Store it separately first, then substitute it back in
+        # after computing the counts and  frequency.
         missing = (xx.count_clear == xx.count_clear.nodata).all(axis=0)
         cc = apply_numexpr(
             "where(count_clear==nodata, 0, count_clear)",
@@ -219,8 +217,8 @@ class StatsWofsFullHistory(StatsPluginInterface):
             _nan=np.float32("nan"),
         )
 
-        # Finalise the *count* variables by re-inserting
-        # the no-data value based on `missing`
+        # Finalise the *count* variables by re-inserting the no-data value
+        # based on `missing`
         count_clear = apply_numexpr(
             "where(missing, nodata, cc)",
             _yy,
