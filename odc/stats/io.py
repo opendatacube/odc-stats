@@ -32,9 +32,6 @@ from eodatasets3.model import DatasetDoc
 from eodatasets3.images import FileWrite, GridSpec
 import eodatasets3.stac as eo3stac
 import eodatasets3
-from datacube_ows.styles.api import StandaloneStyle
-from datacube_ows.styles.api import apply_ows_style
-import datacube_ows
 
 
 WriteResult = namedtuple("WriteResult", ["path", "sha1", "error"])
@@ -228,6 +225,8 @@ class S3COGSink:
     def _apply_color_ramp(
         self, ds: xr.Dataset, ows_style_dict: dict, time: datetime64
     ) -> Delayed:
+        from datacube_ows.styles.api import StandaloneStyle
+        from datacube_ows.styles.api import apply_ows_style
 
         ows_style = StandaloneStyle(ows_style_dict)
         # assign the time to xr.Dataset cause ows needs it
@@ -267,6 +266,7 @@ class S3COGSink:
         if task.product.preview_image_ows_style:
             _log.info("Generate thumbnail")
             try:
+
                 image = self._apply_color_ramp(
                     ds, task.product.preview_image_ows_style, task.time_range.start
                 )
@@ -421,9 +421,10 @@ class S3COGSink:
 
         if task.product.preview_image_ows_style:
             try:
-                thumbnail_path = odc_file_path.split(".")[0] + "_thumbnail.jpg"
+                import datacube_ows
+
                 dataset_assembler._accessories["thumbnail"] = Path(
-                    urlparse(thumbnail_path).path
+                    urlparse(odc_file_path.split(".")[0] + "_thumbnail.jpg").path
                 ).name
 
                 dataset_assembler.note_software_version(

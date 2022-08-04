@@ -7,7 +7,6 @@ disable=duplicate-code,
     missing-docstring,
     no-member,
     unused-variable,
-    unused-import,
     locally-disabled,
     no-name-in-module,
     fixme,
@@ -17,8 +16,8 @@ disable=duplicate-code,
     ungrouped-imports,
     len-as-condition,
     no-else-return,
-    import-error
-
+    import-error,
+    import-outside-toplevel
 [BASIC]
 
 # Regular expression which should only match correct module names
