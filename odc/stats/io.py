@@ -400,7 +400,7 @@ class S3COGSink:
         )
 
         dataset_assembler.extend_user_metadata(
-            "input-products", sorted({[e.type.name for e in task.datasets]})
+            "input-products", sorted({e.type.name for e in task.datasets})
         )
 
         dataset_assembler.extend_user_metadata("odc-stats-config", vars(task.product))

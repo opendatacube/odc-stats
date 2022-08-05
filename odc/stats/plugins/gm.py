@@ -77,7 +77,7 @@ class StatsGM(StatsPluginInterface):
             return xx
 
         # Apply the contiguity flag
-        non_contiguent = xx["nbart_contiguity"] == 0
+        non_contiguent = xx.get("nbart_contiguity", 0) == 0
 
         # Erase Data Pixels for which mask == nodata
         mask = xx[self._mask_band]
@@ -231,6 +231,10 @@ class StatsGMLS(StatsGM):
             rgb_bands=rgb_bands,
             **kwargs,
         )
+
+    @property
+    def measurements(self) -> Tuple[str, ...]:
+        return tuple(b for b in self.bands if b != "nbart_contiguity") + self.aux_bands
 
 
 register("gm-ls", StatsGMLS)
