@@ -57,112 +57,79 @@ jobs:
           python setup.py sdist --dist-dir ./wheels/dev/
           find ./wheels/dev -type f
 
-  build-test-env-base:
+  test-wheels:
     runs-on: ubuntu-latest
+    container:
+      image: opendatacube/datacube-statistician:latest
 
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/cache@v2
-        id: conda_cache
-        with:
-          path: /tmp/test_env
-          key: ${{ runner.os }}-test-env-py38-\
-            ${{ hashFiles('tests/test-env-py38.yml') }}
-
-      - uses: conda-incubator/setup-miniconda@v2
-        if: steps.conda_cache.outputs.cache-hit != 'true'
-        with:
-          channels: conda-forge,defaults
-          channel-priority: true
-          activate-environment: ""
-          mamba-version: "*"
-          use-mamba: true
-
-      - name: Dump Conda Environment Info
-        shell: bash -l {0}
-        if: steps.conda_cache.outputs.cache-hit != 'true'
-        run: |
-            conda info
-            conda list
-            mamba -V
-            conda config --show-sources
-            conda config --show
-            printenv | sort
-
-      - name: Build Python Environment for Testing
-        shell: bash -l {0}
-        if: steps.conda_cache.outputs.cache-hit != 'true'
-        run: |
-          mamba env create -f tests/test-env-py38.yml -p /tmp/test_env
-
-      - name: Check Python Env
-        shell: bash -l {0}
-        if: steps.conda_cache.outputs.cache-hit != 'true'
-        run: |
-          mamba env export -p tests/env
-
-
-  test-with-coverage:
-    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:10-2.5
+        env:
+          POSTGRES_DB: opendatacube
+          POSTGRES_PASSWORD: opendatacubepassword
+          POSTGRES_USER: opendatacube
 
     needs:
-      - build-test-env-base
+      - build-wheels
 
     steps:
       - uses: actions/checkout@v2
-      - uses: rickstaa/action-black@v1
-        with:
-          black_args: "--check odc/stats"
 
-      - name: Get Conda Environment from Cache
+      - name: Install Dependencies
+        shell: bash
+        run: |
+          apt update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+          --fix-missing --no-install-recommends \
+          nodejs \
+          zstd
+          python -m pip install --upgrade --no-cache pip
+          pip install --upgrade --no-cache -r \
+          tests/requirements.txt
+          pip freeze
+
+      - name: Get Wheels from Cache
         uses: actions/cache@v2
-        id: conda_cache
+        id: wheels_cache
         with:
-          path: /tmp/test_env
+          path: ./wheels
+          key: wheels-${{ github.sha }}
 
-          key: ${{ runner.os }}-test-env-py38-\
-            ${{ hashFiles('tests/test-env-py38.yml') }}
-
-      - name: Update PATH
+      - name: Install wheels for testing
         shell: bash
         run: |
-          echo "/tmp/test_env/bin" >> $GITHUB_PATH
+          which python
+          which datacube
 
-      - name: Install in Edit mode
-        shell: bash
-        run: |
-          pip install -e . --no-deps
-
-      - name: Start Test DB
-        shell: bash
-        run: |
-          echo "Launching test db"
-          pgdata=$(pwd)/.dbdata
-          initdb -D ${pgdata} --auth-host=md5 --encoding=UTF8
-          pg_ctl -D ${pgdata} -l "${pgdata}/pg.log" start
-          createdb datacube
-          datacube system init
-
-        env:
-          DATACUBE_DB_URL: postgresql:///datacube
+          ls -lh wheels/clean
+          pip install --no-deps --no-cache wheels/clean/*whl
+          pip check || true
 
       - name: Run Tests
         shell: bash
         run: |
-          datacube system check
+          echo "Init DB"
+          source ./tests/init_db.sh
 
-          echo "Running Tests"
+          echo "Running unit tests"
           pytest --cov=. \
           --cov-report=html \
           --cov-report=xml:coverage.xml \
-          --timeout=60 \
-          tests
+          --timeout=30 tests
+
+          echo "Running integration tests"
+          source ./tests/integration_test.sh
 
         env:
-          AWS_DEFAULT_REGION: us-west-2
-          DASK_TEMPORARY_DIRECTORY: /tmp/dask
-          DATACUBE_DB_URL: postgresql:///datacube
+          DB_HOSTNAME: postgres
+          DB_USERNAME: opendatacube
+          DB_PASSWORD: opendatacubepassword
+          DB_DATABASE: opendatacube
+          AWS_NO_SIGN_REQUEST: true
+          AWS_DEFAULT_REGION: ap-southeast-2
+          AWS_REGION: ap-southeast-2
+          STAC_API_URL: https://earth-search.aws.element84.com/v0/
 
       - name: Upload Coverage
         if: |
@@ -172,71 +139,3 @@ jobs:
         with:
           fail_ci_if_error: false
           verbose: false
-
-
-  test-wheels:
-    runs-on: ubuntu-latest
-
-    needs:
-      - build-test-env-base
-      - build-wheels
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Get Wheels from Cache
-        uses: actions/cache@v2
-        id: wheels_cache
-        with:
-          path: ./wheels
-          key: wheels-${{ github.sha }}
-
-      - name: Get Conda Environment from Cache
-        uses: actions/cache@v2
-        id: conda_cache
-        with:
-          path: /tmp/test_env
-          key: ${{ runner.os }}-test-env-py38-\
-            ${{ hashFiles('tests/test-env-py38.yml') }}
-
-      - name: Update PATH
-        shell: bash
-        run: |
-          echo "/tmp/test_env/bin" >> $GITHUB_PATH
-
-      - name: Install wheels for testing
-        shell: bash
-        run: |
-          which python
-          which createdb
-          which datacube
-
-          ls -lh wheels/clean
-          python -m pip install --no-deps wheels/clean/*whl
-          python -m pip check || true
-
-      - name: Start Test DB
-        shell: bash
-        run: |
-          echo "Launching test db"
-          pgdata=$(pwd)/.dbdata
-          initdb -D ${pgdata} --auth-host=md5 --encoding=UTF8
-          pg_ctl -D ${pgdata} -l "${pgdata}/pg.log" start
-          createdb datacube
-          datacube system init
-
-        env:
-          DATACUBE_DB_URL: postgresql:///datacube
-
-      - name: Run Tests
-        shell: bash
-        run: |
-          datacube system check
-
-          echo "Running Tests"
-          pytest --timeout=30 tests
-
-        env:
-          AWS_DEFAULT_REGION: us-west-2
-          DASK_TEMPORARY_DIRECTORY: /tmp/dask
-          DATACUBE_DB_URL: postgresql:///datacube
