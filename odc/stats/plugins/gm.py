@@ -77,7 +77,7 @@ class StatsGM(StatsPluginInterface):
             return xx
 
         # Apply the contiguity flag
-        non_contiguent = xx.get("nbart_contiguity", 0) == 0
+        non_contiguent = xx.get("nbart_contiguity", 1) == 0
 
         # Erase Data Pixels for which mask == nodata
         mask = xx[self._mask_band]
