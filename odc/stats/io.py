@@ -33,6 +33,7 @@ from eodatasets3.images import FileWrite, GridSpec
 import eodatasets3.stac as eo3stac
 import eodatasets3
 
+
 WriteResult = namedtuple("WriteResult", ["path", "sha1", "error"])
 
 _log = logging.getLogger(__name__)
@@ -66,12 +67,12 @@ _dask_sha1 = dask.delayed(mk_sha1, name="sha1")
 
 
 @dask.delayed
-def _pack_write_result(write_out, sha1):
+def _pack_write_result(write_out, sha1_data):
     path, ok = write_out
     if ok:
-        return WriteResult(path, sha1, None)
+        return WriteResult(path, sha1_data, None)
     else:
-        return WriteResult(path, sha1, "Failed Write")
+        return WriteResult(path, sha1_data, "Failed Write")
 
 
 @dask.delayed(name="sha1-digest")
@@ -81,7 +82,7 @@ def _sha1_digest(*write_results):
         if wr.error is not None:
             raise IOError(f"Failed to write for: {wr.path}")
         file = wr.path.split("/")[-1]
-        lines.append(f"{wr.sha1}\t{file}\n")
+        lines.append(f"{wr.sha1}  {file}\n")
     return "".join(lines)
 
 
@@ -178,6 +179,7 @@ class S3COGSink:
         assert rr.path == test_uri
         return rr.error is None
 
+    # pylint: disable=invalid-name
     def _write_blob(
         self, data, url: str, ContentType: Optional[str] = None, with_deps=None
     ) -> Delayed:
@@ -185,7 +187,7 @@ class S3COGSink:
         Returns Delayed WriteResult[path, sha1, error=None]
         """
         _u = urlparse(url)
-        sha1 = _dask_sha1(data)
+        sha1_data = _dask_sha1(data)
 
         if _u.scheme == "s3":
             kw = dict(creds=self._get_creds())
@@ -195,18 +197,19 @@ class S3COGSink:
                 kw["ACL"] = self._acl
 
             return _pack_write_result(
-                save_blob_to_s3(data, url, with_deps=with_deps, **kw), sha1
+                save_blob_to_s3(data, url, with_deps=with_deps, **kw), sha1_data
             )
         elif _u.scheme == "file":
             _dir = Path(_u.path).parent
             if not _dir.exists():
                 _dir.mkdir(parents=True, exist_ok=True)
             return _pack_write_result(
-                save_blob_to_file(data, _u.path, with_deps=with_deps), sha1
+                save_blob_to_file(data, _u.path, with_deps=with_deps), sha1_data
             )
         else:
             raise ValueError(f"Don't know how to save to '{url}'")
 
+    # pylint: enable=invalid-name
     def _ds_to_cog(self, ds: xr.Dataset, paths: Dict[str, str]) -> List[Delayed]:
         out = []
         for band, dv in ds.data_vars.items():
@@ -245,7 +248,7 @@ class S3COGSink:
 
         return self._write_blob(
             thumbnail_bytes,
-            odc_file_path.split(".")[0] + f"_thumbnail.jpg",
+            odc_file_path.split(".")[0] + "_thumbnail.jpg",
             ContentType="image/jpeg",
         )
 
@@ -263,17 +266,21 @@ class S3COGSink:
         if task.product.preview_image_ows_style:
             _log.info("Generate thumbnail")
             try:
+
                 image = self._apply_color_ramp(
                     ds, task.product.preview_image_ows_style, task.time_range.start
                 )
             except AttributeError as e:
                 _log.error(
-                    f"{e} Cannot parse OWS styling: {task.product.preview_image_ows_style}."
+                    "%s Cannot parse OWS styling: %s.",
+                    e,
+                    task.product.preview_image_ows_style,
                 )
             except ImportError as e:
                 raise type(e)(
                     str(e)
-                    + '. Please run python -m pip install "odc-stats[ows]" to setup environment to generate thumbnail.'
+                    + '. Please run python -m pip install "odc-stats[ows]" to \
+                    setup environment to generate thumbnail.'
                 )
             else:
                 display_pixels = _xarray_to_list(image, task.geobox.shape[0:2])
@@ -313,8 +320,9 @@ class S3COGSink:
     ) -> str:
         """
         Convert the eodatasets3 DatasetDoc to stac meta format string.
-        The stac_meta is Python dict, please use json_fallback() to format it. Also pass dataset_location
-        to convert all accessories to full url. The S3 and local dir will use different ways to extract.
+        The stac_meta is Python dict, please use json_fallback() to format it.
+        Also pass dataset_location to convert all accessories to full url.
+        The S3 and local dir will use different ways to extract.
         """
         _u = urlparse(stac_file_path)
 
@@ -372,6 +380,7 @@ class S3COGSink:
             with_deps=sha1_done,
         )
 
+    # pylint: disable=too-many-locals,protected-access
     def dump_with_eodatasets3(
         self,
         task: Task,
@@ -391,7 +400,7 @@ class S3COGSink:
         )
 
         dataset_assembler.extend_user_metadata(
-            "input-products", sorted(set([e.type.name for e in task.datasets]))
+            "input-products", sorted({e.type.name for e in task.datasets})
         )
 
         dataset_assembler.extend_user_metadata("odc-stats-config", vars(task.product))
@@ -414,9 +423,8 @@ class S3COGSink:
             try:
                 import datacube_ows
 
-                thumbnail_path = odc_file_path.split(".")[0] + f"_thumbnail.jpg"
                 dataset_assembler._accessories["thumbnail"] = Path(
-                    urlparse(thumbnail_path).path
+                    urlparse(odc_file_path.split(".")[0] + "_thumbnail.jpg").path
                 ).name
 
                 dataset_assembler.note_software_version(
@@ -428,7 +436,8 @@ class S3COGSink:
             except ImportError as e:
                 raise type(e)(
                     str(e)
-                    + '. Please run python -m pip install "odc-stats[ows]" to setup environment to generate thumbnail.'
+                    + '. Please run python -m pip install "odc-stats[ows]" \
+                            to setup environment to generate thumbnail.'
                 )
 
         dataset_assembler._accessories["checksum:sha1"] = Path(
@@ -439,25 +448,24 @@ class S3COGSink:
         ).name
 
         meta = dataset_assembler.to_dataset_doc()
-        # already add all information to dataset_assembler, now convert to odc and stac metadata format
+        # already add all information to dataset_assembler,
+        # now convert to odc and stac metadata format
 
         stac_meta = self.get_eo3_stac_meta(task, meta, stac_file_path, odc_file_path)
 
-        odc_meta_stream = io.StringIO(
-            ""
-        )  # too short, not worth to move to another method.
-        serialise.to_stream(odc_meta_stream, meta)
-        odc_meta = odc_meta_stream.getvalue()  # odc_meta is Python str
+        meta_stream = io.StringIO("")  # too short, not worth to move to another method.
+        serialise.to_stream(meta_stream, meta)
+        odc_meta = meta_stream.getvalue()  # odc_meta is Python str
 
-        proc_info_meta_stream = io.StringIO("")
+        meta_stream = io.StringIO("")
         serialise._init_yaml().dump(
             {
                 **dataset_assembler._user_metadata,
                 "software_versions": dataset_assembler._software_versions,
             },
-            proc_info_meta_stream,
+            meta_stream,
         )
-        proc_info_meta = proc_info_meta_stream.getvalue()
+        proc_info_meta = meta_stream.getvalue()
 
         # fake write result for metadata output, we want metadata file to be
         # the last file written, so need to delay it until after sha1 files is
@@ -472,8 +480,7 @@ class S3COGSink:
             WriteResult(proc_info_url, mk_sha1(proc_info_meta), None)
         )
 
-        paths = task.paths("absolute", ext=self._band_ext)
-        cogs = self._ds_to_cog(ds, paths)
+        cogs = self._ds_to_cog(ds, task.paths("absolute", ext=self._band_ext))
 
         if aux is not None:
             aux_paths = {
@@ -482,13 +489,19 @@ class S3COGSink:
             }
             cogs.extend(self._ds_to_cog(aux, aux_paths))
 
-        thumbnail_cogs = self._ds_to_thumbnail_cog(ds, task)
-
         # this will raise IOError if any write failed, hence preventing json
         # from being written
         sha1_digest = _sha1_digest(
-            stac_meta_sha1, odc_meta_sha1, proc_info_sha1, *cogs, *thumbnail_cogs
+            stac_meta_sha1,
+            odc_meta_sha1,
+            proc_info_sha1,
+            *cogs,
+            *self._ds_to_thumbnail_cog(ds, task),
         )
+
+        # The uploading DAG is:
+        # sha1_done -> proc_info_done -> odc_meta_done -> stac_meta_done
+
         sha1_done = self._write_blob(sha1_digest, sha1_url, ContentType="text/plain")
 
         proc_info_done = self._write_blob(
@@ -503,16 +516,12 @@ class S3COGSink:
             ContentType=self._odc_meta_contentype,
             with_deps=proc_info_done,
         )
-        cog_done = self._write_blob(
+        return self._write_blob(
             stac_meta,
             stac_file_path,
             ContentType=self._stac_meta_contentype,
             with_deps=odc_meta_done,
         )
-
-        # The uploading DAG is:
-        # sha1_done -> proc_info_done -> odc_meta_done -> stac_meta_done
-        return cog_done
 
     def dump(
         self,
