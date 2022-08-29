@@ -42,31 +42,33 @@ class TaskRunner:
             cog_opts=cfg.cog_opts, acl=cfg.s3_acl, public=cfg.s3_public
         )
 
-        _log.info(f"Resolving plugin: {cfg.plugin}")
+        _log.info("Resolving plugin: %s", cfg.plugin)
         mk_proc = resolve(cfg.plugin)
         self.proc = mk_proc(**cfg.plugin_config)
         self.product = product_for_plugin(
             self.proc, location=cfg.output_location, **cfg.product
         )
-        _log.info(f"Output product: {self.product}")
+        _log.info("Output product: %s", self.product)
 
         if not from_sqs:
-            _log.info(f"Constructing task reader: {cfg.filedb}")
+            _log.info("Constructing task reader: %s", cfg.filedb)
             self.rdr = TaskReader(cfg.filedb, self.product)
-            _log.info(f"Will read from {self.rdr}")
+            _log.info("Will read from %s", self.rdr)
             if resolution is not None:
-                _log.info(f"Changing resolution to {resolution[0], resolution[1]}")
+                _log.info("Changing resolution to %s, %s", resolution[0], resolution[1])
                 if self.rdr.is_compatible_resolution(resolution):
                     self.rdr.change_resolution(resolution)
                 else:
                     _log.error(
-                        f"Requested resolution is not compatible with GridSpec in '{cfg.filedb}'"
+                        "Requested resolution is not compatible with GridSpec in '%s'",
+                        cfg.filedb,
                     )
                     raise ValueError(
-                        f"Requested resolution is not compatible with GridSpec in '{cfg.filedb}'"
+                        f"Requested resolution is not compatible with GridSpec \
+                                in '{cfg.filedb}'"
                     )
         else:  # skip rdr and resolution compatible init
-            _log.info(f"Skip rdr init for run from sqs: {cfg.filedb}")
+            _log.info("Skip rdr init for run from sqs: %s", cfg.filedb)
             self.rdr = TaskReader("", self.product, resolution)
 
         self._client = None
@@ -81,11 +83,11 @@ class TaskRunner:
 
         memory_limit: Union[str, int] = cfg.memory_limit
         if memory_limit == "":
-            _1G = 1 << 30
+            mem_1g = 1 << 30
             memory_limit = get_max_mem()
-            if memory_limit > 2 * _1G:
+            if memory_limit > 2 * mem_1g:
                 # leave at least a gig extra if total mem more than 2G
-                memory_limit -= _1G
+                memory_limit -= mem_1g
 
         client = start_local_dask(
             threads_per_worker=nthreads, processes=False, memory_limit=memory_limit
@@ -95,7 +97,7 @@ class TaskRunner:
             configure_s3_access(
                 aws_unsigned=aws_unsigned, cloud_defaults=True, client=c
             )
-        _log.info(f"Started local Dask {client}")
+        _log.info("Started local Dask %s", client)
 
         return client
 
@@ -108,7 +110,7 @@ class TaskRunner:
         _log = self._log
 
         if self.product.location.startswith("s3://"):
-            _log.info(f"Verifying credentials for output to {self.product.location}")
+            _log.info("Verifying credentials for output to %s", self.product.location)
 
             test_uri = None  # TODO: for now just check credentials are present
             if not self.sink.verify_s3_credentials(test_uri):
@@ -116,6 +118,7 @@ class TaskRunner:
                 return False
         return True
 
+    # pylint: disable=import-outside-toplevel
     def tasks(
         self,
         tasks: List[str],
@@ -131,6 +134,7 @@ class TaskRunner:
 
         return self.rdr.stream(tiles, ds_filters=ds_filters)
 
+    # pylint: enable=import-outside-toplevel
     def dry_run(
         self,
         tasks: List[str],
@@ -162,6 +166,7 @@ class TaskRunner:
 
             yield TaskResult(task, uri, skipped=skipped, meta=msg)
 
+    # pylint: disable=broad-except
     def _safe_result(self, f: Future, task: Task) -> TaskResult:
         _log = self._log
         try:
@@ -173,38 +178,39 @@ class TaskRunner:
                 _log.error(error_msg)
                 return TaskResult(task, rr.path, error=error_msg)
         except Exception as e:
-            _log.error(f"Error during processing of {task.location} {e}")
+            _log.error("Error during processing of %s %s", task.location, e)
             return TaskResult(task, error=str(e))
 
+    # pylint: enable=broad-except
     def _register_heartbeat(self, hearbeat_filepath: str):
         """
         Records the timestamp at which a hearbeat was detected
 
         """
         t_now = datetime.utcnow()
-        with open(f"{hearbeat_filepath}", "w") as file_obj:
+        with open(f"{hearbeat_filepath}", "w", encoding="utf-8") as file_obj:
             file_obj.write(t_now.strftime("%Y-%m-%d %H:%M:%S"))
 
+    # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     def _run(self, tasks: Iterable[Task], apply_eodatasets3) -> Iterator[TaskResult]:
         cfg = self._cfg
         client = self.client()
         sink = self.sink
         proc = self.proc
-        check_exists = cfg.overwrite is False
         _log = self._log
 
         for task in tasks:
-            _log.info(f"Starting processing of {task.location}")
+            _log.info("Starting processing of %s", task.location)
             tk = task.source
             if tk is not None:
                 t0 = tk.start_time
             else:
                 t0 = datetime.utcnow()
-            if check_exists:
+            if not cfg.overwrite:
                 path = sink.uri(task)
-                _log.debug(f"Checking if can skip {path}")
+                _log.debug("Checking if can skip %s", path)
                 if sink.exists(task):
-                    _log.info(f"Skipped task @ {path}")
+                    _log.info("Skipped task @ %s", path)
                     if tk:
                         _log.info("Notifying completion via SQS")
                         tk.done()
@@ -213,9 +219,13 @@ class TaskRunner:
                     continue
 
             _log.debug("Building Dask Graph")
-            ds = proc.reduce(proc.input_data(task.datasets, task.geobox))
+            ds = proc.reduce(
+                proc.input_data(
+                    task.datasets, task.geobox, transform_code=proc.transform_code
+                )
+            )
 
-            _log.debug(f"Submitting to Dask ({task.location})")
+            _log.debug("Submitting to Dask (%s)", task.location)
             ds = client.persist(ds, fifo_timeout="1ms")
 
             aux: Optional[xr.Dataset] = None
@@ -241,7 +251,9 @@ class TaskRunner:
                     )
                 if cfg.max_processing_time > 0 and dt > cfg.max_processing_time:
                     _log.error(
-                        f"Task {task.location} failed to finish on time: {dt}>{cfg.max_processing_time}"
+                        "Task {task.location} failed to finish on time: %s>%s",
+                        dt,
+                        cfg.max_processing_time,
                     )
                     cancelled = True
                     cog.cancel()
@@ -253,7 +265,7 @@ class TaskRunner:
                 result = self._safe_result(cog, task)
 
             if result:
-                _log.info(f"Finished processing of {result.task.location}")
+                _log.info("Finished processing of %s", result.task.location)
                 if tk:
                     _log.info("Notifying completion via SQS")
                     tk.done()
@@ -263,6 +275,7 @@ class TaskRunner:
 
             yield result
 
+    # pylint: enable=too-many-locals, too-many-branches, too-many-statements
     def run(
         self,
         tasks: Optional[List[str]] = None,
@@ -280,7 +293,10 @@ class TaskRunner:
             )
         if sqs is not None:
             _log.info(
-                f"Processing from SQS: {sqs}, T:{cfg.job_queue_max_lease} M:{cfg.renew_safety_margin} seconds"
+                "Processing from SQS: %s, T:%s M:%s seconds",
+                sqs,
+                cfg.job_queue_max_lease,
+                cfg.renew_safety_margin,
             )
             return self._run(
                 self.rdr.stream_from_sqs(

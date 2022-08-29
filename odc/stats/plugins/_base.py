@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Mapping, Optional, Sequence, Tuple
+from typing import Mapping, Optional, Sequence, Tuple
 
 import xarray as xr
 from datacube.model import Dataset
@@ -18,20 +18,22 @@ class StatsPluginInterface(ABC):
     def __init__(
         self,
         resampling: str = "bilinear",
-        input_bands: Sequence[str] = [],
-        chunks: Mapping[str, int] = {"y": -1, "x": -1},
+        input_bands: Sequence[str] = None,
+        chunks: Mapping[str, int] = None,
         basis: Optional[str] = None,
         group_by: str = "solar_day",
         rgb_bands: Optional[Sequence[str]] = None,
         rgb_clamp: Tuple[float, float] = (1.0, 3_000.0),
+        transform_code: Optional[str] = None,
     ):
         self.resampling = resampling
-        self.input_bands = input_bands
-        self.chunks = chunks
+        self.input_bands = input_bands if input_bands is not None else []
+        self.chunks = chunks if chunks is not None else {"y": -1, "x": -1}
         self.basis = basis
         self.group_by = group_by
         self.rgb_bands = rgb_bands
         self.rgb_clamp = rgb_clamp
+        self.transform_code = transform_code
 
     @property
     @abstractmethod
@@ -44,7 +46,9 @@ class StatsPluginInterface(ABC):
     def fuser(self, xx: xr.Dataset) -> xr.Dataset:
         return _nodata_fuser(xx)
 
-    def input_data(self, datasets: Sequence[Dataset], geobox: GeoBox) -> xr.Dataset:
+    def input_data(
+        self, datasets: Sequence[Dataset], geobox: GeoBox, **kwargs
+    ) -> xr.Dataset:
         xx = load_with_native_transform(
             datasets,
             bands=self.input_bands,
@@ -55,6 +59,7 @@ class StatsPluginInterface(ABC):
             fuser=self.fuser,
             resampling=self.resampling,
             chunks=self.chunks,
+            **kwargs,
         )
         return xx
 
