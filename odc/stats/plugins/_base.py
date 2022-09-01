@@ -25,6 +25,7 @@ class StatsPluginInterface(ABC):
         rgb_bands: Optional[Sequence[str]] = None,
         rgb_clamp: Tuple[float, float] = (1.0, 3_000.0),
         transform_code: Optional[str] = None,
+        area_of_interest: Optional[Sequence[float]] = None,
     ):
         self.resampling = resampling
         self.input_bands = input_bands if input_bands is not None else []
@@ -34,6 +35,7 @@ class StatsPluginInterface(ABC):
         self.rgb_bands = rgb_bands
         self.rgb_clamp = rgb_clamp
         self.transform_code = transform_code
+        self.area_of_interest = area_of_interest
 
     @property
     @abstractmethod

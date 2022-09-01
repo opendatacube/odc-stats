@@ -221,7 +221,10 @@ class TaskRunner:
             _log.debug("Building Dask Graph")
             ds = proc.reduce(
                 proc.input_data(
-                    task.datasets, task.geobox, transform_code=proc.transform_code
+                    task.datasets,
+                    task.geobox,
+                    transform_code=proc.transform_code,
+                    area_of_interest=proc.area_of_interest,
                 )
             )
 
@@ -242,7 +245,7 @@ class TaskRunner:
             _log.debug("Waiting for completion")
             cancelled = False
 
-            for (dt, t_now) in wait_for_future(cog, cfg.future_poll_interval, t0=t0):
+            for (dt, _) in wait_for_future(cog, cfg.future_poll_interval, t0=t0):
                 if cfg.heartbeat_filepath is not None:
                     self._register_heartbeat(cfg.heartbeat_filepath)
                 if tk:
