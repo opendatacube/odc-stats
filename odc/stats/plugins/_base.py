@@ -18,8 +18,8 @@ class StatsPluginInterface(ABC):
     def __init__(
         self,
         resampling: str = "bilinear",
-        input_bands: Sequence[str] = None,
-        chunks: Mapping[str, int] = None,
+        input_bands: Optional[Sequence[str]] = None,
+        chunks: Optional[Mapping[str, int]] = None,
         basis: Optional[str] = None,
         group_by: str = "solar_day",
         rgb_bands: Optional[Sequence[str]] = None,
