@@ -5,16 +5,16 @@ on:
   pull_request:
     paths:
       - '.github/workflows/statistician-dive.yml'
-      - 'statistician/**'
+      - 'docker/**'
 
   push:
     paths:
       - '.github/workflows/statistician-dive.yml'
-      - 'statistician/**'
+      - 'docker/**'
 
 env:
   ORG: odc
-  IMAGE: statistician 
+  IMAGE: statistician
 
 jobs:
   dive:
@@ -27,19 +27,19 @@ jobs:
       - name: lint
         uses: luke142367/Docker-Lint-Action@v1.1.1
         with:
-          target: statistician/Dockerfile
+          target: docker/Dockerfile
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build image
         run: |
-          docker build -t ${ORG}/${IMAGE}:_build ./statistician/
+          docker build -t ${ORG}/${IMAGE}:_build ./docker/
 
       - name: Dive
         uses: yuichielectric/dive-action@0.0.3
         with:
           image: ${{ env.ORG }}/${{ env.IMAGE}}:_build
-          config-file: ${{ github.workspace }}/statistician/dive-ci.yml
+          config-file: ${{ github.workspace }}/docker/dive-ci.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker image size check

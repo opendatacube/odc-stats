@@ -1,4 +1,4 @@
-name : Statistician Test and Push
+name: Statistician Test and Push
 
 env:
   IMAGE_NAME: opendatacube/datacube-statistician
@@ -6,13 +6,13 @@ env:
 on:
   pull_request:
     paths:
-      - 'statistician/**'
+      - 'docker/**'
       - '.github/workflows/statistician-*'
   push:
     branches:
-      - main
+      - develop
     paths:
-      - 'statistician/**'
+      - 'docker/**'
       - '.github/workflows/statistician-*'
 
 permissions:
@@ -23,57 +23,58 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: lint Dockerfile
-      uses: hadolint/hadolint-action@v2.0.0
-      with:
-        dockerfile: statistician/Dockerfile
-        ignore: DL3008,DL3002,DL3013,DL3059,SC2102
+      - name: lint Dockerfile
+        uses: hadolint/hadolint-action@v2.0.0
+        with:
+          dockerfile: docker/Dockerfile
+          ignore: DL3008,DL3002,DL3013,DL3059,SC2102
 
-    - name: Build Statistician image
-      timeout-minutes: 20
-      shell: bash
-      run: |
-        cd statistician
-        docker-compose build
+      - name: Build Statistician image
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          cd docker
+          docker-compose build
 
-    - name: Run Dockerized Tests for Statistician
-      shell: bash
-      run: |
-        cd statistician
-        make test
+      - name: Run Dockerized Tests for Statistician
+        shell: bash
+        run: |
+          cd docker
+          make test
 
   push:
     if: github.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Get tag for this build if it exists
-      run: |
-        echo "VERSION=$(cat statistician/version.txt)" >> $GITHUB_ENV
+      - name: Get tag for this build if it exists
+        run: |
+          echo "VERSION=$(cat docker/version.txt)" >> $GITHUB_ENV
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        role-to-assume: arn:aws:iam::538673716275:role/github-ecr
-        aws-region: ap-southeast-2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::538673716275:role/github-ecr
+          aws-region: ap-southeast-2
 
-    - name: Login to AWS ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Push image to ECR
-      env:
-        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ env.VERSION }}
-      run: |
-        cd ./statistician
-        docker build -t $REGISTRY/${{ env.IMAGE_NAME }}:$IMAGE_TAG .
-        docker push $REGISTRY/${{ env.IMAGE_NAME }}:$IMAGE_TAG
-        docker tag $REGISTRY/${{ env.IMAGE_NAME }}:$IMAGE_TAG $REGISTRY/${{ env.IMAGE_NAME }}:latest
-        docker push $REGISTRY/${{ env.IMAGE_NAME }}:latest
+      - name: Push image to ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ env.VERSION }}
+        run: |
+          cd ./docker
+          docker build -t $REGISTRY/${{ env.IMAGE_NAME }}:$IMAGE_TAG .
+          docker push $REGISTRY/${{ env.IMAGE_NAME }}:$IMAGE_TAG
+          docker tag $REGISTRY/${{ env.IMAGE_NAME }}:$IMAGE_TAG \
+          $REGISTRY/${{ env.IMAGE_NAME }}:latest
+          docker push $REGISTRY/${{ env.IMAGE_NAME }}:latest

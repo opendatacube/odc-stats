@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - '**'
+      - '!docker/**'
+      - '!.github/workflow/statistician-**'
       - '!notebooks/**'
       - '!docs/**'
       - '!README.md'
@@ -110,7 +112,7 @@ jobs:
         shell: bash
         run: |
           echo "Init DB"
-          source ./tests/init_db.sh
+          ./tests/init_db.sh
 
           echo "Running unit tests"
           pytest --cov=. \
@@ -119,7 +121,7 @@ jobs:
           --timeout=30 tests
 
           echo "Running integration tests"
-          source ./tests/integration_test.sh
+          ./tests/integration_test.sh
 
         env:
           DB_HOSTNAME: postgres
