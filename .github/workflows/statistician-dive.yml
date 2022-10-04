@@ -6,11 +6,13 @@ on:
     paths:
       - '.github/workflows/statistician-dive.yml'
       - 'docker/**'
+      - '!docker/readme.md'
 
   push:
     paths:
       - '.github/workflows/statistician-dive.yml'
       - 'docker/**'
+      - '!docker/readme.md'
 
 env:
   ORG: odc

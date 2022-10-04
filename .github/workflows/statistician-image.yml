@@ -8,12 +8,14 @@ on:
     paths:
       - 'docker/**'
       - '.github/workflows/statistician-*'
+      - '!docker/readme.md'
   push:
     branches:
       - develop
     paths:
       - 'docker/**'
       - '.github/workflows/statistician-*'
+      - '!docker/readme.md'
 
 permissions:
   id-token: write   # This is required for requesting the JWT
