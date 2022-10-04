@@ -68,13 +68,9 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Push image to ECR
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ env.VERSION }}
-        run: |
-          cd ./docker
-          docker build -t $REGISTRY/${{ env.IMAGE_NAME }}:$IMAGE_TAG .
-          docker push $REGISTRY/${{ env.IMAGE_NAME }}:$IMAGE_TAG
-          docker tag $REGISTRY/${{ env.IMAGE_NAME }}:$IMAGE_TAG \
-          $REGISTRY/${{ env.IMAGE_NAME }}:latest
-          docker push $REGISTRY/${{ env.IMAGE_NAME }}:latest
+        uses: whoan/docker-build-with-cache-action@v5
+        with:
+          context: ./docker
+          registry: ${{ steps.login-ecr.outputs.registry }}
+          image_name: ${{ env.IMAGE_NAME }}
+          image_tag: latest,${{ env.VERSION }}

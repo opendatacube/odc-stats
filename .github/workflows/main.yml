@@ -6,7 +6,7 @@ on:
     paths:
       - '**'
       - '!docker/**'
-      - '!.github/workflow/statistician-**'
+      - '!.github/workflow/statistician-*'
       - '!notebooks/**'
       - '!docs/**'
       - '!README.md'
