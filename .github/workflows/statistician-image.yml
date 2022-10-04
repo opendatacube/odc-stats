@@ -48,7 +48,7 @@ jobs:
           make test
 
   push:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/develop'
     needs: test
     runs-on: ubuntu-latest
     steps:
