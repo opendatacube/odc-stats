@@ -18,6 +18,7 @@ services:
       - DB_DATABASE=opendatacube
       - AWS_NO_SIGN_REQUEST=true
       - STAC_API_URL=https://earth-search.aws.element84.com/v0/
+      - GDAL_HTTP_MAX_RETRY=5
     restart: always
     depends_on:
       - postgres

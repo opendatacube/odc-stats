@@ -132,6 +132,7 @@ jobs:
           AWS_DEFAULT_REGION: ap-southeast-2
           AWS_REGION: ap-southeast-2
           STAC_API_URL: https://earth-search.aws.element84.com/v0/
+          GDAL_HTTP_MAX_RETRY: 5
 
       - name: Upload Coverage
         if: |
