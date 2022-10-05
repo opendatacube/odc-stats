@@ -61,14 +61,14 @@ GeoJSON files are useful when selecting test regions as well as for debugging sp
 
 #### Dataset Fusing
 
-Some summary products require data from bands stored in multiple products. Products can be fused to use bands from both products in the derivitive products, this creates a virtual product that contains the bands from both products. Note that for datasets to be fused they must have the same `center_time` and `region_code`. This process find the matching dataset from each product that are in the same time and place and fuses them into one product.
+Some summary products require data from bands stored in multiple products. Products can be fused to use bands from both products in the derivative products, this creates a virtual product that contains the bands from both products. Note that for datasets to be fused they must have the same `center_time` and `region_code`. This process find the matching dataset from each product that are in the same time and place and fuses them into one product.
 
 An example of this is `fc-percentiles`, which uses the fractional covers bands in `ga_ls_fc_3` to calculate the percentiles, and uses the `ga_ls_wo_3` band to mask out bad data.  
 
 Two products can be fused using the following syntax:
 
 ```
-odc-stats save-tasks --frequency annual --grid au-30 --year 2017 ga_ls_fc_3+ga_ls_wo_3
+odc-stats save-tasks --frequency annual --grid au-30 --year 2017 --input-products ga_ls_fc_3+ga_ls_wo_3
 ```
 
 
@@ -77,7 +77,7 @@ odc-stats save-tasks --frequency annual --grid au-30 --year 2017 ga_ls_fc_3+ga_l
 Some summary products require data from multiple satellites, e.g. `tcw_pc` uses scenes from `ga_ls5t_ard_3`, `ga_ls7e_ard_3`, and `ga_ls8c_ard_3`. Note that this is different from fusing products, the scenes do not have to be in the same place or time and this simply caches the datasets from each product as is. To save datasets from multiple products:
 
 ```
-odc-stats save-tasks --frequency annual --grid au-30 --year 2017 ga_ls5t_ard_3-ga_ls7e_ard_3-ga_ls8c_ard_3
+odc-stats save-tasks --frequency annual --grid au-30 --year 2017 --input-products ga_ls5t_ard_3-ga_ls7e_ard_3-ga_ls8c_ard_3
 ```
 
 ### 2 - Run Statistician
@@ -190,6 +190,8 @@ plugin_config:
 To run Statistician on a large volume of data, use the Statistician orchestration tool which relies on SQS queues and Kubernetes jobs.
 Before running a job, you will need to create the necessary infrastructures by running the step 1 described below.
 
+### With SQS queues
+
 ### 1. Create queues and a user 
 Each user will need to create a user and a queue to publish their tasks to.
 Note that each queue will have a corresponding dead letter queue. 
@@ -289,6 +291,10 @@ For tasks that have failed and need to be retried, they can be redirected to the
 redrive-queue stats-dead-letter-queue-name  dead-letter-queue-name 
 ```
 
+### With Argo
+
+The mass production of the summary products is ochastreted with Argo. HowTo [GA private](https://bitbucket.org/geoscienceaustralia/datakube-apps/src/develop/workspaces/dea-dev/processing/argo/)
+
 ### Monitoring
 
 Grafana is a powerful tool for monitoring statistician jobs and pods.
@@ -297,6 +303,7 @@ To use this, log into the grafana which corresponds to the cluster that you're r
 You can now run a query on the log of the selected job:
 
 <img src="docs/auxiliary/screenshot-grafana.png" alt="Screenshot Grafana" width="1000"/>
+
 
 ## Mosaics
 
@@ -320,3 +327,13 @@ This is fully parallelised, run time should scale almost linearly with number of
 CPU cores. Memory usage should be something like `2048 * 2048 * bands *
 dtype_size * num_cores`, so for 64 cores maybe something like ~1GB ish. Each
 core gets a 2048 * 2048 chunk of the whole continent.
+
+## Docker image
+
+The dockerfile for the docker image used in the ochastration, which can be used in local environment for test/development as well, is located under [docker](./docker).
+
+## Integration test
+
+The integration test for the summary products is located under [tests](./tests). Currently the test is performed on all the official summary products published by DEA. The "golden files" to test against are stored on the public accessible [S3 bucket](s3://dea-public-data-dev/stats-golden-files). The "golder files" should be achived but not deleted in the case that we decide to amend or upgrade any product. It will help with tracking the changes that we intend and alerting those that we do not.
+
+The test is meant to be regressive, i.e., the new version of `odc-stats` need to pass the test on the last version of docker image. The new version of docker image needs to pass the test on the current released version of `odc-stats`.
