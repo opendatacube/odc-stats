@@ -1,75 +1,14 @@
-# This file is used to download all dependencies
-#
-# Majority of dependencies will be pulled in via `-e /code/...`, but some
-# extras are needed:
-#  - test dependencies that are not listed as direct dependencies
-#  - libraries that need extra features enabled (dask[complete], datacube[dev])
-#  - optional dependencies that are needed to run tests more fully (hdstats)
-#  - libraries that we need to constrain versions for to help pip resolutions
-#
+datacube[performance,s3]>=1.8.7
 
-# things needed for tests that might not be referenced in setup.py
-deepdiff
-moto
-mock
-docker
-pytest-depends
-pip-tools
+# odc-stac is in PyPI
+odc-stats[ows]==1.0.28
+odc-dscache==0.2.2
+odc-stac==0.3.0rc1
+odc-apps-cloud==0.2.1
+odc-algo==0.2.4.dev3417
+odc-cloud==0.2.1
+# For testing
+odc-apps-dc-tools==0.2.4
 
-# needed to bootstrap environment without network index
-wheel
-setuptools
-pip
-
-datacube[dev]==1.8.6
-
-# need to constrain this one for pip-sake
-# Fixing this allows pip resolution without constraints.txt
-aiobotocore[boto3,awscli]==2.0.0
-
-# Make sure dask has all the features enabled
-dask[complete]
-
-eodatasets3>=0.22.0
-
-# hdstats for open source version:
-hdstats>=0.1.8
-
-# hdstats for faster binary-only version:
-# --extra-index-url https://packages.dea.ga.gov.au/
-# hdstats==0.1.8.post1
-
-# other top level dependencies of odc. libraries/apps
-affine
-aiohttp
-azure-storage-blob
-click
-dask_image
-deepdiff
-fsspec
-google-cloud-storage
-ipyleaflet
-ipywidgets
-jinja2
-jupyter_ui_poll
-lmdb
-numexpr
-numpy
-odc-stac
-pyproj
-pystac-client>=0.2.0
-pystac>=1.0.0
-pytest
-pytest-depends
-pyyaml
-rasterio
-requests
-rio-stac>=0.3.1
-scikit-image
-thredds_crawler
-toolz
-tqdm
-xarray
-zstandard
-ciso8601
-gdal
+--extra-index-url https://packages.dea.ga.gov.au/
+hdstats==0.1.8.post1

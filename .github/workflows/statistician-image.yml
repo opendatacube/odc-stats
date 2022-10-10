@@ -1,0 +1,78 @@
+name: Statistician Test and Push
+
+env:
+  IMAGE_NAME: opendatacube/datacube-statistician
+
+on:
+  pull_request:
+    paths:
+      - 'docker/**'
+      - '.github/workflows/statistician-*'
+      - '!docker/readme.md'
+  push:
+    branches:
+      - develop
+    paths:
+      - 'docker/**'
+      - '.github/workflows/statistician-*'
+      - '!docker/readme.md'
+
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: lint Dockerfile
+        uses: hadolint/hadolint-action@v2.0.0
+        with:
+          dockerfile: docker/Dockerfile
+          ignore: DL3008,DL3002,DL3013,DL3059,SC2102
+
+      - name: Build Statistician image
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          cd docker
+          docker-compose build
+
+      - name: Run Dockerized Tests for Statistician
+        shell: bash
+        run: |
+          cd docker
+          make test
+
+  push:
+    if: github.ref == 'refs/heads/develop'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get tag for this build if it exists
+        run: |
+          echo "VERSION=$(cat docker/version.txt)" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::538673716275:role/github-ecr
+          aws-region: ap-southeast-2
+
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Push image to ECR
+        uses: whoan/docker-build-with-cache-action@v5
+        with:
+          context: ./docker
+          registry: ${{ steps.login-ecr.outputs.registry }}
+          image_name: ${{ env.IMAGE_NAME }}
+          image_tag: latest,${{ env.VERSION }}
