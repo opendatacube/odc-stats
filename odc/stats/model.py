@@ -433,7 +433,6 @@ class Task:
                     inherit_geometry=False,
                     inherit_skip_properties=self.product.inherit_skip_properties,
                 )
-                print(source_datasetdoc.properties)
 
                 if "eo:platform" in source_datasetdoc.properties:
                     platforms.append(source_datasetdoc.properties["eo:platform"])
@@ -445,7 +444,6 @@ class Task:
 
         dataset_assembler.platform = ",".join(sorted(set(platforms)))
         dataset_assembler.instrument = "_".join(sorted(set(instruments)))
-        dataset_assembler.maturity = ",".join(sorted(set(maturity)))
 
         dataset_assembler.geometry = self.geobox.extent.geom
 
@@ -467,6 +465,8 @@ class Task:
         dataset_assembler.product_name = self.product.name
         dataset_assembler.dataset_version = self.product.version
         dataset_assembler.region_code = self.product.region_code(self.tile_index)
+        dataset_assembler.maturity = self.product.maturity if self.product.maturity else ",".join(
+            sorted(set(maturity)))
 
         # set the warning message back
         warnings.filterwarnings("default")
