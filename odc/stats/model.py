@@ -417,7 +417,8 @@ class Task:
                 sources = [e["id"] for e in dataset.metadata.sources.values()]
                 platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
                 instruments.append(dataset.metadata_doc["properties"]["eo:instrument"])
-                maturity.append(dataset.metadata_doc["properties"]["dea:dataset_maturity"])
+                maturity.append(
+                    dataset.metadata_doc["properties"]["dea:dataset_maturity"])
                 dataset_assembler.note_source_datasets(
                     self.product.classifier, *sources
                 )
@@ -432,13 +433,15 @@ class Task:
                     inherit_geometry=False,
                     inherit_skip_properties=self.product.inherit_skip_properties,
                 )
+                print(source_datasetdoc.properties)
 
                 if "eo:platform" in source_datasetdoc.properties:
                     platforms.append(source_datasetdoc.properties["eo:platform"])
                 if "eo:instrument" in source_datasetdoc.properties:
                     instruments.append(source_datasetdoc.properties["eo:instrument"])
                 if "dea:dataset_maturity" in source_datasetdoc.properties:
-                    maturity.append(source_datasetdoc.properties["dea:dataset_maturity"])
+                    maturity.append(
+                        source_datasetdoc.properties["dea:dataset_maturity"])
 
         dataset_assembler.platform = ",".join(sorted(set(platforms)))
         dataset_assembler.instrument = "_".join(sorted(set(instruments)))
