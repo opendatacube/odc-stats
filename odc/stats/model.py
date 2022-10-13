@@ -435,6 +435,8 @@ class Task:
                     platforms.append(source_datasetdoc.properties["eo:platform"])
                 if "eo:instrument" in source_datasetdoc.properties:
                     instruments.append(source_datasetdoc.properties["eo:instrument"])
+                if "dea:dataset_maturity" in source_datasetdoc.properties:
+                    dataset_assembler.maturity = source_datasetdoc.properties["dea:dataset_maturity"]
 
         dataset_assembler.platform = ",".join(sorted(set(platforms)))
         dataset_assembler.instrument = "_".join(sorted(set(instruments)))
@@ -467,7 +469,6 @@ class Task:
             processing_dt = datetime.utcnow()
         dataset_assembler.processed = processing_dt
 
-        dataset_assembler.maturity = self.product.maturity
         dataset_assembler.collection_number = self.product.collection_number
 
         if output_dataset is not None:
