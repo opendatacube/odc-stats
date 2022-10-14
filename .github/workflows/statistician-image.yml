@@ -35,18 +35,15 @@ jobs:
           role-to-assume: arn:aws:iam::451924316694:role/github-ecr-emma-test
           aws-region: ap-southeast-2
 
-      - name: Login to AWS ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+            #- name: Login to AWS ECR
+            #  id: login-ecr
+            #  uses: aws-actions/amazon-ecr-login@v1
 
       - name: Push image to ECR
-        uses: whoan/docker-build-with-cache-action@v4
+        uses: whoan/docker-build-with-cache-action@v5
         with:
           context: ./docker
-          username: $AWS_ACCESS_KEY_ID
-          password: $AWS_SECRET_ACCESS_KEY
-            # session: $AWS_SESSION_TOKEN
-          registry: ${{ steps.login-ecr.outputs.registry }}
+          registry: 451924316694.dkr.ecr.ap-southeast-2.amazonaws.com
           image_name: ${{ env.IMAGE_NAME }}
           image_tag: latest,${{ env.VERSION }}
       # - name: Push image to ECR
