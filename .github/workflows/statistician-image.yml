@@ -43,6 +43,7 @@ jobs:
         uses: whoan/docker-build-with-cache-action@v5.11.1
         with:
           context: ./docker
+          session: $AWS_SESSION_TOKEN
           registry: ${{ steps.login-ecr.outputs.registry }}
           image_name: ${{ env.IMAGE_NAME }}
           image_tag: latest,${{ env.VERSION }}
