@@ -40,9 +40,11 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Push image to ECR
-        uses: whoan/docker-build-with-cache-action@v4
+        uses: whoan/docker-build-with-cache-action@v5
         with:
           context: ./docker
+          username: $AWS_ACCESS_KEY_ID
+          password: $AWS_SECRET_ACCESS_KEY
           session: $AWS_SESSION_TOKEN
           registry: ${{ steps.login-ecr.outputs.registry }}
           image_name: ${{ env.IMAGE_NAME }}
