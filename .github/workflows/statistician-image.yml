@@ -43,11 +43,11 @@ jobs:
           echo "session=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
 
       - name: Push image to ECR
-        uses: whoan/docker-build-with-cache-action@v5
+        uses: whoan/docker-build-with-cache-action@issue-108
         with:
           context: ./docker
           registry: 451924316694.dkr.ecr.ap-southeast-2.amazonaws.com
-          session: ${{ env.session }}
+            # session: ${{ env.session }}
           image_name: ${{ env.IMAGE_NAME }}
           image_tag: latest,${{ env.VERSION }}
       # - name: Push image to ECR
