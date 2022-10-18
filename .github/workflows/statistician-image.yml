@@ -43,6 +43,9 @@ jobs:
           echo "VERSION=$(cat docker/version.txt).dev${{ github.run_id }}"
           >> $GITHUB_ENV
 
+    outputs:
+      image_tag: ${{ env.VERSION }}
+
   push_ecr:
     needs: set_tags
     runs-on: ubuntu-latest
@@ -64,7 +67,7 @@ jobs:
           username: ${{ matrix.username }}
           password: ${{ matrix.password }}
           image_name: ${{ env.IMAGE_NAME }}
-          image_tag: ${{ env.VERSION }}
+          image_tag: ${{ needs.set_tags.outputs.image_tag }}
 
   push_public:
     needs: set_tags
@@ -86,4 +89,4 @@ jobs:
           username: gadockersvc
           password: ${{ secrets.GADOCKERSVC_PASSWORD }}
           image_name: ${{ env.IMAGE_NAME }}
-          image_tag: ${{ env.VERSION }}
+          image_tag: ${{ needs.set_tags.outputs.image_tag }}
