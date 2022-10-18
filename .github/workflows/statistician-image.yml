@@ -1,7 +1,7 @@
 name: Statistician Test and Push
 
 env:
-  IMAGE_NAME: emma-dev-test/stats
+  IMAGE_NAME: opendatacube/datacube-statistician
 on:
   pull_request:
     paths:
@@ -39,15 +39,18 @@ jobs:
 
       - name: echo dev version for dockhub image tagging
         if: steps.verify-changed-version.outputs.any_changed == 'false'
-        run: |
-          echo "VERSION=$(cat docker/version.txt).dev${{ github.run_id }}" \
+        run: >-
+          echo "VERSION=$(cat docker/version.txt).dev${{ github.run_id }}"
           >> $GITHUB_ENV
 
   push:
     needs: set-tags
     strategy:
       matrix:
-        registry: [451924316694.dkr.ecr.ap-southeast-2.amazonaws.com]
+        include:
+          - registry: 451924316694.dkr.ecr.ap-southeast-2.amazonaws.com
+          - username: ~
+            password: ~
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -64,5 +67,7 @@ jobs:
         with:
           context: ./docker
           registry: ${{ matrix.registry }}
+          usernmae: ${{ matrix.username }}
+          password: ${{ matrix.password }}
           image_name: ${{ env.IMAGE_NAME }}
           image_tag: latest,${{ env.VERSION }}
