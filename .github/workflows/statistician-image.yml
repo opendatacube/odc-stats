@@ -19,15 +19,39 @@ permissions:
   contents: read    # This is required for actions/checkout
 
 jobs:
-  push:
+  set-tags:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Get tag for this build if it exists
+      - name: Verify Changed files
+        uses: tj-actions/changed-files@v32
+        id: verify-changed-version
+        with:
+          files: |
+              docker/version.txt
+
+      - name: Run step only when version.txt change.
+        if: steps.verify-changed-version.outputs.any_changed == 'true'
         run: |
           echo "VERSION=$(cat docker/version.txt)" >> $GITHUB_ENV
+
+      - name: echo dev version for dockhub image tagging
+        if: steps.verify-changed-version.outputs.any_changed == 'false'
+        run: |
+          echo "VERSION=$(cat docker/version.txt).dev${{ github.run_id }}" \
+          >> $GITHUB_ENV
+
+  push:
+    needs: set-tags
+    strategy:
+      matrix:
+        registry: [451924316694.dkr.ecr.ap-southeast-2.amazonaws.com]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -39,6 +63,6 @@ jobs:
         uses: whoan/docker-build-with-cache-action@master
         with:
           context: ./docker
-          registry: 451924316694.dkr.ecr.ap-southeast-2.amazonaws.com
+          registry: ${{ matrix.registry }}
           image_name: ${{ env.IMAGE_NAME }}
           image_tag: latest,${{ env.VERSION }}
