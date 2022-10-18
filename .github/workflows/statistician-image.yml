@@ -42,14 +42,9 @@ jobs:
         run: >-
           echo "VERSION=$(cat docker/version.txt).dev${{ github.run_id }}"
           >> $GITHUB_ENV
-  push:
+
+  push_ecr:
     needs: set_tags
-    strategy:
-      matrix:
-        include:
-          - registry: 451924316694.dkr.ecr.ap-southeast-2.amazonaws.com
-          - username: gadockersvc
-            password: ${{ secrets.GADOCKERSVC_PASSWORD }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -65,8 +60,30 @@ jobs:
         uses: whoan/docker-build-with-cache-action@master
         with:
           context: ./docker
-          registry: ${{ matrix.registry }}
+          registry: 451924316694.dkr.ecr.ap-southeast-2.amazonaws.com$
           username: ${{ matrix.username }}
           password: ${{ matrix.password }}
+          image_name: ${{ env.IMAGE_NAME }}
+          image_tag: ${{ env.VERSION }}
+
+  push_public:
+    needs: set_tags
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::451924316694:role/github-ecr-emma-test
+          aws-region: ap-southeast-2
+
+      - name: Push image to ECR
+        uses: whoan/docker-build-with-cache-action@master
+        with:
+          context: ./docker
+          username: gadockersvc
+          password: ${{ secrets:GADOCKERSVC_PASSWORD }}
           image_name: ${{ env.IMAGE_NAME }}
           image_tag: ${{ env.VERSION }}
