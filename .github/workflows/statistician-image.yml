@@ -19,7 +19,7 @@ permissions:
   contents: read    # This is required for actions/checkout
 
 jobs:
-  set-tags:
+  set_tags:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -42,15 +42,14 @@ jobs:
         run: >-
           echo "VERSION=$(cat docker/version.txt).dev${{ github.run_id }}"
           >> $GITHUB_ENV
-
   push:
-    needs: set-tags
+    needs: set_tags
     strategy:
       matrix:
         include:
           - registry: 451924316694.dkr.ecr.ap-southeast-2.amazonaws.com
-          - username: ~
-            password: ~
+          - username: gadockersvc
+            password: ${{ secrets.GADOCKERSVC_PASSWORD }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -67,7 +66,7 @@ jobs:
         with:
           context: ./docker
           registry: ${{ matrix.registry }}
-          usernmae: ${{ matrix.username }}
+          username: ${{ matrix.username }}
           password: ${{ matrix.password }}
           image_name: ${{ env.IMAGE_NAME }}
-          image_tag: latest,${{ env.VERSION }}
+          image_tag: ${{ env.VERSION }}
