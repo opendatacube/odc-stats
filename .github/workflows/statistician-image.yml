@@ -16,6 +16,7 @@ on:
       - 'docker/**'
       - '.github/workflows/statistician-*'
       - '!docker/readme.md'
+      - 'odc/stats/_version.py'
 
 permissions:
   id-token: write   # This is required for requesting the JWT
@@ -47,7 +48,31 @@ jobs:
           cd docker
           make test
 
+<<<<<<< HEAD
   set_tags:
+=======
+      - name: Verify Changed files
+        uses: tj-actions/changed-files@v32
+        id: verify-changed-version
+        with:
+          files: |
+              docker/version.txt
+
+      - name: Run step only when version.txt change.
+        if: steps.verify-changed-version.outputs.any_changed == 'true'
+        run: |
+          echo "VERSION=$(cat docker/version.txt)" >> $GITHUB_ENV
+
+      - name: echo dev version for dockhub image tagging
+        if: steps.verify-changed-version.outputs.any_changed == 'false'
+        run: >-
+          echo "VERSION=$(cat docker/version.txt).dev${{ github.run_id }}"
+          >> $GITHUB_ENV
+
+    outputs:
+      image_tag: ${{ env.VERSION }}
+
+  push_ecr:
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
