@@ -84,6 +84,6 @@ jobs:
         with:
           context: ./docker
           username: gadockersvc
-          password: ${{ secrets:GADOCKERSVC_PASSWORD }}
+          password: ${{ secrets.GADOCKERSVC_PASSWORD }}
           image_name: ${{ env.IMAGE_NAME }}
           image_tag: ${{ env.VERSION }}
