@@ -24,4 +24,3 @@ ENV GDAL_DRIVER_PATH=/env/lib/gdalplugins \
 WORKDIR /tmp
 
 RUN odc-stats --version 
-
