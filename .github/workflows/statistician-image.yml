@@ -16,7 +16,6 @@ on:
       - 'docker/**'
       - '.github/workflows/statistician-*'
       - '!docker/readme.md'
-      - 'odc/stats/_version.py'
 
 permissions:
   id-token: write   # This is required for requesting the JWT
@@ -48,6 +47,10 @@ jobs:
           cd docker
           make test
 
+  set_tags:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
       - name: Verify Changed files
         uses: tj-actions/changed-files@v32
         id: verify-changed-version
@@ -65,13 +68,12 @@ jobs:
         run: >-
           echo "VERSION=$(cat docker/version.txt).dev${{ github.run_id }}"
           >> $GITHUB_ENV
-
     outputs:
       image_tag: ${{ env.VERSION }}
 
   push_ecr:
     if: github.ref == 'refs/heads/develop'
-    needs: test
+    needs: [test, set_tags]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -89,7 +91,7 @@ jobs:
           context: ./docker
           registry: 538673716275.dkr.ecr.ap-southeast-2.amazonaws.com
           image_name: ${{ env.IMAGE_NAME }}
-          image_tag: latest,${{ needs.test.outputs.image_tag }}
+          image_tag: latest,${{ needs.set_tags.outputs.image_tag }}
 
   push_public:
     if: github.ref == 'refs/heads/develop'
@@ -106,4 +108,4 @@ jobs:
           username: gadockersvc
           password: ${{ secrets.GADOCKERSVC_PASSWORD }}
           image_name: ${{ env.IMAGE_NAME }}
-          image_tag: latest,${{ needs.test.outputs.image_tag }}
+          image_tag: latest,${{ needs.set_tags.outputs.image_tag }}
