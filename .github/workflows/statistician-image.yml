@@ -16,7 +16,6 @@ on:
       - 'docker/**'
       - '.github/workflows/statistician-*'
       - '!docker/readme.md'
-      - 'odc/stats/_version.py'
 
 permissions:
   id-token: write   # This is required for requesting the JWT
@@ -48,9 +47,10 @@ jobs:
           cd docker
           make test
 
-<<<<<<< HEAD
   set_tags:
-=======
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
       - name: Verify Changed files
         uses: tj-actions/changed-files@v32
         id: verify-changed-version
@@ -68,7 +68,6 @@ jobs:
         run: >-
           echo "VERSION=$(cat docker/version.txt).dev${{ github.run_id }}"
           >> $GITHUB_ENV
-
     outputs:
       image_tag: ${{ env.VERSION }}
 
