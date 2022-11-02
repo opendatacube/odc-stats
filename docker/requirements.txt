@@ -12,4 +12,3 @@ odc-stac==0.3.0rc1
 
 # odc-stac is in PyPI
 odc-stats[ows]==1.0.28
-
