@@ -16,7 +16,7 @@ on:
 
   workflow_run:
     workflows: ["Publish to S3"]
-    branches: [develop]
+    branches: [test_push_ecr]
     types:
       - completed
 
