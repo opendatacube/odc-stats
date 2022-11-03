@@ -42,6 +42,7 @@ jobs:
 
       - name: Patch Package Versions
         run: |
+          ehco $(git rev-parse --short HEAD)
           find . -name _version.py | xargs python ./scripts/patch_version.py \
            $(git rev-parse --short HEAD)
 
