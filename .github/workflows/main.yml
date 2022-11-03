@@ -52,86 +52,86 @@ jobs:
           python setup.py sdist --dist-dir ./wheels/clean/
           find ./wheels/clean -type f
 
-          #   test-wheels:
-          #     runs-on: ubuntu-latest
-          #     container:
-          #       image: opendatacube/datacube-statistician:latest
-          #
-          #     services:
-          #       postgres:
-          #         image: postgis/postgis:10-2.5
-          #         env:
-          #           POSTGRES_DB: opendatacube
-          #           POSTGRES_PASSWORD: opendatacubepassword
-          #           POSTGRES_USER: opendatacube
-          #
-          #     needs:
-          #       - build-wheels
-          #
-          #     steps:
-          #       - uses: actions/checkout@v2
-          #
-          #       - name: Install Dependencies
-          #         shell: bash
-          #         run: |
-          #           apt update
-          #           DEBIAN_FRONTEND=noninteractive apt-get install -y \
-          #           --fix-missing --no-install-recommends \
-          #           nodejs \
-          #           zstd
-          #           python -m pip install --upgrade --no-cache pip
-          #           pip install --upgrade --no-cache -r \
-          #           tests/requirements.txt
-          #           pip freeze
-          #
-          #       - name: Get Wheels from Cache
-          #         uses: actions/cache@v2
-          #         id: wheels_cache
-          #         with:
-          #           path: ./wheels
-          #           key: wheels-${{ github.sha }}
-          #
-          #       - name: Install wheels for testing
-          #         shell: bash
-          #         run: |
-          #           which python
-          #           which datacube
-          #
-          #           ls -lh wheels/clean
-          #           pip install --no-deps --no-cache wheels/clean/*whl
-          #           pip check || true
-          #
-          #       - name: Run Tests
-          #         shell: bash
-          #         run: |
-          #           echo "Init DB"
-          #           ./tests/init_db.sh
-          #
-          #           echo "Running unit tests"
-          #           pytest --cov=. \
-          #           --cov-report=html \
-          #           --cov-report=xml:coverage.xml \
-          #           --timeout=30 tests
-          #
-          #           echo "Running integration tests"
-          #           ./tests/integration_test.sh
-          #
-          #         env:
-          #           DB_HOSTNAME: postgres
-          #           DB_USERNAME: opendatacube
-          #           DB_PASSWORD: opendatacubepassword
-          #           DB_DATABASE: opendatacube
-          #           AWS_NO_SIGN_REQUEST: true
-          #           AWS_DEFAULT_REGION: ap-southeast-2
-          #           AWS_REGION: ap-southeast-2
-          #           STAC_API_URL: https://earth-search.aws.element84.com/v0/
-          #           GDAL_HTTP_MAX_RETRY: 5
-          #
-          #       - name: Upload Coverage
-          #         if: |
-          #           github.repository == 'opendatacube/odc-stats'
-          #
-          #         uses: codecov/codecov-action@v3
-          #         with:
-          #           fail_ci_if_error: false
-          #           verbose: false
+  test-wheels:
+    runs-on: ubuntu-latest
+    container:
+      image: opendatacube/datacube-statistician:latest
+
+    services:
+      postgres:
+        image: postgis/postgis:10-2.5
+        env:
+          POSTGRES_DB: opendatacube
+          POSTGRES_PASSWORD: opendatacubepassword
+          POSTGRES_USER: opendatacube
+
+    needs:
+      - build-wheels
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Dependencies
+        shell: bash
+        run: |
+          apt update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+          --fix-missing --no-install-recommends \
+          nodejs \
+          zstd
+          python -m pip install --upgrade --no-cache pip
+          pip install --upgrade --no-cache -r \
+          tests/requirements.txt
+          pip freeze
+
+      - name: Get Wheels from Cache
+        uses: actions/cache@v2
+        id: wheels_cache
+        with:
+          path: ./wheels
+          key: wheels-${{ github.sha }}
+
+      - name: Install wheels for testing
+        shell: bash
+        run: |
+          which python
+          which datacube
+
+          ls -lh wheels/clean
+          pip install --no-deps --no-cache wheels/clean/*whl
+          pip check || true
+
+      - name: Run Tests
+        shell: bash
+        run: |
+          echo "Init DB"
+          ./tests/init_db.sh
+
+          echo "Running unit tests"
+          pytest --cov=. \
+          --cov-report=html \
+          --cov-report=xml:coverage.xml \
+          --timeout=30 tests
+
+          echo "Running integration tests"
+          ./tests/integration_test.sh
+
+        env:
+          DB_HOSTNAME: postgres
+          DB_USERNAME: opendatacube
+          DB_PASSWORD: opendatacubepassword
+          DB_DATABASE: opendatacube
+          AWS_NO_SIGN_REQUEST: true
+          AWS_DEFAULT_REGION: ap-southeast-2
+          AWS_REGION: ap-southeast-2
+          STAC_API_URL: https://earth-search.aws.element84.com/v0/
+          GDAL_HTTP_MAX_RETRY: 5
+
+      - name: Upload Coverage
+        if: |
+          github.repository == 'opendatacube/odc-stats'
+
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: false
+          verbose: false
