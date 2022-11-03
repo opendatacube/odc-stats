@@ -24,14 +24,13 @@ from .model import Task, EXT_TIFF
 from .plugins import StatsPluginInterface
 from hashlib import sha1
 from collections import namedtuple
-from odc.stats import __version__
 
 from eodatasets3.assemble import serialise
 from eodatasets3.scripts.tostac import json_fallback
 from eodatasets3.model import DatasetDoc
 from eodatasets3.images import FileWrite, GridSpec
 import eodatasets3.stac as eo3stac
-import eodatasets3
+from importlib.metadata import version
 
 
 WriteResult = namedtuple("WriteResult", ["path", "sha1", "error"])
@@ -408,11 +407,13 @@ class S3COGSink:
         dataset_assembler.note_software_version(
             "eodatasets3",
             "https://github.com/GeoscienceAustralia/eo-datasets",
-            eodatasets3.__version__,
+            version("eodatasets3"),
         )
 
         dataset_assembler.note_software_version(
-            "odc-stats", "https://github.com/opendatacube/odc-tools", __version__
+            "odc-stats",
+            "https://github.com/opendatacube/odc-tools",
+            version("odc.stats"),
         )
 
         dataset_assembler.note_software_version(
@@ -421,8 +422,6 @@ class S3COGSink:
 
         if task.product.preview_image_ows_style:
             try:
-                import datacube_ows
-
                 dataset_assembler._accessories["thumbnail"] = Path(
                     urlparse(odc_file_path.split(".")[0] + "_thumbnail.jpg").path
                 ).name
@@ -431,7 +430,7 @@ class S3COGSink:
                     "datacube-ows",
                     "https://github.com/opendatacube/datacube-ows",
                     # Just realized the odc-stats does not have version.
-                    datacube_ows.__version__,
+                    version("datacube_ows"),
                 )
             except ImportError as e:
                 raise type(e)(
