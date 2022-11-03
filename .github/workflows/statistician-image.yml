@@ -13,7 +13,12 @@ on:
       - 'docker/**'
       - '.github/workflows/statistician-*'
       - '!docker/readme.md'
-      - 'odc/stats/_version.py'
+
+  workflow_run:
+    workflows: ["Publish to S3"]
+    branches: [develop]
+    types:
+      - completed
 
 permissions:
   id-token: write   # This is required for requesting the JWT
@@ -31,18 +36,18 @@ jobs:
         id: verify-changed-version
         with:
           files: |
-              docker/version.txt
+              odc/stats/**
+              docker/**
 
-      - name: Run step only when version.txt change.
+      - name: Build a new docker image with tag
         if: steps.verify-changed-version.outputs.any_changed == 'true'
-        run: |
-          echo "VERSION=$(cat docker/version.txt)" >> $GITHUB_ENV
-
-      - name: echo dev version for dockhub image tagging
-        if: steps.verify-changed-version.outputs.any_changed == 'false'
         run: >-
-          echo "VERSION=$(cat docker/version.txt).dev${{ github.run_id }}"
+          echo "VERSION=dev$(git rev-parse --short HEAD)"
           >> $GITHUB_ENV
+
+      - name: No need to build docker image
+        if: steps.verify-changed-version.outputs.any_changed == 'false'
+        run: exit 1
 
     outputs:
       image_tag: ${{ env.VERSION }}
@@ -53,14 +58,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Verify Changed files
-        uses: tj-actions/changed-files@v32
-        id: verify-changed-version
-        with:
-          files: |
-              docker/**
-              odc/stats/_version.py
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
