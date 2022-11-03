@@ -9,9 +9,9 @@ on:
 
 jobs:
   publish-s3:
-    if: |
-        github.repository == 'opendatacube/odc-stats'
-        && github.event.workflow_run.conclusion == 'success'
+    #if: |
+    #    github.repository == 'opendatacube/odc-stats'
+    #    && github.event.workflow_run.conclusion == 'success'
 
     runs-on: ubuntu-latest
 
