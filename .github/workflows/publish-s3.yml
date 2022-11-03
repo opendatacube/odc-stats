@@ -2,8 +2,8 @@ name: Publish to S3
 
 on:
   workflow_run:
-    workflows: ["Run Code Checks"]
-      # branches: [develop]
+    workflows: [Run Code Checks]
+    branches: [develop]
     types:
       - completed
 

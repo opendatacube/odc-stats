@@ -66,7 +66,6 @@ jobs:
           aws-region: ap-southeast-2
 
       - name: Push image to ECR
-        if: steps.verify-changed-version.outputs.any_changed == 'true'
         uses: whoan/docker-build-with-cache-action@master
         with:
           context: ./docker
