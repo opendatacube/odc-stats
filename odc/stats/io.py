@@ -412,12 +412,12 @@ class S3COGSink:
 
         dataset_assembler.note_software_version(
             "odc-stats",
-            "https://github.com/opendatacube/odc-tools",
+            "https://github.com/opendatacube/odc-stats",
             version("odc_stats"),
         )
 
         dataset_assembler.note_software_version(
-            proc.NAME, "https://github.com/opendatacube/odc-tools", proc.VERSION
+            proc.NAME, "https://github.com/opendatacube/odc-stats", proc.VERSION
         )
 
         if task.product.preview_image_ows_style:
