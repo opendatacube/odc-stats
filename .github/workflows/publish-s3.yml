@@ -3,7 +3,7 @@ name: Publish to S3
 on:
   workflow_run:
     workflows: ["Run Code Checks"]
-    branches: [develop]
+    branches: [test_push_ecr]
     types:
       - completed
 
