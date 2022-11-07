@@ -36,7 +36,7 @@ jobs:
         id: verify-changed-version
         with:
           files: |
-              odc/stats/**
+              odc/**
               docker/**
 
       - name: Build a new docker image with tag
@@ -62,7 +62,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: arn:aws:iam::451924316694:role/github-ecr-emma-test
+          role-to-assume: |
+            arn:aws:iam::451924316694:role/github-ecr-emma-test
+            #arn:aws:iam::451924316694:role/github-actions-test-emma
           aws-region: ap-southeast-2
 
       - name: Push image to ECR
