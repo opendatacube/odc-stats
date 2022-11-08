@@ -51,6 +51,9 @@ jobs:
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
       - name: Verify Changed files
         uses: tj-actions/changed-files@v32
         id: verify-changed-version
@@ -95,7 +98,7 @@ jobs:
 
   push_public:
     if: github.ref == 'refs/heads/develop'
-    needs: test
+    needs: [test, set_tags]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
