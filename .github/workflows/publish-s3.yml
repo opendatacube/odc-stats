@@ -26,8 +26,9 @@ jobs:
       - name: Prepare for upload to S3
         run: |
           mkdir -p ./pips
-          ./scripts/mk-pip-tree.sh ./wheels/dev/ ./pips
+          ./scripts/mk-pip-tree.sh ./wheels/clean/ ./pips
           find ./pips -type f
+
       - name: Upload to S3
         run: |
           aws s3 ls "${S3_DST}"
