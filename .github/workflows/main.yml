@@ -40,10 +40,22 @@ jobs:
            packaging
           python -m pip freeze
 
-      - name: Patch Package Versions
+      - name: Verify Changed files
+        uses: tj-actions/changed-files@v32
+        id: verify-changed-version
+        with:
+          files: |
+              odc/**
+              pyproject.toml
+              setup.py
+              setup.cfg
+
+      - name: Patch Package Versions when code change.
+        if: steps.verify-changed-version.outputs.any_changed == 'true'
         run: |
-          find . -name _version.py | xargs python ./scripts/patch_version.py \
-           $(git rev-parse --short HEAD)
+          # -1: auto increment of patch number
+          # other positive integers: set the patch number accordingly
+          python ./scripts/patch_version.py -1 ./odc/stats/_version.py
 
       - name: Build Clean Packages
         run: |
