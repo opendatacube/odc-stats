@@ -85,7 +85,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: arn:aws:iam::538673716275:role/github-ecr
+          role-to-assume: arn:aws:iam::538673716275:role/github-actions-role
           aws-region: ap-southeast-2
 
       - name: Push image to ECR
