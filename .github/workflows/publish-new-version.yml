@@ -46,7 +46,7 @@ jobs:
           # -1: auto increment of patch number
           # other positive integers: set the patch number accordingly
           python ./scripts/patch_version.py -1 ./odc/stats/_version.py
-          echo "TAG=$(cat dummy/_version.py  | sed 's/[^0-9|.]//g')" \
+          echo "TAG=$(cat odc/stats/_version.py  | sed 's/[^0-9|.]//g')" \
             >> $GITHUB_OUTPUT
 
       - name: Push and tag versions
