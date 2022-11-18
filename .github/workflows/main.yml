@@ -1,7 +1,6 @@
 name: Run Code Checks
 
 on:
-  pull_request:
   push:
     paths:
       - '**'
@@ -13,7 +12,6 @@ on:
 
 jobs:
   build-wheels:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
