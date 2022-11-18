@@ -17,53 +17,20 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.8
-
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade setuptools
-          python -m pip install --upgrade packaging
-          python -m pip freeze
-
-      - name: Verify Changed files
-        uses: tj-actions/changed-files@v32
-        id: verify-changed-version
-        with:
-          files: |
-              odc/**
-              pyproject.toml
-              setup.py
-              setup.cfg
-
-      - name: Patch Package Versions when code change.
-        if: steps.verify-changed-version.outputs.any_changed == 'true'
-        id: patch-version
-        run: |
-          # -1: auto increment of patch number
-          # other positive integers: set the patch number accordingly
-          python ./scripts/patch_version.py -1 ./odc/stats/_version.py
-          echo "TAG=$(cat odc/stats/_version.py  | sed 's/[^0-9|.]//g')" \
-            >> $GITHUB_OUTPUT
-
       - name: Push and tag versions
-        if: steps.patch-version.outcome == 'success'
         id: push-new-tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: autoaction
         run: |
-          git config --global user.email "$GITHUB_ACTOR@auto.noreply"
-          git config --global user.name "$GITHUB_ACTOR"
-          git commit -a -m \
-            "Bump version to ${{ steps.patch-version.outputs.TAG }}"
-          git push origin --follow-tags
-          git tag ${{ steps.patch-version.outputs.TAG }}
+          CTAG=$(git ls-remote --tags --sort='version:refname' | \
+            tail -1 | cut -d '/' -f3)
+          TAG=$(cat odc/stats/_version.py  | sed 's/[^0-9|.]//g')
+          if [[ $TAG == $CTAG || -z $CTAG ]]; then
+          git tag $TAG
           git push origin --tags
           echo "NEW=true" >> $GITHUB_OUTPUT
+          fi
     outputs:
       new_version: ${{ steps.push-new-tag.outputs.NEW }}
 
