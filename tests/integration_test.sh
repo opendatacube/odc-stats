@@ -4,10 +4,10 @@ set -e
 set -o pipefail
 
 odc-stats --version
-echo "Checking save tasks"
-odc-stats save-tasks --grid africa-20 --year 2019 --overwrite --input-products s2_l2a test-run.db
-echo "Checking a job run"
-odc-stats run  --threads=1 --plugin pq --location file:///tmp ./test-run.db 0
+# echo "Checking save tasks"
+# odc-stats save-tasks --grid africa-20 --year 2019 --overwrite --input-products s2_l2a test-run.db
+# echo "Checking a job run"
+# odc-stats run  --threads=1 --plugin pq --location file:///tmp ./test-run.db 0
 
 echo "Test GeoMAD"
 
