@@ -57,6 +57,7 @@ jobs:
 
       - name: Patch Package Versions when code change.
         if: steps.verify-changed-version.outputs.any_changed == 'true'
+          && !(github.ref == 'refs/heads/develop')
         id: patch-version
         run: |
           CTAG=$(git ls-remote --tags --sort='version:refname' | \
