@@ -15,6 +15,7 @@
 
 # %%
 def dump_mem_needs(nx, ny=None, nt=150, nb=10, work_rows=64):
+    # pylint: disable=invalid-name
     if ny is None:
         ny = nx
 

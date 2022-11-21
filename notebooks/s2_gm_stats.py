@@ -12,6 +12,8 @@
 #     language: python
 #     name: python3
 # ---
+# Pointless statements do have a point in Jupyter Notebooks!
+# pylint: disable=pointless-statement
 
 # %%
 # %matplotlib inline
@@ -19,27 +21,30 @@ from IPython.display import display, Image
 
 import matplotlib.pyplot as plt
 
-plt.rcParams["axes.facecolor"] = "magenta"  # makes transparent pixels obvious
 import numpy as np
-import xarray as xr
+from dask.distributed import Client
+
+# from datacube.utils.dask import start_local_dask
+# from datacube.utils.rio import configure_s3_access
+
+from odc.algo import to_rgba
+from odc.ui import to_jpeg_data
+from odc.stats.tasks import TaskReader
+from odc.stats._gm import gm_product, gm_input_data, gm_reduce
+
+plt.rcParams["axes.facecolor"] = "magenta"  # makes transparent pixels obvious
 
 # %%
-from dask.distributed import Client, wait as dask_wait
-from datacube.utils.dask import start_local_dask
-from datacube.utils.rio import configure_s3_access
 
-if False:
-    client = start_local_dask(scheduler_port=11311, threads_per_worker=16)
-    configure_s3_access(aws_unsigned=True, cloud_defaults=True, client=client)
-else:
-    client = Client("tcp://127.0.0.1:11311")
+# client = start_local_dask(scheduler_port=11311, threads_per_worker=16)
+# configure_s3_access(aws_unsigned=True, cloud_defaults=True, client=client)
+
+client = Client("tcp://127.0.0.1:11311")
 
 client.restart()
 client
 
 # %%
-from odc.algo import to_rgba
-from odc.ui import to_jpeg_data
 
 
 def mk_roi(y, x, sz=256):
@@ -51,8 +56,6 @@ def show_im(data, transparent=(255, 0, 255)):
 
 
 # %%
-from odc.stats.tasks import TaskReader
-from odc.stats._gm import gm_product, gm_input_data, gm_reduce
 
 RGB = ("B04", "B03", "B02")
 
