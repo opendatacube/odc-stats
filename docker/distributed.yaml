@@ -2,7 +2,7 @@
 distributed:
   worker:
     memory:
-      target: False
-      spill: False
+      target: false
+      spill: false
       pause: 0.95
       terminate: 0.97
