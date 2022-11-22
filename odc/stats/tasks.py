@@ -150,7 +150,10 @@ class SaveTasks:
             else (ds.center_time,),
         )
         grouped_dss = match_dss(grouped_dss, group_size)
-        map_fuse_func = lambda x: fuse_ds(*x, product=product)
+
+        def map_fuse_func(x):
+            fuse_ds(*x, product=product)
+
         dss = map(map_fuse_func, grouped_dss)
         return dss
 
@@ -159,7 +162,7 @@ class SaveTasks:
         dc: Datacube,
         products: list,
         msg: Callable[[str], Any],
-        dataset_filter: Optional[dict] = {},
+        dataset_filter=None,
         temporal_range: Optional[DateTimeRange] = None,
         tiles: Optional[TilesRange2d] = None,
     ):
@@ -170,6 +173,8 @@ class SaveTasks:
         - a config dictionary containing the product, temporal range, tiles, and the datacube query used
         """
 
+        if dataset_filter is None:
+            dataset_filter = {}
         cfg: Dict[str, Any] = dict(
             grid=self._grid,
             freq=self._frequency,
@@ -209,7 +214,7 @@ class SaveTasks:
         self,
         dc: Datacube,
         products: str,
-        dataset_filter: Optional[dict] = {},
+        dataset_filter=None,
         temporal_range: Union[str, DateTimeRange, None] = None,
         tiles: Optional[TilesRange2d] = None,
         predicate: Optional[Callable[[Dataset], bool]] = None,
@@ -217,7 +222,7 @@ class SaveTasks:
         debug: bool = False,
     ) -> bool:
         """
-        :param product: Product name to consume
+        :param products: Product name to consume
         :param dataset_filter: Optionally apply search filter on Datasets
         :param temporal_range: Optionally  limit query in time
         :param tiles: Optionally limit query to a range of tiles
@@ -225,7 +230,10 @@ class SaveTasks:
         :param msg: Observe messages if needed via callback
         :param debug: Dump some intermediate state to files for debugging
         """
+        # pylint:disable=too-many-locals,too-many-branches,too-many-statements
 
+        if dataset_filter is None:
+            dataset_filter = {}
         if DatasetCache.exists(self._output) and self._overwrite is False:
             raise ValueError(f"File database already exists: {self._output}")
 
@@ -309,7 +317,7 @@ class SaveTasks:
             for cell in cells.values():
                 utc_offset = cell.utc_offset
                 cell.dss = [
-                    ds for ds in cell.dss if (ds.time + utc_offset) in temporal_range
+                    ds for ds in cell.dss if ds.time + utc_offset in temporal_range
                 ]
 
         n_tiles = len(cells)
@@ -356,9 +364,10 @@ class SaveTasks:
         return True
 
     def _write_info(self, tasks, msg, cells, debug):
+        # pylint:disable=too-many-locals
         csv_path = self.out_path(".csv")
         msg(f"Writing summary to {csv_path}")
-        with open(csv_path, "wt") as f:
+        with open(csv_path, "wt", encoding="utf8") as f:
             f.write('"T","X","Y","datasets","days"\n')
 
             for p, x, y in sorted(tasks):
@@ -376,7 +385,7 @@ class SaveTasks:
         for temporal_range, gjson in tasks_geo.items():
             fname = self.out_path(f"-{temporal_range}.geojson")
             msg(f"..writing to {fname}")
-            with open(fname, "wt") as f:
+            with open(fname, "wt", encoding="utf8") as f:
                 json.dump(gjson, f)
 
         if debug:
@@ -472,13 +481,14 @@ class TaskReader:
         # first time to access the filedb, then it can do the resolution check
         if self.resolution is not None:
             _log.info(
-                f"Changing resolution to {self.resolution[0], self.resolution[1]}"
+                "Changing resolution to %s, %s", self.resolution[0], self.resolution[1]
             )
             if self.is_compatible_resolution(self.resolution):
                 self.change_resolution(self.resolution)
             else:  # if resolution has issue, stop init
                 _log.error(
-                    f"Requested resolution is not compatible with GridSpec in '{cfg.filedb}'"
+                    "Requested resolution is not compatible with GridSpec in '%s'",
+                    cfg.filedb,
                 )
                 raise ValueError(
                     f"Requested resolution is not compatible with GridSpec in '{cfg.filedb}'"

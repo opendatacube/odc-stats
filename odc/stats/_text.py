@@ -14,7 +14,7 @@ def read_int(path: PathLike, default=None, base=10) -> Optional[int]:
     Useful for things like parsing content of /sys/ or /proc.
     """
     try:
-        with open(path, "rt") as f:
+        with open(path, "rt", encoding="utf8") as f:
             return int(f.read(), base)
     except (FileNotFoundError, ValueError):
         return default
@@ -34,7 +34,7 @@ def split_and_check(
 
     parts = s.split(separator)
     if len(parts) not in n:
-        raise ValueError('Failed to parse "{}"'.format(s))
+        raise ValueError(f'Failed to parse "{s}"')
     return tuple(parts)
 
 
@@ -71,7 +71,7 @@ def parse_yaml_file_or_inline(s: str) -> Dict[str, Any]:
     try:
         # if file
         path = Path(s)
-        with open(path, "rt") as f:
+        with open(path, "rt", encoding="utf8") as f:
             txt = f.read()
             assert isinstance(txt, str)
     except (FileNotFoundError, IOError, ValueError):
@@ -92,21 +92,17 @@ def load_yaml_remote(yaml_url: str) -> Dict[str, Any]:
     try:
         with fsspec.open(yaml_url, mode="r") as f:
             return next(yaml.safe_load_all(f))
-    except Exception as e:
+    except Exception:
         print(f"Cannot load {yaml_url}")
         raise
 
 
 def parse_range2d_int(s: str) -> Tuple[Tuple[int, int], Tuple[int, int]]:
     """Parse string like "0:3,4:5" -> ((0,3), (4,5))"""
-    from ._text import split_and_check
-
     try:
         return tuple(
             tuple(int(x) for x in split_and_check(p, ":", 2))
             for p in split_and_check(s, ",", 2)
         )
     except ValueError:
-        raise ValueError(
-            'Expect <int>:<int>,<int>:<int> syntax, got "{}"'.format(s)
-        ) from None
+        raise ValueError(f'Expect <int>:<int>,<int>:<int> syntax, got "{s}"') from None
