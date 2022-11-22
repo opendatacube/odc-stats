@@ -20,7 +20,8 @@ filters = dict containing band-name as key and list of iterable tuples of morpho
         "clear_10_2_2": [("closing", 10), ("opening", 2), ("dilation", 2)]
     }
 
-aerosol_filters = dict containing band-name as key and list of iterable tuples of morphological operations as it's value.
+aerosol_filters = dict containing band-name as key and list of iterable tuples of
+morphological operations as it's value.
     Provide morphological operations in the order you want them to perform.
     Similar to filters but for aerosol.
     For example,
@@ -33,7 +34,7 @@ resampling = "nearest"
 """
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple, Iterable
+from typing import Dict, Optional, Tuple, Iterable
 
 import dask.array as da
 import xarray as xr
@@ -56,16 +57,20 @@ class StatsPQLSBitmask(StatsPluginInterface):
         pq_band: str = "QA_PIXEL",
         aerosol_band: Optional[str] = None,
         # provide flags with high cloud bits definition
-        flags: Dict[str, Optional[Any]] = dict(
-            cloud="high_confidence",
-            cirrus="high_confidence",
-        ),
-        nodata_flags: Dict[str, Optional[Any]] = dict(nodata=False),
+        flags=None,
+        nodata_flags=None,
         filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
         aerosol_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
         resampling: str = "nearest",
         **kwargs,
     ):
+        if nodata_flags is None:
+            nodata_flags = dict(nodata=False)
+        if flags is None:
+            flags = dict(
+                cloud="high_confidence",
+                cirrus="high_confidence",
+            )
         self.pq_band = pq_band
         self.aerosol_band = aerosol_band
         input_bands = [self.pq_band]
