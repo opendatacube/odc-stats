@@ -141,14 +141,12 @@ class StatsTCWPC(StatsPluginInterface):
         yy = keep_good_only(yy, ~bad, nodata=NODATA)
         return yy
 
-    @staticmethod
-    def fuser(xx):
+    def fuser(self, xx):
         xx = _xr_fuse(xx, partial(_fuse_mean_np, nodata=NODATA), "")
 
         return xx
 
-    @staticmethod
-    def reduce(xx: xr.Dataset) -> xr.Dataset:
+    def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         yy = xr_quantile_bands(xx, [0.1, 0.5, 0.9], nodata=NODATA)
         return yy
 

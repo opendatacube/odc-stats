@@ -2,7 +2,7 @@
 Landsat QA Pixel Geomedian
 """
 from functools import partial
-from typing import Any, Dict, Iterable, Optional, Sequence, Tuple
+from typing import Iterable, Optional, Sequence, Tuple, Dict, Any
 
 import xarray as xr
 import numpy as np
@@ -17,20 +17,17 @@ class StatsGMLSBitmask(StatsPluginInterface):
     SHORT_NAME = NAME
     VERSION = "0.0.1"
 
-    def __init__(
+    def __init__(  # pylint:disable=too-many-arguments
         self,
         bands: Optional[Sequence[str]] = None,
         mask_band: str = "QA_PIXEL",
         # provide flags with high cloud bits definition
-        flags: Dict[str, Optional[Any]] = dict(
-            cloud="high_confidence",
-            cirrus="high_confidence",
-        ),
-        nodata_flags: Dict[str, Optional[Any]] = dict(nodata=False),
+        flags: Dict[str, Optional[Any]] = None,
+        nodata_flags: Dict[str, Optional[Any]] = None,
         filters: Optional[
             Iterable[Tuple[str, int]]
         ] = None,  # e.g. [("closing", 10),("opening", 2),("dilation", 2)]
-        aux_names=dict(smad="smad", emad="emad", bcmad="bcmad", count="count"),
+        aux_names=None,
         work_chunks: Tuple[int, int] = (400, 400),
         scale: float = 0.0000275,
         offset: float = -0.2,
@@ -38,6 +35,15 @@ class StatsGMLSBitmask(StatsPluginInterface):
         output_dtype: str = "uint16",  # dtype of gm rescaling
         **kwargs,
     ):
+        if aux_names is None:
+            aux_names = dict(smad="smad", emad="emad", bcmad="bcmad", count="count")
+        if nodata_flags is None:
+            nodata_flags = dict(nodata=False)
+        if flags is None:
+            flags = dict(
+                cloud="high_confidence",
+                cirrus="high_confidence",
+            )
         if bands is None:
             self.bands = (
                 "red",

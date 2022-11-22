@@ -59,7 +59,7 @@ def cli(attr_filter, grid_shape, extent_shape, csv_path, verbose):
     """
 
     print("It takes time, not frozen...")
-    print("Input shape %s filtered by %s" % (extent_shape, attr_filter))
+    print(f"Input shape {extent_shape} filtered by {attr_filter}")
     extent_grids = locate_grids(grid_shape, extent_shape, attr_filter)
     csv_buffer = StringIO()
     pd.DataFrame(extent_grids).to_csv(csv_buffer, index=None, header=None)
@@ -68,7 +68,7 @@ def cli(attr_filter, grid_shape, extent_shape, csv_path, verbose):
     if csv_path is None:
         tmp_path = tempfile.gettempdir()
         csv_path = path.join(tmp_path, "extent_grids.csv")
-    with open(csv_path, "w") as f:
+    with open(csv_path, "w", encoding="utf8") as f:
         f.write(csv_buffer.read())
     print("Results saved to", csv_path)
 
