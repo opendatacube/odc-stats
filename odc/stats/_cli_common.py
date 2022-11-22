@@ -1,17 +1,24 @@
+# pylint: disable=inconsistent-return-statements
+
+import logging
+import sys
 from typing import List, Tuple
 import click
 
-from ._text import parse_yaml_file_or_inline, parse_range2d_int, load_yaml_remote
 
-TileIdx_txy = Tuple[str, int, int]
+from ._text import split_and_check
+from ._text import parse_slice
+from ._text import parse_yaml_file_or_inline, parse_range2d_int, load_yaml_remote
+from urllib.parse import urlparse
+
+
+TileIdx_txy = Tuple[str, int, int]  # pylint: disable=invalid-name
 
 
 def parse_task(s: str) -> TileIdx_txy:
     """
     Intentional copy of tasks.parse_task only for CLI parsing
     """
-    from ._text import split_and_check
-
     sep = "/" if "/" in s else ","
     t, x, y = split_and_check(s, sep, 3)
     if t.startswith("x"):
@@ -35,7 +42,6 @@ def parse_all_tasks(
        2019--P1Y,10,-3
        x+10/y-3/2019--P1Y
     """
-    from ._text import parse_slice
 
     out: List[TileIdx_txy] = []
     full_set = set(all_possible_tasks)
@@ -63,7 +69,6 @@ def parse_all_tasks(
 
 
 def parse_resolution(s: str, separator: str = ",") -> Tuple[float, float]:
-    from ._text import split_and_check
 
     parts = [float(v) for v in split_and_check(s, separator, (1, 2))]
 
@@ -97,8 +102,6 @@ def click_yaml_cfg(*args, **kw):
 
     def _parse(ctx, param, value):
         if value is not None:
-            from urllib.parse import urlparse
-
             r = urlparse(value)
             if all([r.scheme, r.netloc]):
                 try:
@@ -106,8 +109,6 @@ def click_yaml_cfg(*args, **kw):
                 except Exception as e:
                     raise click.ClickException(str(e)) from None
             else:
-                from odc.io.text import parse_yaml_file_or_inline
-
                 try:
                     return parse_yaml_file_or_inline(value)
                 except Exception as e:
@@ -120,9 +121,6 @@ def setup_logging(level: int = -1):
     """
     Setup logging to print to stdout with default logging level being INFO.
     """
-    import logging
-    import sys
-
     if level < 0:
         level = logging.INFO
 
@@ -142,9 +140,6 @@ def click_range2d(ctx, param, value):
             return parse_range2d_int(value)
         except ValueError as e:
             raise click.ClickException(str(e)) from None
-
-
-# pylint: disable=import-outside-toplevel,inconsistent-return-statements
 
 
 @click.version_option(package_name="odc_stats")

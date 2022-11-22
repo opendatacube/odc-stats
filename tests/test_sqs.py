@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 
 import boto3
 import moto
-import pytest
 from datacube.utils.geometry import Geometry
 from odc.aws.queue import get_queue, publish_message
 from odc.stats._cli_publish_tasks import filter_tasks, get_geometry, publish_tasks
