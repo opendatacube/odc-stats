@@ -25,10 +25,12 @@ class Mangroves(StatsPluginInterface):
 
     def __init__(
         self,
-        pv_thresholds=[14, 38, 60],
+        pv_thresholds=None,
         tcw_threshold=-1850,
         **kwargs,
     ):
+        if pv_thresholds is None:
+            pv_thresholds = [14, 38, 60]
         self.mangroves_extent = kwargs.pop("mangroves_extent", None)
         self.pv_thresholds = pv_thresholds
         self.tcw_threshold = tcw_threshold

@@ -24,11 +24,11 @@ from eodatasets3.images import GridSpec
 
 from .plugins import StatsPluginInterface
 
-TileIdx_xy = Tuple[int, int]
-TileIdx_txy = Tuple[str, int, int]
+TileIdx_xy = Tuple[int, int]  # pylint:disable=invalid-name
+TileIdx_txy = Tuple[str, int, int]  # pylint:disable=invalid-name
 TileIdx = Union[TileIdx_txy, TileIdx_xy]
 
-default_href_prefix = "https://collections.dea.ga.gov.au/product"
+DEFAULT_HREF_PREFIX = "https://collections.dea.ga.gov.au/product"
 EXT_TIFF = "tif"  # because "consistency"
 
 # Some random UUID to be ODC namespace
@@ -174,7 +174,7 @@ class DateTimeRange:
 
 
 @dataclass
-class OutputProduct:
+class OutputProduct:  # pylint:disable=too-many-instance-attributes
     name: str
     version: str
     short_name: str
@@ -195,7 +195,7 @@ class OutputProduct:
 
     def __post_init__(self):
         if self.href == "":
-            self.href = f"{default_href_prefix}/{self.name}"
+            self.href = f"{DEFAULT_HREF_PREFIX}/{self.name}"
 
     def region_code(self, tidx: TileIdx_xy) -> str:
         """
@@ -243,7 +243,6 @@ class WorkTokenInterface(ABC):
         Should return timestamp by which work is to be completed
         """
 
-    @property
     @abstractmethod
     def done(self):
         """
@@ -255,14 +254,12 @@ class WorkTokenInterface(ABC):
         """
         Called when work is terminated for whatever reason without successful result
         """
-        pass
 
     @abstractmethod
     def extend(self, seconds: int) -> bool:
         """
         Called to extend work deadline
         """
-        pass
 
     @property
     def active_seconds(self) -> float:
@@ -562,7 +559,7 @@ class Task:
         return item.to_dict()
 
 
-def product_for_plugin(
+def product_for_plugin(  # pylint:disable=too-many-arguments,too-many-locals
     plugin: StatsPluginInterface,
     location: str,
     name: Optional[str] = None,
@@ -571,7 +568,7 @@ def product_for_plugin(
     product_family: Optional[str] = None,
     collections_site: str = "collections.dea.ga.gov.au",
     producer: str = "ga.gov.au",
-    properties: Dict[str, Any] = dict(),
+    properties: Dict[str, Any] = None,
     region_code_format: str = "x{x:02d}y{y:02d}",
     naming_conventions_values: str = "dea_c3",
     explorer_path: str = "https://explorer.dea.ga.gov.au",
@@ -601,6 +598,8 @@ def product_for_plugin(
     :param collection_number: default ``3``
     :param nodata: band level nodata information. Pass it to eodatasets3 library only.
     """
+    if properties is None:
+        properties = {}
     if name is None:
         name = plugin.NAME
     if short_name is None:
@@ -664,7 +663,7 @@ class TaskResult:
 
 
 @dataclass
-class TaskRunnerConfig:
+class TaskRunnerConfig:  # pylint:disable=too-many-instance-attributes
     @staticmethod
     def default_cog_settings():
         return dict(

@@ -45,7 +45,7 @@ def test_runner_product_cfg(test_db_path, dummy_plugin_name):
 
 def test_plugin_resolve():
     from odc.stats.plugins import resolve
-    from odc.stats.plugins.gm import StatsGM
+    from odc.stats.plugins.gm import StatsGM  # noqa: F401
 
     assert resolve("gm-generic") is not None
     assert resolve("odc.stats.plugins.gm.StatsGM") is not None

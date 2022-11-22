@@ -42,7 +42,7 @@ def compute_grid_info(
     Where ``cells`` is produced by ``bin_dataset_stream``
     """
     if title_width == 0:
-        nmax = max([max(abs(ix), abs(iy)) for ix, iy in cells])
+        nmax = max(max(abs(ix), abs(iy)) for ix, iy in cells)
         # title_width is the number of digits in the index
         title_width = len(str(nmax))
 

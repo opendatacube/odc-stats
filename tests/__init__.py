@@ -18,6 +18,7 @@ class DummyPlugin(StatsPluginInterface):
     PRODUCT_FAMILY = "test"
 
     def __init__(self, bands=("a", "b", "c"), delay=0, nodata=-9999, dtype="int16"):
+        super().__init__()
         self._bands = tuple(bands)
         self._delay = delay
         self._nodata = nodata
@@ -27,7 +28,7 @@ class DummyPlugin(StatsPluginInterface):
     def measurements(self):
         return self._bands
 
-    def input_data(self, datasets, geobox):
+    def input_data(self, datasets, geobox, **kwargs):
         ts = sorted([ds.center_time for ds in datasets])
         xx = mk_dask_xx(
             geobox,
@@ -73,12 +74,16 @@ def mk_time_coords(timestamps):
 
 def mk_dask_xx(
     geobox,
-    chunks={"x": -1, "y": -1},
+    chunks=None,
     dtype="uint16",
     timestamps=None,
-    attrs={},
+    attrs=None,
     mode="random",
 ):
+    if attrs is None:
+        attrs = {}
+    if chunks is None:
+        chunks = {"x": -1, "y": -1}
     if timestamps is None:
         timestamps = [datetime.utcnow()]
 

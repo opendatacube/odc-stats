@@ -57,6 +57,9 @@ def bin_seasonal(
 
     tasks = {}
     for tidx, cell in cells.items():
+        # This is a great pylint warning, but doesn't apply here because we
+        # only call the lambda from inside each iteration of the loop
+        # pylint:disable=cell-var-from-loop
         utc_offset = cell.utc_offset
         grouped = toolz.groupby(lambda ds: binner(ds.time + utc_offset), cell.dss)
 
@@ -84,6 +87,9 @@ def bin_annual(
     """
     tasks = {}
     for tidx, cell in cells.items():
+        # This is a great pylint warning, but doesn't apply here because we
+        # only call the lambda from inside each iteration of the loop
+        # pylint:disable=cell-var-from-loop
         utc_offset = cell.utc_offset
         grouped = toolz.groupby(lambda ds: (ds.time + utc_offset).year, cell.dss)
 
@@ -222,7 +228,7 @@ def fuse_products(type_1: DatasetType, type_2: DatasetType) -> DatasetType:
     """
 
     def_1, def_2 = type_1.definition, type_2.definition
-    fused_def = dict()
+    fused_def = {}
 
     if not def_1["metadata_type"] == def_2["metadata_type"]:
         raise ValueError("metadata_type was different between scenes")
@@ -280,12 +286,10 @@ def fuse_ds(
     if product is None:
         product = fuse_products(ds_1.type, ds_2.type)
 
-    fused_doc = dict()
-
-    fused_doc["id"] = str(
-        odc_uuid(product.name, "0.0.0", sources=[doc_1["id"], doc_2["id"]])
-    )
-    fused_doc["lineage"] = {"source_datasets": [doc_1["id"], doc_2["id"]]}
+    fused_doc = {
+        "id": str(odc_uuid(product.name, "0.0.0", sources=[doc_1["id"], doc_2["id"]])),
+        "lineage": {"source_datasets": [doc_1["id"], doc_2["id"]]},
+    }
 
     # check that all grids with the same name are identical
     common_grids = set(doc_1["grids"].keys()).intersection(doc_2["grids"].keys())
@@ -301,15 +305,15 @@ def fuse_ds(
 
     if label_title_doc_1 is None or label_title_doc_2 is None:
         raise ValueError("No label or title field found found")
-    else:
-        label_title_doc_1 = label_title_doc_1.replace(doc_1["product"]["name"], "")
-        label_title_doc_2 = label_title_doc_2.replace(doc_2["product"]["name"], "")
-        if label_title_doc_1 != label_title_doc_2:
-            raise ValueError(
-                f"Label/Title field {label_title_doc_1} is not the same as {label_title_doc_2}"
-            )
 
-        fused_doc["label"] = f"{product.name}{label_title_doc_1}"
+    label_title_doc_1 = label_title_doc_1.replace(doc_1["product"]["name"], "")
+    label_title_doc_2 = label_title_doc_2.replace(doc_2["product"]["name"], "")
+    if label_title_doc_1 != label_title_doc_2:
+        raise ValueError(
+            f"Label/Title field {label_title_doc_1} is not the same as {label_title_doc_2}"
+        )
+
+    fused_doc["label"] = f"{product.name}{label_title_doc_1}"
 
     equal_keys = ["$schema", "crs"]
     for key in equal_keys:
@@ -317,7 +321,7 @@ def fuse_ds(
             raise ValueError(f"{key} is not the same")
         fused_doc[key] = doc_1[key]
 
-    fused_doc["properties"] = dict()
+    fused_doc["properties"] = {}
     # datetime is the only mandatory property
     if not doc_1["properties"]["datetime"] == doc_2["properties"]["datetime"]:
         raise ValueError("Datetimes are not the same")

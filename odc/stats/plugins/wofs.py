@@ -107,8 +107,7 @@ class StatsWofs(StatsPluginInterface):
 
         return xx
 
-    @staticmethod
-    def fuser(xx):
+    def fuser(self, xx):
         return _or_fuser(xx)
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
