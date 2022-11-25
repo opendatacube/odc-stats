@@ -1,0 +1,8 @@
+prune tests
+prune docker
+prune docs
+prune k8s
+prune notebooks
+prune scripts
+prune .*
+exclude .* *.yml *.ini *.in *rc

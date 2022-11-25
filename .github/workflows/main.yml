@@ -8,6 +8,7 @@ on:
       - '!.github/workflows/statistician-*'
       - '!notebooks/**'
       - '!docs/**'
+      - '!k8s/**'
       - '!README.md'
 
 jobs:
@@ -54,8 +55,18 @@ jobs:
               setup.py
               setup.cfg
 
-      - name: Build Clean Packages
+      - name: Push and tag versions
         if: steps.verify-changed-version.outputs.any_changed == 'true'
+          # && git.ref == 'refs/heads/develop'
+        id: push-new-tag
+        uses: anothrNick/github-tag-action@1.52.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: false
+          DRY_RUN: true
+
+      - name: Build Clean Packages
         run: |
           mkdir -p ./wheels/clean
           python setup.py bdist_wheel --dist-dir ./wheels/clean/

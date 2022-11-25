@@ -16,20 +16,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Verify Changed files
+        uses: tj-actions/changed-files@v32
+        id: verify-changed-version
+        with:
+          files: |
+              odc/**
+              pyproject.toml
+              setup.py
+              setup.cfg
 
       - name: Push and tag versions
+        if: steps.verify-changed-version.outputs.any_changed == 'true'
         id: push-new-tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: autoaction
         run: |
-          CTAG=$(git ls-remote --tags --sort='version:refname' | \
-            tail -1 | cut -d '/' -f3)
-          if [[ $TAG == $CTAG || -z $CTAG ]]; then
-          git tag $TAG
-          git push origin --tags
           echo "NEW=true" >> $GITHUB_OUTPUT
-          fi
     outputs:
       new_version: ${{ steps.push-new-tag.outputs.NEW }}
 
