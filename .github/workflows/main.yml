@@ -54,26 +54,8 @@ jobs:
               setup.py
               setup.cfg
 
-      - name: Patch Package Versions when code change.
-        if: steps.verify-changed-version.outputs.any_changed == 'true'
-          && !(github.ref == 'refs/heads/develop')
-        id: patch-version
-        run: |
-          CTAG=$(git ls-remote --tags --sort='version:refname' | \
-            tail -1 | cut -d '/' -f3)
-          TAG=$(cat odc/stats/_version.py  | sed 's/[^0-9|.]//g')
-          if [[ $TAG == $CTAG || -z $CTAG ]]; then
-          # -1: auto increment of patch number
-          # other positive integers: set the patch number accordingly
-          python ./scripts/patch_version.py -1 odc/stats/_version.py
-          TAG=$(cat odc/stats/_version.py  | sed 's/[^0-9|.]//g')
-          git config --global user.email "$GITHUB_ACTOR@auto.noreply"
-          git config --global user.name "$GITHUB_ACTOR"
-          git commit -a -m "Bump version to $TAG"
-          git push origin ${{ github.ref }} --follow-tags
-          fi
-
       - name: Build Clean Packages
+        if: steps.verify-changed-version.outputs.any_changed == 'true'
         run: |
           mkdir -p ./wheels/clean
           python setup.py bdist_wheel --dist-dir ./wheels/clean/

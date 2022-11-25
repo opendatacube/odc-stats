@@ -1,4 +1,55 @@
 [build-system]
-requires = ["setuptools>=51.0.0", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=61.0.0", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "odc-stats"
+description = "Statistical Product Generation Framework"
+readme = {file = "README.md", content-type = "text/markdown"} 
+requires-python = ">=3.8"
+license = {text = "Apache License 2.0"}
+authors= [{name = "Open Data Cube"}]
+maintainers = [{name = "Open Data Cube"}]
+urls = {source = "https://github.com/opendatacube/odc-stats/"}
+dynamic = ["version"]
+dependencies = [
+    "botocore",
+    "click>=8.0.0",
+    "dask",
+    "datacube",
+    "distributed",
+    "numpy",
+    "odc-cloud[ASYNC]",
+    "odc_algo",
+    "odc_dscache>=0.2.2",
+    "odc_io",
+    "odc_stac",
+    "pandas",
+    "pystac>=1.1.0",
+    "eodatasets3>=0.22.0",
+    "toolz",
+    "tqdm",
+    # pin xarray version since the groupby bug on multi-indexed dataarray with 2022.6.0
+    "xarray==2022.3.0",
+    "ciso8601",
+    "gdal",
+    "fsspec>=2022.1.0",
+    "fiona",
+    "rasterio>=1.3.2",
+]
+
+[project.optional-dependencies]
+ows = [
+    # datacube_ows<1.8.21 has issue on function config internal over-writing
+    "datacube_ows>=1.8.21",
+    "sentry-sdk",
+    "blinker",
+]
+test = [
+    "pytest",
+]
+
+[project.scripts]
+odc-stats = "odc.stats.cli:main"
+
 [tool.setuptools_scm]

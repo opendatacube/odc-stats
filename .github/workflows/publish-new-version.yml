@@ -25,7 +25,6 @@ jobs:
         run: |
           CTAG=$(git ls-remote --tags --sort='version:refname' | \
             tail -1 | cut -d '/' -f3)
-          TAG=$(cat odc/stats/_version.py  | sed 's/[^0-9|.]//g')
           if [[ $TAG == $CTAG || -z $CTAG ]]; then
           git tag $TAG
           git push origin --tags
