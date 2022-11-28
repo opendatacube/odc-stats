@@ -1,9 +1,6 @@
 name: Run Code Checks
 
 on:
-  pull_request:
-    types: [closed]
-    branches: [develop]
   push:
     branches-ignore: [develop]
     paths:
@@ -14,49 +11,27 @@ on:
       - '!docs/**'
       - '!k8s/**'
       - '!README.md'
+  workflow_run:
+    workflows: ["Create a new tag"]
+    types:
+      - completed
 
 jobs:
   build-wheels:
+    if: |
+      github.event_name == 'push' || (github.ref == 'refs/heads/develop'
+        && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GITHUB_ACTOR: autoaction
-
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-            #- name: Fetch tags
-            #  run: |
-            #    git fetch --tags origin
-            #    git tag
-
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: wheels_cache
         with:
           path: ./wheels
           key: wheels-${{ github.sha }}
-
-            # - name: Verify Changed files
-            #   uses: tj-actions/changed-files@v32
-            #   id: verify-changed-version
-            #   with:
-            #     files: |
-            #         odc/**
-            #         pyproject.toml
-            #         setup.py
-            #         setup.cfg
-
-            # - name: Push and tag versions
-            #   if: steps.verify-changed-version.outputs.any_changed == 'true'
-            #     && (github.event_name == 'pull_request')
-            #   id: push-new-tag
-            #   uses: anothrNick/github-tag-action@1.52.0
-            #   env:
-            #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            #     DEFAULT_BUMP: patch
-            #     WITH_V: false
 
       - name: Setup Python
         uses: actions/setup-python@v1
@@ -116,7 +91,7 @@ jobs:
           pip freeze
 
       - name: Get Wheels from Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: wheels_cache
         with:
           path: ./wheels
@@ -129,8 +104,11 @@ jobs:
           which datacube
 
           ls -lh wheels/clean
-          pip install --no-deps --no-cache -I wheels/clean/*whl
+          pip install --no-deps --no-cache wheels/clean/*whl
           pip check || true
+          pip show odc-stats
+          which odc-stats | xargs ls -alt
+          odc-stats --version
 
       - name: Run Tests
         shell: bash
