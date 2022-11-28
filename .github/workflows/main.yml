@@ -1,7 +1,11 @@
 name: Run Code Checks
 
 on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
   push:
+    branches-ignore: [develop]
     paths:
       - '**'
       - '!docker/**'
@@ -35,6 +39,7 @@ jobs:
           key: wheels-${{ github.sha }}
 
       - name: Verify Changed files
+        if: github.event_name == 'pull_request'
         uses: tj-actions/changed-files@v32
         id: verify-changed-version
         with:
@@ -46,14 +51,13 @@ jobs:
 
       - name: Push and tag versions
         if: steps.verify-changed-version.outputs.any_changed == 'true'
-          # && git.ref == 'refs/heads/develop'
+          && (github.event_name == 'pull_request')
         id: push-new-tag
         uses: anothrNick/github-tag-action@1.52.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BUMP: patch
           WITH_V: false
-          DRY_RUN: true
 
       - name: Setup Python
         uses: actions/setup-python@v1
