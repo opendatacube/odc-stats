@@ -39,7 +39,6 @@ jobs:
           key: wheels-${{ github.sha }}
 
       - name: Verify Changed files
-        if: github.event_name == 'pull_request'
         uses: tj-actions/changed-files@v32
         id: verify-changed-version
         with:
