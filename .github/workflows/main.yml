@@ -25,12 +25,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
-      - name: Fetch tags
-        run: |
-          git fetch --tags origin
-          git tag
+            #- name: Fetch tags
+            #  run: |
+            #    git fetch --tags origin
+            #    git tag
 
       - uses: actions/cache@v2
         id: wheels_cache
@@ -38,25 +38,25 @@ jobs:
           path: ./wheels
           key: wheels-${{ github.sha }}
 
-      - name: Verify Changed files
-        uses: tj-actions/changed-files@v32
-        id: verify-changed-version
-        with:
-          files: |
-              odc/**
-              pyproject.toml
-              setup.py
-              setup.cfg
+            # - name: Verify Changed files
+            #   uses: tj-actions/changed-files@v32
+            #   id: verify-changed-version
+            #   with:
+            #     files: |
+            #         odc/**
+            #         pyproject.toml
+            #         setup.py
+            #         setup.cfg
 
-      - name: Push and tag versions
-        if: steps.verify-changed-version.outputs.any_changed == 'true'
-          && (github.event_name == 'pull_request')
-        id: push-new-tag
-        uses: anothrNick/github-tag-action@1.52.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BUMP: patch
-          WITH_V: false
+            # - name: Push and tag versions
+            #   if: steps.verify-changed-version.outputs.any_changed == 'true'
+            #     && (github.event_name == 'pull_request')
+            #   id: push-new-tag
+            #   uses: anothrNick/github-tag-action@1.52.0
+            #   env:
+            #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            #     DEFAULT_BUMP: patch
+            #     WITH_V: false
 
       - name: Setup Python
         uses: actions/setup-python@v1
