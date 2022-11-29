@@ -8,42 +8,14 @@ on:
       - completed
 
 jobs:
-  bump_version:
+  publish-pypi:
     if: |
         github.repository == 'opendatacube/odc-stats'
         && github.event.workflow_run.conclusion == 'success'
-
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
-      - name: Push and tag versions
-        id: push-new-tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: autoaction
-        run: |
-          CTAG=$(git ls-remote --tags --sort='version:refname' | \
-            tail -1 | cut -d '/' -f3)
-          TAG=$(cat odc/stats/_version.py  | sed 's/[^0-9|.]//g')
-          if [[ $TAG == $CTAG || -z $CTAG ]]; then
-          git tag $TAG
-          git push origin --tags
-          echo "NEW=true" >> $GITHUB_OUTPUT
-          fi
-    outputs:
-      new_version: ${{ steps.push-new-tag.outputs.NEW }}
-
-  publish-pypi:
-    needs: [bump_version]
-    runs-on: ubuntu-latest
-    if: |
-      (needs.bump_version.result == 'success') &&
-      (needs.bump_version.outputs.new_version)
-
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: wheels_cache
         with:
           path: ./wheels
@@ -74,15 +46,13 @@ jobs:
           twine upload --non-interactive --skip-existing wheels/clean/*
 
   publish-s3:
-    needs: [bump_version]
-    runs-on: ubuntu-latest
     if: |
-      (needs.bump_version.result == 'success') &&
-      (needs.bump_version.outputs.new_version)
-
+        github.repository == 'opendatacube/odc-stats'
+        && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: wheels_cache
         with:
           path: ./wheels

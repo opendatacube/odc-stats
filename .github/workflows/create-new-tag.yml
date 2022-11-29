@@ -1,0 +1,30 @@
+Name: Create a new tag
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths:
+      - odc/**
+      - pyproject.toml
+      - setup.py
+      - setup.cfg
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Fetch tags
+        run: |
+          git fetch --tags origin
+          git tag
+
+      - name: Patch Package Versions when code change.
+        id: patch-version
+        uses: anothrNick/github-tag-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: false
