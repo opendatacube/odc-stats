@@ -78,7 +78,7 @@ def test_native_transform(dataset):
 def test_fusing(dataset):
     stats_wofs = StatsWofs()
     out_xx = stats_wofs.native_transform(dataset)
-    out_xx = out_xx.groupby("solar_day").map(partial(StatsWofs.fuser))
+    out_xx = out_xx.groupby("solar_day").map(partial(stats_wofs.fuser))
     out_xx.load()
     expected = np.array(
         [
@@ -108,7 +108,7 @@ def test_fusing(dataset):
 def test_reduce(dataset):
     stats_wofs = StatsWofs()
     out_xx = stats_wofs.native_transform(dataset)
-    out_xx = out_xx.groupby("solar_day").map(partial(StatsWofs.fuser))
+    out_xx = out_xx.groupby("solar_day").map(partial(stats_wofs.fuser))
     out_xx = stats_wofs.reduce(out_xx)
     assert out_xx.count_wet.attrs.get("nodata", 0) == -999
     assert out_xx.count_clear.attrs.get("nodata", 0) == -999
