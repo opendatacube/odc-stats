@@ -2,7 +2,7 @@ Name: Create a new tag
 on:
   pull_request:
     types: [closed]
-    branches: [main]
+    branches: [develop]
     paths:
       - odc/**
       - pyproject.toml
