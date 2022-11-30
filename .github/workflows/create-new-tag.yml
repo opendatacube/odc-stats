@@ -1,4 +1,4 @@
-Name: Create a new tag
+name: Create a new tag
 on:
   pull_request:
     types: [closed]
