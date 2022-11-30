@@ -152,7 +152,7 @@ class SaveTasks:
         grouped_dss = match_dss(grouped_dss, group_size)
 
         def map_fuse_func(x):
-            fuse_ds(*x, product=product)
+            return fuse_ds(*x, product=product)
 
         dss = map(map_fuse_func, grouped_dss)
         return dss
