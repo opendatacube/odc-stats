@@ -180,13 +180,13 @@ def save_tasks(
             "semiannual",
             "seasonal",
             "calendar-seasons",
-            "rolling-3months"
+            "rolling-3months",
             "nov-mar",
             "apr-oct",
             "all",
         ):
             print(
-                f"""Frequency must be one of annual|annual-fy|semiannual|seasonal|nov-mar|apr-oct|all
+                f"""Frequency must be one of annual|annual-fy|semiannual|seasonal|calendar-seasons|rolling-3months|nov-mar|apr-oct|all
                 and not '{frequency}'""",
                 file=sys.stderr,
             )
