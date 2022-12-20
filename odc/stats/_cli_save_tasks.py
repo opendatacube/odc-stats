@@ -179,6 +179,8 @@ def save_tasks(
             "annual-fy",
             "semiannual",
             "seasonal",
+            "calendar-seasons",
+            "rolling-3months"
             "nov-mar",
             "apr-oct",
             "all",
