@@ -51,7 +51,7 @@ CONFIG_ITEMS = [
     type=str,
     help=(
         "Specify temporal binning: "
-        "annual|annual-fy|semiannual|seasonal|nov-mar|apr-oct|all"
+        "annual|annual-fy|semiannual|seasonal|calendar-seasons|rolling-3months|nov-mar|apr-oct|all"
     ),
 )
 @click.option("--env", "-E", type=str, help="Datacube environment name")
