@@ -1,6 +1,6 @@
 import toolz
 from typing import Dict, Tuple, List, Any, Callable, Optional
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from datetime import datetime
 from .model import DateTimeRange, odc_uuid
 from datacube.storage import measurement_paths
@@ -62,6 +62,35 @@ def bin_seasonal(
         # pylint:disable=cell-var-from-loop
         utc_offset = cell.utc_offset
         grouped = toolz.groupby(lambda ds: binner(ds.time + utc_offset), cell.dss)
+
+        for temporal_k, dss in grouped.items():
+            if temporal_k != "":
+                tasks[(temporal_k,) + tidx] = dss
+
+    return tasks
+
+
+def bin_rolling_seasonal(
+    cells: Dict[Tuple[int, int], Cell],
+    months: int,
+    anchor: int,
+    overlap: int,
+) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
+    
+    binner = rolling_season_binner(mk_rolling_season_rules(months, anchor, overlap))
+
+    tasks = {}
+    for tidx, cell in cells.items():
+        # This is a great pylint warning, but doesn't apply here because we
+        # only call the lambda from inside each iteration of the loop
+        # pylint:disable=cell-var-from-loop
+        utc_offset = cell.utc_offset
+        _grouped = toolz.groupby(lambda ds: binner(ds.time + utc_offset), cell.dss)
+        
+        grouped = defaultdict(list)
+        for key, value in _grouped.items():
+            for k in key:
+                grouped[k].extend(value)
 
         for temporal_k, dss in grouped.items():
             if temporal_k != "":
@@ -152,6 +181,42 @@ def mk_season_rules(months: int, anchor: int) -> Dict[int, str]:
     return rules
 
 
+def mk_rolling_season_rules(months: int, anchor: int, overlap: int) -> Dict[int, str]:
+    """
+    Construct rules for overlapping/rolling seasons
+    :param months: Length of season in months can be one of (2,3,4,6,12)
+    :param anchor: Start month of one of the seasons [1, 12]
+    :param overlap: Length of rolling window in months.
+    """
+    assert months in (2, 3, 4, 6)
+    assert 1 <= anchor <= 12
+    
+    # Get the start months for each regular non-overlapping/non-rolling season.
+    intervals = [i*months for i in range(12 // months)]
+    start_months = [i+anchor for i in intervals]
+    
+    # Add the start months for the overlapping/rolling seasons.
+    start_months = list(range(start_months[0], start_months[-1]+overlap, overlap))
+
+    # Assign each month to its respective season(s). 
+    month_list = []
+    label_list = []
+
+    for start_month in start_months:
+        for m in range(start_month, start_month + months):
+            if m > 12:
+                m = m - 12
+
+            month_list.append(m)
+            label_list.append(f"{start_month:02d}--P{months:d}M")
+    
+    rules = defaultdict(list)
+    for k, v in zip(month_list, label_list):
+        rules[k].append(v)
+    
+    return rules
+
+
 def season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
     """
     Construct mapping from datetime to a string in the form like 2010-06--P3M
@@ -178,6 +243,49 @@ def season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
         y = dt.year + yoffset
         return f"{y}-{season}"
 
+    return label
+
+
+def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
+    """
+    Construct mapping from datetime to a string in the form like 2010-06--P3M
+
+    :param rules: Is a mapping from month (1-Jan, 2-Feb) to a string in the
+                  form "{month:int}--P{N:int}M", where ``month`` is a starting
+                  month of the season and ``N`` is a duration of the season in
+                  months.
+    """
+        
+    _rules: Dict[int, List[Tuple[str, int]]] = {}
+
+    for month in range(1, 12 + 1):
+        seasons = rules.get(month, [""])
+
+        if seasons == [""]:
+            _rules[month] = [("", 0)]
+        else:
+            start_months = [int(season.split("--")[0]) for season in seasons]
+            match = list(zip(seasons, start_months))
+            _rules[month] = [(i[0], 0 if i[1] <= month else -1) for i in match]
+
+    
+    def label(dt: datetime) -> str:
+        
+        month_rules = _rules[dt.month]
+
+        labels = []
+        for rule in month_rules:
+            season, yoffset = rule
+            if season == "":
+                label = ""
+            else:
+                y = dt.year + yoffset
+                label = f"{y}-{season}"
+                
+            labels.append(label)
+        
+        return tuple(labels)
+    
     return label
 
 

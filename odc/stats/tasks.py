@@ -33,6 +33,7 @@ from .utils import (
     bin_full_history,
     bin_generic,
     bin_seasonal,
+    bin_rolling_seasonal,
     fuse_ds,
     fuse_products,
 )
@@ -329,11 +330,14 @@ class SaveTasks:
             tasks = bin_seasonal(cells, months=6, anchor=1)
         elif self._frequency == "seasonal":
             tasks = bin_seasonal(cells, months=3, anchor=12)
-        elif self._frequency == "calendar-seasons":
+        elif self._frequency == "quartely":
             tasks = bin_seasonal(cells, months=3, anchor=1)
-        elif self._frequency == "rolling-3months":
+        elif self._frequency == "3month-seasons":
             anchor = int(temporal_range.start.strftime("%m"))
             tasks = bin_seasonal(cells, months=3, anchor=anchor)
+        elif self._frequency == "rolling-3months":
+            anchor = int(temporal_range.start.strftime("%m"))
+            tasks = bin_rolling_seasonal(cells, months=3, anchor=anchor, overlap=1)          
         elif self._frequency == "nov-mar":
             tasks = bin_seasonal(cells, months=5, anchor=11, extract_single_season=True)
         elif self._frequency == "apr-oct":

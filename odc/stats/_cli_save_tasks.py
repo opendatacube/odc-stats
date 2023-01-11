@@ -51,7 +51,7 @@ CONFIG_ITEMS = [
     type=str,
     help=(
         "Specify temporal binning: "
-        "annual|annual-fy|semiannual|seasonal|calendar-seasons|rolling-3months|nov-mar|apr-oct|all"
+        "annual|annual-fy|semiannual|seasonal|quartely|3month-seasons|nov-mar|apr-oct|all"
     ),
 )
 @click.option("--env", "-E", type=str, help="Datacube environment name")
@@ -179,14 +179,15 @@ def save_tasks(
             "annual-fy",
             "semiannual",
             "seasonal",
-            "calendar-seasons",
+            "quartely",
+            "3month-seasons",
             "rolling-3months",
             "nov-mar",
             "apr-oct",
             "all",
         ):
             print(
-                f"""Frequency must be one of annual|annual-fy|semiannual|seasonal|calendar-seasons|rolling-3months|nov-mar|apr-oct|all
+                f"""Frequency must be one of annual|annual-fy|semiannual|seasonal|quartely|3month-seasons|rolling-3months|nov-mar|apr-oct|all
                 and not '{frequency}'""",
                 file=sys.stderr,
             )
