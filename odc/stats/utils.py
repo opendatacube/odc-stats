@@ -86,7 +86,7 @@ def bin_rolling_seasonal(
         # pylint:disable=cell-var-from-loop
         utc_offset = cell.utc_offset
         _grouped = toolz.groupby(lambda ds: binner(ds.time + utc_offset), cell.dss)
-        
+
         grouped = defaultdict(list)
         for key, value in _grouped.items():
             for k in key:
@@ -190,29 +190,25 @@ def mk_rolling_season_rules(months: int, anchor: int, overlap: int) -> Dict[int,
     """
     assert months in (2, 3, 4, 6)
     assert 1 <= anchor <= 12
-    
+
+    rules = defaultdict(list)
+
     # Get the start months for each regular non-overlapping/non-rolling season.
-    intervals = [i*months for i in range(12 // months)]
-    start_months = [i+anchor for i in intervals]
-    
+    start_months = [anchor+i*months for i in range(12//months)]
     # Add the start months for the overlapping/rolling seasons.
-    start_months = list(range(start_months[0], start_months[-1]+overlap, overlap))
+    try:
+        start_months = list(range(start_months[0], start_months[-1]+overlap, overlap))
+    except:
+        pass
+    # Trim to fit months in a single year.
+    start_months = [m-12 if m>12 else m for m in start_months]
 
-    # Assign each month to its respective season(s). 
-    month_list = []
-    label_list = []
-
+    # Create the rules for labelling the months by seasons. 
     for start_month in start_months:
         for m in range(start_month, start_month + months):
-            if m > 12:
-                m = m - 12
-
-            month_list.append(m)
-            label_list.append(f"{start_month:02d}--P{months:d}M")
-    
-    rules = defaultdict(list)
-    for k, v in zip(month_list, label_list):
-        rules[k].append(v)
+            if m > 12: 
+                m = m -12
+            rules[m].extend([f"{start_month:02d}--P{months:d}M"])
     
     return rules
 
@@ -246,7 +242,7 @@ def season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
     return label
 
 
-def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
+def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], list]:
     """
     Construct mapping from datetime to a string in the form like 2010-06--P3M
 
@@ -256,7 +252,7 @@ def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
                   months.
     """
         
-    _rules: Dict[int, List[Tuple[str, int]]] = {}
+    _rules = defaultdict(list)
 
     for month in range(1, 12 + 1):
         seasons = rules.get(month, [""])
@@ -264,29 +260,28 @@ def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
         if seasons == [""]:
             _rules[month] = [("", 0)]
         else:
-            start_months = [int(season.split("--")[0]) for season in seasons]
-            match = list(zip(seasons, start_months))
-            _rules[month] = [(i[0], 0 if i[1] <= month else -1) for i in match]
-
+            # Get the start month for each season.
+            start_months = [(season, int(season.split("--")[0])) for season in seasons]
+            # Get the yoffset for each season. 
+            _rules[month].extend([(season, 0 if start_month <= month else -1) for season, start_month in start_months])
     
-    def label(dt: datetime) -> str:
-        
+    def label(dt: datetime) -> list:
+        # Get the rules that apply to the dt month.
         month_rules = _rules[dt.month]
 
+        # Get the labels to assign to the dt based on the rules.
         labels = []
         for rule in month_rules:
             season, yoffset = rule
             if season == "":
-                label = ""
+                labels.append("")
             else:
                 y = dt.year + yoffset
-                label = f"{y}-{season}"
-                
-            labels.append(label)
-        
+                labels.append(f"{y}-{season}")
+
         return tuple(labels)
-    
-    return label
+
+    return  label
 
 
 def dedup_s2_datasets(dss):
