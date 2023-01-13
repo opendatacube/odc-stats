@@ -74,10 +74,10 @@ def bin_rolling_seasonal(
     cells: Dict[Tuple[int, int], Cell],
     months: int,
     anchor: int,
-    overlap: int,
+    interval: int,
 ) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
     
-    binner = rolling_season_binner(mk_rolling_season_rules(months, anchor, overlap))
+    binner = rolling_season_binner(mk_rolling_season_rules(months, anchor, interval))
 
     tasks = {}
     for tidx, cell in cells.items():
@@ -181,34 +181,36 @@ def mk_season_rules(months: int, anchor: int) -> Dict[int, str]:
     return rules
 
 
-def mk_rolling_season_rules(months: int, anchor: int, overlap: int) -> Dict[int, str]:
+def mk_rolling_season_rules(months: int, anchor: int, interval: int) -> Dict[int, str]:
     """
-    Construct rules for overlapping/rolling seasons
-    :param months: Length of season in months can be one of (2,3,4,6,12)
-    :param anchor: Start month of one of the seasons [1, 12]
-    :param overlap: Length of rolling window in months.
+    Construct rules for rolling seasons
+    :param months: Length of a single season in months can be one of [1, 12]
+    :param anchor: Start month of the first season can be one of [1, 12]
+    :param interval: Length in months between the start months for 2 consecutive seasons. 
     """
-    assert months in (2, 3, 4, 6)
+    assert 1 <= months <= 12
     assert 1 <= anchor <= 12
+    assert interval < months
 
     rules = defaultdict(list)
 
-    # Get the start months for each regular non-overlapping/non-rolling season.
-    start_months = [anchor+i*months for i in range(12//months)]
-    # Add the start months for the overlapping/rolling seasons.
-    try:
-        start_months = list(range(start_months[0], start_months[-1]+overlap, overlap))
-    except:
-        pass
-    # Trim to fit months in a single year.
-    start_months = [m-12 if m>12 else m for m in start_months]
+    # Get the start months for each regular non-overlapping season.
+    regular_seasons = [anchor+i*months for i in range(12//months)]
 
-    # Create the rules for labelling the months by seasons. 
-    for start_month in start_months:
+    start_month_first_season = regular_seasons[0]
+    start_month_last_season = regular_seasons[-1]
+
+    start_month = start_month_first_season
+    while start_month <= start_month_last_season:
         for m in range(start_month, start_month + months):
-            if m > 12: 
-                m = m -12
-            rules[m].extend([f"{start_month:02d}--P{months:d}M"])
+            if m > 12:
+                m = m - 12
+            if months == 12:
+                rules[m].extend([f"{start_month-12 if start_month > 12 else start_month:02d}--P1Y"])
+            else:
+                rules[m].extend([f"{start_month-12 if start_month > 12 else start_month:02d}--P{months:d}M"])
+
+        start_month += interval
     
     return rules
 
