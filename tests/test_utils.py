@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from collections import defaultdict
 from types import SimpleNamespace
 from copy import deepcopy
 
@@ -15,8 +16,11 @@ from odc.stats.utils import (
     bin_full_history,
     bin_generic,
     bin_seasonal,
+    bin_rolling_seasonal,
     mk_season_rules,
+    mk_rolling_season_rules,
     season_binner,
+    rolling_season_binner,
     fuse_products,
     fuse_ds,
     mk_single_season_rules,
@@ -73,6 +77,9 @@ def test_binning():
         assert set(ds.id for ds in dss1) == set(ds.id for ds in dss2)
 
     tasks = bin_seasonal(cells, 6, 1)
+    verify(tasks)
+    
+    tasks = bin_seasonal(cells, 3, 1, 1)
     verify(tasks)
 
 
@@ -156,6 +163,44 @@ def test_season_binner():
     assert binner(datetime(2001, 1, 19)) == "2001-01--P1M"
 
 
+def test_rolling_season_binner():
+    seasons_rules = defaultdict(list,
+                {1: ['01--P6M'],
+                 2: ['01--P6M'],
+                 3: ['01--P6M'],
+                 4: ['01--P6M', '04--P6M'],
+                 5: ['01--P6M', '04--P6M'],
+                 6: ['01--P6M', '04--P6M'],
+                 7: ['04--P6M', '07--P6M'],
+                 8: ['04--P6M', '07--P6M'],
+                 9: ['04--P6M', '07--P6M'],
+                 10: ['07--P6M'],
+                 11: ['07--P6M'],
+                 12: ['07--P6M']})
+
+    assert mk_rolling_season_rules(months=6, anchor=1, interval=3) == seasons_rules
+
+
+    dss = list(gen_compressed_dss(100, dt0=datetime(2000, 1, 1), step=13))
+    cells = {
+            (0, 1): SimpleNamespace(
+                dss=dss, geobox=None, idx=None, utc_offset=timedelta(seconds=0)
+            )}
+    tasks_s = bin_rolling_seasonal(cells=cells, months=6, anchor=1, interval=3) 
+    task_keys = [('2000-01--P6M', 0, 1),
+                 ('2000-04--P6M', 0, 1),
+                 ('2000-07--P6M', 0, 1),
+                 ('2001-01--P6M', 0, 1),
+                 ('2001-04--P6M', 0, 1),
+                 ('2001-07--P6M', 0, 1),
+                 ('2002-01--P6M', 0, 1),
+                 ('2002-04--P6M', 0, 1),
+                 ('2002-07--P6M', 0, 1),
+                 ('2003-01--P6M', 0, 1)]
+    
+    assert task_keys == list(tasks_s.keys())
+    
+    
 @pytest.mark.parametrize("months,anchor", [(6, 1)])
 def test_bin_seasonal_mk_season_rules(months, anchor):
     season_rules = mk_season_rules(months, anchor)
