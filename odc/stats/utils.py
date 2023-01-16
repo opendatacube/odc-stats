@@ -75,7 +75,11 @@ def bin_rolling_seasonal(
     months: int,
     anchor: int,
     interval: int,
+    drop: bool = True,
 ) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
+    """
+    :param drop: Drop a season if it does not have the complete number of months.
+    """
     
     binner = rolling_season_binner(mk_rolling_season_rules(months, anchor, interval))
 
@@ -91,6 +95,21 @@ def bin_rolling_seasonal(
         for key, value in _grouped.items():
             for k in key:
                 grouped[k].extend(value)
+
+        # Check if each season covers the complete number of months.
+        if drop:
+            remove = []
+            for key, value in grouped.items():
+                months_interval = value[-1].time.month - value[0].time.month + 1
+                if months_interval < 0:
+                    months_interval = months_interval + 12
+
+                if months_interval < months:
+                    remove.append(key)
+
+            for key in remove:
+                del grouped[key]
+
 
         for temporal_k, dss in grouped.items():
             if temporal_k != "":
@@ -190,7 +209,7 @@ def mk_rolling_season_rules(months: int, anchor: int, interval: int) -> Dict[int
     """
     assert 1 <= months <= 12
     assert 1 <= anchor <= 12
-    assert interval < months
+    assert 0 < interval < months
 
     rules = defaultdict(list)
 
