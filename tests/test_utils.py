@@ -20,7 +20,6 @@ from odc.stats.utils import (
     mk_season_rules,
     mk_rolling_season_rules,
     season_binner,
-    rolling_season_binner,
     fuse_products,
     fuse_ds,
     mk_single_season_rules,

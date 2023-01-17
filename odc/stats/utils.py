@@ -75,7 +75,7 @@ def bin_rolling_seasonal(
     months: int,
     anchor: int,
     interval: int,
-    drop: bool = True,
+    drop = True,
 ) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
     """
     :param drop: Drop a season if it does not have the complete number of months.
