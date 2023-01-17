@@ -80,7 +80,7 @@ def bin_rolling_seasonal(
     """
     :param drop: Drop a season if it does not have the complete number of months.
     """
-    
+
     binner = rolling_season_binner(mk_rolling_season_rules(months, anchor, interval))
 
     tasks = {}
@@ -109,7 +109,6 @@ def bin_rolling_seasonal(
 
             for key in remove:
                 del grouped[key]
-
 
         for temporal_k, dss in grouped.items():
             if temporal_k != "":
@@ -205,7 +204,7 @@ def mk_rolling_season_rules(months: int, anchor: int, interval: int) -> Dict[int
     Construct rules for rolling seasons
     :param months: Length of a single season in months can be one of [1, 12]
     :param anchor: Start month of the first season can be one of [1, 12]
-    :param interval: Length in months between the start months for 2 consecutive seasons. 
+    :param interval: Length in months between the start months for 2 consecutive seasons.
     """
     assert 1 <= months <= 12
     assert 1 <= anchor <= 12
@@ -214,7 +213,7 @@ def mk_rolling_season_rules(months: int, anchor: int, interval: int) -> Dict[int
     rules = defaultdict(list)
 
     # Get the start months for each regular non-overlapping season.
-    regular_seasons = [anchor+i*months for i in range(12//months)]
+    regular_seasons = [anchor + i * months for i in range(12 // months)]
 
     start_month_first_season = regular_seasons[0]
     start_month_last_season = regular_seasons[-1]
@@ -225,12 +224,18 @@ def mk_rolling_season_rules(months: int, anchor: int, interval: int) -> Dict[int
             if m > 12:
                 m = m - 12
             if months == 12:
-                rules[m].extend([f"{start_month-12 if start_month > 12 else start_month:02d}--P1Y"])
+                rules[m].extend(
+                    [f"{start_month-12 if start_month > 12 else start_month:02d}--P1Y"]
+                )
             else:
-                rules[m].extend([f"{start_month-12 if start_month > 12 else start_month:02d}--P{months:d}M"])
+                rules[m].extend(
+                    [
+                        f"{start_month-12 if start_month > 12 else start_month:02d}--P{months:d}M"
+                    ]
+                )
 
         start_month += interval
-    
+
     return rules
 
 
@@ -272,7 +277,7 @@ def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], list]:
                   month of the season and ``N`` is a duration of the season in
                   months.
     """
-        
+
     _rules = defaultdict(list)
 
     for month in range(1, 12 + 1):
@@ -283,9 +288,14 @@ def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], list]:
         else:
             # Get the start month for each season.
             start_months = [(season, int(season.split("--")[0])) for season in seasons]
-            # Get the yoffset for each season. 
-            _rules[month].extend([(season, 0 if start_month <= month else -1) for season, start_month in start_months])
-    
+            # Get the yoffset for each season.
+            _rules[month].extend(
+                [
+                    (season, 0 if start_month <= month else -1)
+                    for season, start_month in start_months
+                ]
+            )
+
     def label(dt: datetime) -> list:
         # Get the rules that apply to the dt month.
         month_rules = _rules[dt.month]
@@ -302,7 +312,7 @@ def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], list]:
 
         return tuple(labels)
 
-    return  label
+    return label
 
 
 def dedup_s2_datasets(dss):
