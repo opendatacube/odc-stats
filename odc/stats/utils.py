@@ -2,6 +2,7 @@ import toolz
 from typing import Dict, Tuple, List, Any, Callable, Optional
 from collections import namedtuple, defaultdict
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from .model import DateTimeRange, odc_uuid
 from datacube.storage import measurement_paths
 from datacube.model import Dataset, DatasetType
@@ -70,18 +71,15 @@ def bin_seasonal(
     return tasks
 
 
+
 def bin_rolling_seasonal(
     cells: Dict[Tuple[int, int], Cell],
+    temporal_range,
     months: int,
-    anchor: int,
     interval: int,
-    drop: bool = True,
 ) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
-    """
-    :param drop: Drop a season if it does not have the complete number of months.
-    """
-    
-    binner = rolling_season_binner(mk_rolling_season_rules(months, anchor, interval))
+
+    binner = rolling_season_binner(mk_rolling_season_rules(temporal_range, months, interval))
 
     tasks = {}
     for tidx, cell in cells.items():
@@ -95,21 +93,6 @@ def bin_rolling_seasonal(
         for key, value in _grouped.items():
             for k in key:
                 grouped[k].extend(value)
-
-        # Check if each season covers the complete number of months.
-        if drop:
-            remove = []
-            for key, value in grouped.items():
-                months_interval = value[-1].time.month - value[0].time.month + 1
-                if months_interval < 0:
-                    months_interval = months_interval + 12
-
-                if months_interval < months:
-                    remove.append(key)
-
-            for key in remove:
-                del grouped[key]
-
 
         for temporal_k, dss in grouped.items():
             if temporal_k != "":
@@ -200,37 +183,27 @@ def mk_season_rules(months: int, anchor: int) -> Dict[int, str]:
     return rules
 
 
-def mk_rolling_season_rules(months: int, anchor: int, interval: int) -> Dict[int, str]:
+def mk_rolling_season_rules(temporal_range, months, interval):
     """
     Construct rules for rolling seasons
+    :param temporal_range: Time range for which datasets have been loaded.
     :param months: Length of a single season in months can be one of [1, 12]
-    :param anchor: Start month of the first season can be one of [1, 12]
     :param interval: Length in months between the start months for 2 consecutive seasons. 
     """
     assert 1 <= months <= 12
-    assert 1 <= anchor <= 12
     assert 0 < interval < months
 
-    rules = defaultdict(list)
-
-    # Get the start months for each regular non-overlapping season.
-    regular_seasons = [anchor+i*months for i in range(12//months)]
-
-    start_month_first_season = regular_seasons[0]
-    start_month_last_season = regular_seasons[-1]
-
-    start_month = start_month_first_season
-    while start_month <= start_month_last_season:
-        for m in range(start_month, start_month + months):
-            if m > 12:
-                m = m - 12
-            if months == 12:
-                rules[m].extend([f"{start_month-12 if start_month > 12 else start_month:02d}--P1Y"])
-            else:
-                rules[m].extend([f"{start_month-12 if start_month > 12 else start_month:02d}--P{months:d}M"])
-
-        start_month += interval
+    season_start_interval = relativedelta(months=interval)
     
+    start_date = DateTimeRange(temporal_range).start
+    end_date = DateTimeRange(temporal_range).end
+
+    rules = {}
+    season_start = start_date
+    while DateTimeRange(f'{season_start.strftime("%Y-%m-%d")}--P{months}M').end  <= end_date:
+        rules[f'{season_start.strftime("%Y-%m-%d")}--P{months}M'] = DateTimeRange(f'{season_start.strftime("%Y-%m-%d")}--P{months}M')
+        season_start += season_start_interval
+        
     return rules
 
 
@@ -271,35 +244,13 @@ def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], list]:
                   form "{month:int}--P{N:int}M", where ``month`` is a starting
                   month of the season and ``N`` is a duration of the season in
                   months.
-    """
-        
-    _rules = defaultdict(list)
-
-    for month in range(1, 12 + 1):
-        seasons = rules.get(month, [""])
-
-        if seasons == [""]:
-            _rules[month] = [("", 0)]
-        else:
-            # Get the start month for each season.
-            start_months = [(season, int(season.split("--")[0])) for season in seasons]
-            # Get the yoffset for each season. 
-            _rules[month].extend([(season, 0 if start_month <= month else -1) for season, start_month in start_months])
-    
+    """    
     def label(dt: datetime) -> list:
-        # Get the rules that apply to the dt month.
-        month_rules = _rules[dt.month]
-
-        # Get the labels to assign to the dt based on the rules.
         labels = []
-        for rule in month_rules:
-            season, yoffset = rule
-            if season == "":
-                labels.append("")
-            else:
-                y = dt.year + yoffset
-                labels.append(f"{y}-{season}")
-
+        for label, label_date_range in rules.items():
+            if dt in label_date_range:
+                labels.append(label)
+        
         return tuple(labels)
 
     return  label
