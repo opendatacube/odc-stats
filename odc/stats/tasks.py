@@ -336,7 +336,9 @@ class SaveTasks:
             anchor = int(temporal_range.start.strftime("%m"))
             tasks = bin_seasonal(cells, months=3, anchor=anchor)
         elif self._frequency == "rolling-3months":
-            tasks = bin_rolling_seasonal(cells, temporal_range=temporal_range, months=3, interval=1)          
+            tasks = bin_rolling_seasonal(
+                cells, temporal_range=temporal_range, months=3, interval=1
+            )
         elif self._frequency == "nov-mar":
             tasks = bin_seasonal(cells, months=5, anchor=11, extract_single_season=True)
         elif self._frequency == "apr-oct":
