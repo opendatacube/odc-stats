@@ -71,7 +71,6 @@ def bin_seasonal(
     return tasks
 
 
-
 def bin_rolling_seasonal(
     cells: Dict[Tuple[int, int], Cell],
     temporal_range,
@@ -79,7 +78,9 @@ def bin_rolling_seasonal(
     interval: int,
 ) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
 
-    binner = rolling_season_binner(mk_rolling_season_rules(temporal_range, months, interval))
+    binner = rolling_season_binner(
+        mk_rolling_season_rules(temporal_range, months, interval)
+    )
 
     tasks = {}
     for tidx, cell in cells.items():
@@ -188,22 +189,27 @@ def mk_rolling_season_rules(temporal_range, months, interval):
     Construct rules for rolling seasons
     :param temporal_range: Time range for which datasets have been loaded.
     :param months: Length of a single season in months can be one of [1, 12]
-    :param interval: Length in months between the start months for 2 consecutive seasons. 
+    :param interval: Length in months between the start months for 2 consecutive seasons.
     """
     assert 1 <= months <= 12
     assert 0 < interval < months
 
     season_start_interval = relativedelta(months=interval)
-    
+
     start_date = temporal_range.start
     end_date = temporal_range.end
-
+S
     rules = {}
     season_start = start_date
-    while DateTimeRange(f'{season_start.strftime("%Y-%m-%d")}--P{months}M').end  <= end_date:
-        rules[f'{season_start.strftime("%Y-%m-%d")}--P{months}M'] = DateTimeRange(f'{season_start.strftime("%Y-%m-%d")}--P{months}M')
+    while (
+        DateTimeRange(f'{season_start.strftime("%Y-%m-%d")}--P{months}M').end
+        <= end_date
+    ):
+        rules[f'{season_start.strftime("%Y-%m-%d")}--P{months}M'] = DateTimeRange(
+            f'{season_start.strftime("%Y-%m-%d")}--P{months}M'
+        )
         season_start += season_start_interval
-        
+
     return rules
 
 
@@ -245,13 +251,14 @@ def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], list]:
                   month of the season and ``N`` is a duration of the season in
                   months.
 
-    """    
+    """
+
     def label(dt: datetime) -> list:
         labels = []
         for label, label_date_range in rules.items():
             if dt in label_date_range:
                 labels.append(label)
-        
+
         return tuple(labels)
 
     return label
