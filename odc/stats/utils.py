@@ -198,7 +198,7 @@ def mk_rolling_season_rules(temporal_range, months, interval):
 
     start_date = temporal_range.start
     end_date = temporal_range.end
-S
+
     rules = {}
     season_start = start_date
     while (
