@@ -244,6 +244,7 @@ def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], list]:
                   form "{month:int}--P{N:int}M", where ``month`` is a starting
                   month of the season and ``N`` is a duration of the season in
                   months.
+
     """    
     def label(dt: datetime) -> list:
         labels = []
@@ -253,7 +254,7 @@ def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], list]:
         
         return tuple(labels)
 
-    return  label
+    return label
 
 
 def dedup_s2_datasets(dss):
