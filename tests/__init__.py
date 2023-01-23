@@ -9,6 +9,7 @@ import dask.array as da
 import numpy as np
 from odc.stats.utils import CompressedDataset
 from odc.stats.plugins import StatsPluginInterface
+from odc.stats.model import DateTimeRange
 
 
 class DummyPlugin(StatsPluginInterface):
@@ -66,7 +67,21 @@ def gen_compressed_dss(n, dt0=datetime(2010, 1, 1, 11, 30, 27), step=timedelta(d
         yield CompressedDataset(UUID(int=i), dt)
         dt = dt + step
 
-
+        
+def gen_compressed_dss_2(temporal_range=DateTimeRange("2020--P2Y"), step=timedelta(days=1)):
+    if isinstance(step, int):
+        step = timedelta(days=step)
+        
+    start_date = temporal_range.start
+    end_date = temporal_range.end
+    
+    i = 0
+    while start_date <= end_date:
+        yield CompressedDataset(UUID(int=i), start_date)
+        start_date += step
+        i += 1
+        
+        
 def mk_time_coords(timestamps):
     data = np.asarray(timestamps, dtype="datetime64[ns]")
     return xr.DataArray(data=data, coords={"time": data}, dims=("time",), name="time")

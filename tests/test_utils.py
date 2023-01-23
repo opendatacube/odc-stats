@@ -25,7 +25,7 @@ from odc.stats.utils import (
     mk_single_season_rules,
 )
 
-from . import gen_compressed_dss
+from . import gen_compressed_dss, gen_compressed_dss_2
 
 
 def test_stac(test_db_path):
@@ -163,44 +163,53 @@ def test_season_binner():
 
 
 def test_rolling_season_binner():
-    seasons_rules = defaultdict(
-        list,
-        {
-            1: ["01--P6M"],
-            2: ["01--P6M"],
-            3: ["01--P6M"],
-            4: ["01--P6M", "04--P6M"],
-            5: ["01--P6M", "04--P6M"],
-            6: ["01--P6M", "04--P6M"],
-            7: ["04--P6M", "07--P6M"],
-            8: ["04--P6M", "07--P6M"],
-            9: ["04--P6M", "07--P6M"],
-            10: ["07--P6M"],
-            11: ["07--P6M"],
-            12: ["07--P6M"],
-        },
+    temporal_range = DateTimeRange("2000-02--P6M")
+
+    seasons_rules = {
+        "2000-02-01--P3M": DateTimeRange(datetime(2000, 2, 1, 0, 0), "3M"),
+        "2000-03-01--P3M": DateTimeRange(datetime(2000, 3, 1, 0, 0), "3M"),
+        "2000-04-01--P3M": DateTimeRange(datetime(2000, 4, 1, 0, 0), "3M"),
+        "2000-05-01--P3M": DateTimeRange(datetime(2000, 5, 1, 0, 0), "3M"),
+    }
+
+    assert (
+        mk_rolling_season_rules(temporal_range, months=3, interval=1) == seasons_rules
     )
 
-    assert mk_rolling_season_rules(months=6, anchor=1, interval=3) == seasons_rules
+    temporal_range = DateTimeRange("2019-03--P2Y")
 
-    dss = list(gen_compressed_dss(100, dt0=datetime(2000, 1, 1), step=13))
+    dss = list(gen_compressed_dss_2(temporal_range=temporal_range, step=1))
+
     cells = {
         (0, 1): SimpleNamespace(
             dss=dss, geobox=None, idx=None, utc_offset=timedelta(seconds=0)
         )
     }
-    tasks_s = bin_rolling_seasonal(cells=cells, months=6, anchor=1, interval=3)
+
+    tasks_s = bin_rolling_seasonal(
+        cells=cells, temporal_range=temporal_range, months=6, interval=1
+    )
+
     task_keys = [
-        ("2000-01--P6M", 0, 1),
-        ("2000-04--P6M", 0, 1),
-        ("2000-07--P6M", 0, 1),
-        ("2001-01--P6M", 0, 1),
-        ("2001-04--P6M", 0, 1),
-        ("2001-07--P6M", 0, 1),
-        ("2002-01--P6M", 0, 1),
-        ("2002-04--P6M", 0, 1),
-        ("2002-07--P6M", 0, 1),
-        ("2003-01--P6M", 0, 1),
+        ("2019-03-01--P6M", 0, 1),
+        ("2019-04-01--P6M", 0, 1),
+        ("2019-05-01--P6M", 0, 1),
+        ("2019-06-01--P6M", 0, 1),
+        ("2019-07-01--P6M", 0, 1),
+        ("2019-08-01--P6M", 0, 1),
+        ("2019-09-01--P6M", 0, 1),
+        ("2019-10-01--P6M", 0, 1),
+        ("2019-11-01--P6M", 0, 1),
+        ("2019-12-01--P6M", 0, 1),
+        ("2020-01-01--P6M", 0, 1),
+        ("2020-02-01--P6M", 0, 1),
+        ("2020-03-01--P6M", 0, 1),
+        ("2020-04-01--P6M", 0, 1),
+        ("2020-05-01--P6M", 0, 1),
+        ("2020-06-01--P6M", 0, 1),
+        ("2020-07-01--P6M", 0, 1),
+        ("2020-08-01--P6M", 0, 1),
+        ("2020-09-01--P6M", 0, 1),
     ]
 
     assert task_keys == list(tasks_s.keys())
