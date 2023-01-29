@@ -1,7 +1,8 @@
 import toolz
 from typing import Dict, Tuple, List, Any, Callable, Optional
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from .model import DateTimeRange, odc_uuid
 from datacube.storage import measurement_paths
 from datacube.model import Dataset, DatasetType
@@ -62,6 +63,37 @@ def bin_seasonal(
         # pylint:disable=cell-var-from-loop
         utc_offset = cell.utc_offset
         grouped = toolz.groupby(lambda ds: binner(ds.time + utc_offset), cell.dss)
+
+        for temporal_k, dss in grouped.items():
+            if temporal_k != "":
+                tasks[(temporal_k,) + tidx] = dss
+
+    return tasks
+
+
+def bin_rolling_seasonal(
+    cells: Dict[Tuple[int, int], Cell],
+    temporal_range,
+    months: int,
+    interval: int,
+) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
+
+    binner = rolling_season_binner(
+        mk_rolling_season_rules(temporal_range, months, interval)
+    )
+
+    tasks = {}
+    for tidx, cell in cells.items():
+        # This is a great pylint warning, but doesn't apply here because we
+        # only call the lambda from inside each iteration of the loop
+        # pylint:disable=cell-var-from-loop
+        utc_offset = cell.utc_offset
+        _grouped = toolz.groupby(lambda ds: binner(ds.time + utc_offset), cell.dss)
+
+        grouped = defaultdict(list)
+        for key, value in _grouped.items():
+            for k in key:
+                grouped[k].extend(value)
 
         for temporal_k, dss in grouped.items():
             if temporal_k != "":
@@ -152,6 +184,35 @@ def mk_season_rules(months: int, anchor: int) -> Dict[int, str]:
     return rules
 
 
+def mk_rolling_season_rules(temporal_range, months, interval):
+    """
+    Construct rules for rolling seasons
+    :param temporal_range: Time range for which datasets have been loaded.
+    :param months: Length of a single season in months can be one of [1, 12]
+    :param interval: Length in months between the start months for 2 consecutive seasons.
+    """
+    assert 1 <= months <= 12
+    assert 0 < interval < months
+
+    season_start_interval = relativedelta(months=interval)
+
+    start_date = temporal_range.start
+    end_date = temporal_range.end
+
+    rules = {}
+    season_start = start_date
+    while (
+        DateTimeRange(f'{season_start.strftime("%Y-%m-%d")}--P{months}M').end
+        <= end_date
+    ):
+        rules[f'{season_start.strftime("%Y-%m-%d")}--P{months}M'] = DateTimeRange(
+            f'{season_start.strftime("%Y-%m-%d")}--P{months}M'
+        )
+        season_start += season_start_interval
+
+    return rules
+
+
 def season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
     """
     Construct mapping from datetime to a string in the form like 2010-06--P3M
@@ -177,6 +238,28 @@ def season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
             return ""
         y = dt.year + yoffset
         return f"{y}-{season}"
+
+    return label
+
+
+def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], list]:
+    """
+    Construct mapping from datetime to a string in the form like 2010-06--P3M
+
+    :param rules: Is a mapping from month (1-Jan, 2-Feb) to a string in the
+                  form "{month:int}--P{N:int}M", where ``month`` is a starting
+                  month of the season and ``N`` is a duration of the season in
+                  months.
+
+    """
+
+    def label(dt: datetime) -> list:
+        labels = []
+        for label, label_date_range in rules.items():
+            if dt in label_date_range:
+                labels.append(label)
+
+        return tuple(labels)
 
     return label
 
