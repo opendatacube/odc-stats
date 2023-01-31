@@ -88,6 +88,11 @@ def test_fuser(dataset):
     gm = StatsGMLSBitmask(bands=["band_red"], offset=-0.2, scale=0.00975)
 
     xx = gm.native_transform(dataset)
+    for dim in xx.dims:
+        if isinstance(xx.get_index(dim), pd.MultiIndex):
+            xx = xx.reset_index(dim)
+    xx = xx.set_xindex("solar_day")
+
     xx = xx.groupby("solar_day").map(gm.fuser)
 
     expected_result = np.array(
