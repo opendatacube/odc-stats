@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from collections import defaultdict
 from types import SimpleNamespace
 from copy import deepcopy
 

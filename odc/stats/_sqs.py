@@ -9,6 +9,7 @@ from .model import WorkTokenInterface
 
 class SQSWorkToken(WorkTokenInterface):
     def __init__(self, msg, timeout: int, t0: Optional[datetime] = None):
+        super().__init__()
         if t0 is None:
             t0 = self.now()
         self._msg = msg
