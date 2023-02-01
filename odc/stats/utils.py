@@ -205,7 +205,7 @@ def mk_rolling_season_rules(temporal_range, months, interval):
         DateTimeRange(f'{season_start.strftime("%Y-%m-%d")}--P{months}M').end
         <= end_date
     ):
-        rules[f'{season_start.strftime("%Y-%m-%d")}--P{months}M'] = DateTimeRange(
+        rules[f'{season_start.strftime("%Y-%m")}--P{months}M'] = DateTimeRange(
             f'{season_start.strftime("%Y-%m-%d")}--P{months}M'
         )
         season_start += season_start_interval
