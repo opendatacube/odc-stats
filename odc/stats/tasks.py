@@ -325,7 +325,10 @@ class SaveTasks:
         msg(f"Total of {n_tiles:,d} spatial tiles")
 
         if self._frequency == "all":
-            tasks = bin_full_history(cells, start=dt_range.start, end=dt_range.end)
+            if temporal_range is None:
+                tasks = bin_full_history(cells, start=dt_range.start, end=dt_range.end)
+            else:
+                tasks = bin_generic(cells, [temporal_range])
         elif self._frequency == "semiannual":
             tasks = bin_seasonal(cells, months=6, anchor=1)
         elif self._frequency == "seasonal":
