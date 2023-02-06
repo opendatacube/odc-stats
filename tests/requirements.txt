@@ -1,12 +1,19 @@
+datacube
 # for pytest-depends
 deepdiff
 future_fstrings
 mock
 moto
 networkx
+numpy
+odc-algo==0.2.4.dev3624
+odc-stac
 
 # For tests
 pytest
 pytest-cov
 pytest-httpserver
 pytest-timeout
+
+# patch image
+xarray
