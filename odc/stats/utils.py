@@ -77,7 +77,6 @@ def bin_rolling_seasonal(
     months: int,
     interval: int,
 ) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
-
     binner = rolling_season_binner(
         mk_rolling_season_rules(temporal_range, months, interval)
     )

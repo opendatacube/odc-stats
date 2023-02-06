@@ -63,7 +63,6 @@ def dataset():
 
 @pytest.mark.parametrize("bits", [0b0000_0000, 0b0001_0000])
 def test_native_transform(dataset, bits):
-
     xx = dataset.copy()
     xx["water"] = da.bitwise_or(xx["water"], bits)
     stats_fcp = StatsFCP()

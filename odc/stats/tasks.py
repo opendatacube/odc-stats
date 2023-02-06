@@ -121,7 +121,6 @@ class SaveTasks:
         overwrite: bool = False,
         complevel: int = 6,
     ):
-
         if DatasetCache.exists(output) and overwrite is False:
             raise ValueError(f"File database already exists: {output}")
 

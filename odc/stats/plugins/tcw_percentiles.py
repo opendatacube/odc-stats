@@ -21,7 +21,6 @@ NODATA = -9999  # output NODATA
 
 
 class StatsTCWPC(StatsPluginInterface):
-
     NAME = "ga_tc_percentiles"
     SHORT_NAME = NAME
     VERSION = "1.0.1"
@@ -35,7 +34,6 @@ class StatsTCWPC(StatsPluginInterface):
         cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
         **kwargs,
     ):
-
         self.cloud_filters = cloud_filters
         if coefficients is None:
             self.coefficients = dict(

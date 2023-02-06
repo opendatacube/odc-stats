@@ -74,7 +74,6 @@ def format_datetime(dt: datetime, with_tz=True, timespec="microseconds") -> str:
 
 @dataclass
 class DateTimeRange:
-
     __slots__ = ("start", "end", "freq")
 
     def __init__(self, start: Union[str, datetime], freq: Optional[str] = None):
