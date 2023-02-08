@@ -17,4 +17,4 @@ pytest-httpserver
 pytest-timeout
 
 # patch image
-xarray
+xarray>=2023.1.0
