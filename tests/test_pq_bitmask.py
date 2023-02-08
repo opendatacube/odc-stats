@@ -157,6 +157,11 @@ def test_fuser(dataset):
     pq = StatsPQLSBitmask()
 
     xx = pq.native_transform(dataset)
+    for dim in xx.dims:
+        if isinstance(xx.get_index(dim), pd.MultiIndex):
+            xx = xx.reset_index(dim)
+    xx = xx.set_xindex("solar_day")
+
     xx = xx.groupby("solar_day").map(pq.fuser)
     fuser_result = xx.compute()
 
@@ -238,6 +243,11 @@ def test_fuse_for_aerosol(dataset_with_aerosol_band):
     pq = StatsPQLSBitmask(pq_band="QA_PIXEL", aerosol_band="SR_QA_AEROSOL")
 
     xx = pq.native_transform(dataset_with_aerosol_band)
+    for dim in xx.dims:
+        if isinstance(xx.get_index(dim), pd.MultiIndex):
+            xx = xx.reset_index(dim)
+    xx = xx.set_xindex("solar_day")
+
     xx = xx.groupby("solar_day").map(pq.fuser)
     fuser_result = xx.compute()
 
@@ -318,6 +328,11 @@ def test_fuse_for_atmos_opacity(dataset_with_atmos_opacity_band):
     pq = StatsPQLSBitmask(pq_band="QA_PIXEL", aerosol_band="SR_ATMOS_OPACITY")
 
     xx = pq.native_transform(dataset_with_atmos_opacity_band)
+    for dim in xx.dims:
+        if isinstance(xx.get_index(dim), pd.MultiIndex):
+            xx = xx.reset_index(dim)
+    xx = xx.set_xindex("solar_day")
+
     xx = xx.groupby("solar_day").map(pq.fuser)
     fuser_result = xx.compute()
 

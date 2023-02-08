@@ -229,8 +229,7 @@ class S3COGSink:
 
         ows_style = StandaloneStyle(ows_style_dict)
         # assign the time to xr.Dataset cause ows needs it
-        time_da = xr.Dataset({"time": time})
-        dst = ds.expand_dims(time=time_da.to_array())
+        dst = ds.expand_dims(dim={"time": [time]})
         img = dask.delayed(apply_ows_style)(ows_style, dst)
         return img
 
