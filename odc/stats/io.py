@@ -265,7 +265,6 @@ class S3COGSink:
         if task.product.preview_image_ows_style:
             _log.info("Generate thumbnail")
             try:
-
                 image = self._apply_color_ramp(
                     ds, task.product.preview_image_ows_style, task.time_range.start
                 )
@@ -530,7 +529,6 @@ class S3COGSink:
         proc: StatsPluginInterface = None,
         apply_eodatasets3: Optional[bool] = False,
     ) -> Delayed:
-
         if apply_eodatasets3:
             return self.dump_with_eodatasets3(task, ds, aux, proc)
         else:

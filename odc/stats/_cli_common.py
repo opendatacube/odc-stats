@@ -69,7 +69,6 @@ def parse_all_tasks(
 
 
 def parse_resolution(s: str, separator: str = ",") -> Tuple[float, float]:
-
     parts = [float(v) for v in split_and_check(s, separator, (1, 2))]
 
     if len(parts) == 1:

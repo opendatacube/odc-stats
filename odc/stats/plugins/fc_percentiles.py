@@ -17,7 +17,6 @@ NODATA = 255
 
 
 class StatsFCP(StatsPluginInterface):
-
     NAME = "ga_fc_percentiles"
     SHORT_NAME = NAME
     VERSION = "0.0.3"

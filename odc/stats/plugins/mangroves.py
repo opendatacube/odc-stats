@@ -17,7 +17,6 @@ NODATA = 255
 
 
 class Mangroves(StatsPluginInterface):
-
     NAME = "mangroves"
     SHORT_NAME = NAME
     VERSION = "0.0.2"
