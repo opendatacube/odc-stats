@@ -11,8 +11,8 @@ odc-stats --version
 
 echo "Test GeoMAD"
 
-odc-stats save-tasks --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/361982fc9c5fe8d5f91b2fc3f9e8327373d58048/dev/services/odc-stats/geomedian/ga_ls8c_nbart_gm_cyear_3.yaml --year=2015 --tiles 49:50,24:25 --overwrite geomad-cyear.db
-odc-stats run  --threads=1 --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/361982fc9c5fe8d5f91b2fc3f9e8327373d58048/dev/services/odc-stats/geomedian/ga_ls8c_nbart_gm_cyear_3.yaml --location file:///tmp --overwrite geomad-cyear.db
+odc-stats save-tasks --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/master/dev/services/odc-stats/geomedian/ga_ls8c_nbart_gm_cyear_3.yaml --year=2015 --tiles 49:50,24:25 --overwrite geomad-cyear.db
+odc-stats run  --threads=1 --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/master/dev/services/odc-stats/geomedian/ga_ls8c_nbart_gm_cyear_3.yaml --location file:///tmp --overwrite geomad-cyear.db
 
 ./tests/compare_data.sh /tmp/x49/y24/ ga_ls8c_nbart_gm_cyear_3_x49y24_2015--P1Y_final*.tif
 
