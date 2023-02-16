@@ -131,7 +131,7 @@ class StatsGMS2(StatsGM):
         self,
         bands: Optional[Tuple[str, ...]] = None,
         mask_band: str = "SCL",
-        nodata_classes: Optional[Tuple[str, ...]] = ("nodata",),
+        nodata_classes: Optional[Tuple[str, ...]] = ("no data",),
         cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
         aux_names: Dict[str, str] = None,
         rgb_bands=None,
