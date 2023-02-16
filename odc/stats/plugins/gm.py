@@ -93,7 +93,7 @@ class StatsGM(StatsPluginInterface):
             bad = cloud_shadow_mask | bad
             _log.info("Applying cloud/shadow mask without buffering.")
 
-        xx = xx.drop_vars([self._mask_band] + ["nbart_contiguity"], errors='ignore')
+        xx = xx.drop_vars([self._mask_band] + ["nbart_contiguity"], errors="ignore")
         xx = keep_good_only(xx, ~bad)
         return xx
 
