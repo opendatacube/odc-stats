@@ -93,7 +93,7 @@ class StatsGM(StatsPluginInterface):
             bad = cloud_shadow_mask | bad
             _log.info("Applying cloud/shadow mask without buffering.")
 
-        xx = xx.drop_vars([self._mask_band] + ["nbart_contiguity"])
+        xx = xx.drop_vars([self._mask_band] + ["nbart_contiguity"], errors="ignore")
         xx = keep_good_only(xx, ~bad)
         return xx
 
@@ -131,6 +131,7 @@ class StatsGMS2(StatsGM):
         self,
         bands: Optional[Tuple[str, ...]] = None,
         mask_band: str = "SCL",
+        nodata_classes: Optional[Tuple[str, ...]] = ("no data",),
         cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
         aux_names: Dict[str, str] = None,
         rgb_bands=None,
@@ -172,6 +173,7 @@ class StatsGMS2(StatsGM):
         super().__init__(
             bands=bands,
             mask_band=mask_band,
+            nodata_classes=nodata_classes,
             cloud_filters=cloud_filters,
             aux_names=aux_names,
             rgb_bands=rgb_bands,
