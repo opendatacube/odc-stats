@@ -108,3 +108,4 @@ jobs:
           password: ${{ secrets.GADOCKERSVC_PASSWORD }}
           image_name: ${{ env.IMAGE_NAME }}
           image_tag: latest,${{ needs.set_tags.outputs.image_tag }}
+          build_extra_args: '{"--build-arg": "UPDATE_VERSION=${{ needs.set_tags.outputs.image_tag }}"}'
