@@ -8,6 +8,7 @@ RUN micromamba create  -y -p /env -f /conf/env.yaml && \
 
 
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
+ARG UPDATE_VERSION=1
 COPY requirements.txt /conf/
 RUN micromamba run -p /env pip install --no-cache-dir \
     --no-build-isolation -r /conf/requirements.txt
