@@ -88,7 +88,7 @@ class StatsGM(StatsPluginInterface):
 
         if self.cloud_filters is not None:
             for cloud_class, c_filter in self.cloud_filters.items():
-                if type(cloud_class) is tuple:
+                if isinstance(cloud_class, tuple):
                     cloud_mask = enum_to_bool(mask, cloud_class)
                 else:
                     cloud_mask = enum_to_bool(mask, (cloud_class,))
