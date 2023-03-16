@@ -22,8 +22,9 @@ class StatsGM(StatsPluginInterface):
         self,
         bands: Tuple[str, ...],
         mask_band: str,
+        contiguity_band: Optional[str] = None,
         nodata_classes: Optional[Tuple[str, ...]] = None,
-        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
+        cloud_filters: Dict[Tuple[str, ...], Iterable[Tuple[str, int]]] = None,
         basis_band=None,
         aux_names: Dict[str, str] = None,
         resampling: str = "nearest",
@@ -37,6 +38,7 @@ class StatsGM(StatsPluginInterface):
         )
         self.bands = tuple(bands)
         self._mask_band = mask_band
+        self._contiguity_band = contiguity_band
         if nodata_classes is not None:
             nodata_classes = tuple(nodata_classes)
         self._nodata_classes = nodata_classes
@@ -76,24 +78,32 @@ class StatsGM(StatsPluginInterface):
         if self._mask_band not in xx.data_vars:
             return xx
 
-        # Apply the contiguity flag
-        non_contiguent = xx.get("nbart_contiguity", 1) == 0
-
         # Erase Data Pixels for which mask == nodata
         mask = xx[self._mask_band]
         bad = enum_to_bool(mask, self._nodata_classes)
-        bad = bad | non_contiguent
+        # Apply the contiguity flag
+        if self._contiguity_band is not None:
+            non_contiguent = xx.get(self._contiguity_band, 1) == 0
+            bad = bad | non_contiguent
+
         if self.cloud_filters is not None:
             for cloud_class, c_filter in self.cloud_filters.items():
-                cloud_mask = enum_to_bool(mask, (cloud_class,))
-                cloud_mask_buffered = mask_cleanup(cloud_mask, mask_filters=c_filter)
+                if type(cloud_class) is tuple:
+                    cloud_mask = enum_to_bool(mask, cloud_class)
+                else:
+                    cloud_mask = enum_to_bool(mask, (cloud_class,))
+                cloud_mask_buffered = mask_cleanup(
+                    cloud_mask, mask_filters=c_filter)
                 bad = cloud_mask_buffered | bad
         else:
             cloud_shadow_mask = enum_to_bool(mask, ("cloud", "shadow"))
             bad = cloud_shadow_mask | bad
             _log.info("Applying cloud/shadow mask without buffering.")
 
-        xx = xx.drop_vars([self._mask_band] + ["nbart_contiguity"], errors="ignore")
+        if self._contiguity_band is not None:
+            xx = xx.drop_vars([self._mask_band] + [self._contiguity_band])
+        else:
+            xx = xx.drop_vars([self._mask_band])
         xx = keep_good_only(xx, ~bad)
         return xx
 
@@ -132,17 +142,14 @@ class StatsGMS2(StatsGM):
         bands: Optional[Tuple[str, ...]] = None,
         mask_band: str = "SCL",
         nodata_classes: Optional[Tuple[str, ...]] = ("no data",),
-        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
+        cloud_filters: Dict[Tuple[str, ...], Iterable[Tuple[str, int]]] = None,
         aux_names: Dict[str, str] = None,
         rgb_bands=None,
         **kwargs,
     ):
         cloud_filters = (
             {
-                "cloud shadows": self.DEFAULT_FILTER,
-                "cloud medium probability": self.DEFAULT_FILTER,
-                "cloud high probability": self.DEFAULT_FILTER,
-                "thin cirrus": self.DEFAULT_FILTER,
+                ("cloud shadows", "cloud medium probability", "cloud high probability", "thin cirrus"): self.DEFAULT_FILTER,
             }
             if cloud_filters is None
             else cloud_filters
@@ -194,8 +201,9 @@ class StatsGMLS(StatsGM):
         self,
         bands: Optional[Tuple[str, ...]] = None,
         mask_band: str = "fmask",
+        contiguity_band: str = "nbart_contiguity",
         nodata_classes: Optional[Tuple[str, ...]] = ("nodata",),
-        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
+        cloud_filters: Dict[Tuple[str, ...], Iterable[Tuple[str, int]]] = None,
         aux_names: Dict[str, str] = None,
         rgb_bands=None,
         **kwargs,
@@ -227,6 +235,7 @@ class StatsGMLS(StatsGM):
         super().__init__(
             bands=bands,
             mask_band=mask_band,
+            contiguity_band=contiguity_band,
             cloud_filters=cloud_filters,
             nodata_classes=nodata_classes,
             aux_names=aux_names,
@@ -236,7 +245,7 @@ class StatsGMLS(StatsGM):
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        return tuple(b for b in self.bands if b != "nbart_contiguity") + self.aux_bands
+        return tuple(b for b in self.bands if b != self._contiguity_band) + self.aux_bands
 
 
 register("gm-ls", StatsGMLS)
