@@ -92,8 +92,7 @@ class StatsGM(StatsPluginInterface):
                     cloud_mask = enum_to_bool(mask, cloud_class)
                 else:
                     cloud_mask = enum_to_bool(mask, (cloud_class,))
-                cloud_mask_buffered = mask_cleanup(
-                    cloud_mask, mask_filters=c_filter)
+                cloud_mask_buffered = mask_cleanup(cloud_mask, mask_filters=c_filter)
                 bad = cloud_mask_buffered | bad
         else:
             cloud_shadow_mask = enum_to_bool(mask, ("cloud", "shadow"))
@@ -149,7 +148,12 @@ class StatsGMS2(StatsGM):
     ):
         cloud_filters = (
             {
-                ("cloud shadows", "cloud medium probability", "cloud high probability", "thin cirrus"): self.DEFAULT_FILTER,
+                (
+                    "cloud shadows",
+                    "cloud medium probability",
+                    "cloud high probability",
+                    "thin cirrus",
+                ): self.DEFAULT_FILTER,
             }
             if cloud_filters is None
             else cloud_filters
@@ -245,7 +249,9 @@ class StatsGMLS(StatsGM):
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        return tuple(b for b in self.bands if b != self._contiguity_band) + self.aux_bands
+        return (
+            tuple(b for b in self.bands if b != self._contiguity_band) + self.aux_bands
+        )
 
 
 register("gm-ls", StatsGMLS)
