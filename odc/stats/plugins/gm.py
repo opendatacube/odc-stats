@@ -5,7 +5,7 @@ from typing import Optional, Union, Tuple, Iterable, Dict
 import xarray as xr
 from odc.algo import geomedian_with_mads
 from ._registry import StatsPluginInterface, register
-from odc.algo import enum_to_bool, keep_good_only
+from odc.algo import enum_to_bool, erase_bad
 from odc.algo import mask_cleanup
 import logging
 
@@ -104,7 +104,7 @@ class StatsGM(StatsPluginInterface):
             xx = xx.drop_vars([self._mask_band] + [self._contiguity_band])
         else:
             xx = xx.drop_vars([self._mask_band])
-        xx = keep_good_only(xx, ~bad)
+        xx = erase_bad(xx, bad)
         return xx
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
