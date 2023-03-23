@@ -88,10 +88,9 @@ class StatsGM(StatsPluginInterface):
 
         if self.cloud_filters is not None:
             for cloud_class, c_filter in self.cloud_filters.items():
-                if isinstance(cloud_class, tuple):
-                    cloud_mask = enum_to_bool(mask, cloud_class)
-                else:
-                    cloud_mask = enum_to_bool(mask, (cloud_class,))
+                if not isinstance(cloud_class, tuple):
+                    cloud_class = (cloud_class,)
+                cloud_mask = enum_to_bool(mask, cloud_class)
                 cloud_mask_buffered = mask_cleanup(cloud_mask, mask_filters=c_filter)
                 bad = cloud_mask_buffered | bad
         else:
