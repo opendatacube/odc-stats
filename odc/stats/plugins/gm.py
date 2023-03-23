@@ -142,7 +142,9 @@ class StatsGMS2(StatsGM):
         bands: Optional[Tuple[str, ...]] = None,
         mask_band: str = "SCL",
         nodata_classes: Optional[Tuple[str, ...]] = ("no data",),
-        cloud_filters: Dict[Union[str, Tuple[str, ...]], Iterable[Tuple[str, int]]] = None,
+        cloud_filters: Dict[
+            Union[str, Tuple[str, ...]], Iterable[Tuple[str, int]]
+        ] = None,
         aux_names: Dict[str, str] = None,
         rgb_bands=None,
         **kwargs,
@@ -208,7 +210,9 @@ class StatsGMLS(StatsGM):
         mask_band: str = "fmask",
         contiguity_band: str = "nbart_contiguity",
         nodata_classes: Optional[Tuple[str, ...]] = ("nodata",),
-        cloud_filters: Dict[Union[str, Tuple[str, ...]], Iterable[Tuple[str, int]]] = None,
+        cloud_filters: Dict[
+            Union[str, Tuple[str, ...]], Iterable[Tuple[str, int]]
+        ] = None,
         aux_names: Dict[str, str] = None,
         rgb_bands=None,
         **kwargs,
