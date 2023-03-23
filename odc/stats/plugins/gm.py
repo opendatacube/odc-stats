@@ -24,7 +24,9 @@ class StatsGM(StatsPluginInterface):
         mask_band: str,
         contiguity_band: Optional[str] = None,
         nodata_classes: Optional[Tuple[str, ...]] = None,
-        cloud_filters: Dict[Union[str, Tuple[str, ...]], Iterable[Tuple[str, int]]] = None,
+        cloud_filters: Dict[
+            Union[str, Tuple[str, ...]], Iterable[Tuple[str, int]]
+        ] = None,
         basis_band=None,
         aux_names: Dict[str, str] = None,
         resampling: str = "nearest",
