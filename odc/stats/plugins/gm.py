@@ -111,7 +111,7 @@ class StatsGM(StatsPluginInterface):
         if self._mask_band == "SCL":
             valid_data_mask = (xx > 1).to_array(dim="band").all(dim="band")
             xx = keep_good_only(xx, where=valid_data_mask)
-            
+        
         return xx
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
