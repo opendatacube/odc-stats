@@ -5,7 +5,7 @@ from typing import Optional, Union, Tuple, Iterable, Dict
 import xarray as xr
 from odc.algo import geomedian_with_mads
 from ._registry import StatsPluginInterface, register
-from odc.algo import enum_to_bool, erase_bad
+from odc.algo import enum_to_bool, erase_bad, keep_good_only
 from odc.algo import mask_cleanup
 import logging
 
@@ -104,7 +104,14 @@ class StatsGM(StatsPluginInterface):
             xx = xx.drop_vars([self._mask_band] + [self._contiguity_band])
         else:
             xx = xx.drop_vars([self._mask_band])
+        
+        # Remove sentinel-2 pixels valued 1 (scene edges, terrain shadow)
+        if self._mask_band == "SCL":
+            edges_shadow_mask = (xx <= 1).to_array(dim="band").all(dim="band")
+            bad = edges_shadow_mask | bad    
+        
         xx = erase_bad(xx, bad)
+            
         return xx
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
