@@ -104,14 +104,14 @@ class StatsGM(StatsPluginInterface):
             xx = xx.drop_vars([self._mask_band] + [self._contiguity_band])
         else:
             xx = xx.drop_vars([self._mask_band])
-         
+
         xx = erase_bad(xx, bad)
-        
+
         # Remove sentinel-2 pixels valued 1 (scene edges, terrain shadow)
         if self._mask_band == "SCL":
             valid_data_mask = (xx > 1).to_array(dim="band").all(dim="band")
             xx = keep_good_only(xx, where=valid_data_mask)
-        
+
         return xx
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
