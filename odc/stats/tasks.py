@@ -187,7 +187,7 @@ class SaveTasks:
 
         product_list = re.split(r"\+|-", products)
         product_list = list(filter(None, product_list))
-        group_size = re.findall(r"\+", products)
+        group_size = len(re.findall(r"\+", products))
 
         query.update(dict(product=product_list, **dataset_filter))
         dss = ordered_dss(
@@ -203,7 +203,7 @@ class SaveTasks:
             products = [
                 dc.index.products.get_by_name(product) for product in product_list
             ]
-            dss = cls.ds_align(dss, products, group_size)
+            dss = cls.ds_align(dss, products, group_size + 1)
 
         if predicate is not None:
             dss = filter(predicate, dss)
