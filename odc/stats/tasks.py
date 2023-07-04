@@ -178,6 +178,12 @@ class SaveTasks:
         dataset_filter=None,
         predicate=None,
     ):
+        """
+        query and filter the datasets with a string composed by products name
+        A string joined by `-` implies union of all datasets
+        A string joined by `+` implies intersect (filtered and then groupby) time
+        return a generator of datasets
+        """
         if dataset_filter is None:
             dataset_filter = {}
 
@@ -185,9 +191,22 @@ class SaveTasks:
         # but it is embedded in the code everywhere
         # mark it for ref
 
-        product_list = re.split(r"\+|-", products)
-        product_list = list(filter(None, product_list))
-        group_size = len(re.findall(r"\+", products))
+        def sanitize_products_str(products_str):
+            """
+            split a string composed by product names into a list of product names
+            e.g., ga_ls8-ga_ls7 -> [ga_ls8, ga_ls7]
+            rules:
+            1. Any separator (`+/-`) at the start or the end is disregarded
+            2. Multiple same separators between the product names are treated as one
+            3. Multiple different separators between the product names is respected by left-right order
+            e.g., ga_ls8+-ga_ls7 -> separator is `+` as `+` proceeds `-` from left to right
+            """
+            product_list = re.split(r"\+|-", products_str)
+            product_list = list(filter(None, product_list))
+            group_size = len(re.findall(r"\w\+{1,}[\w-]", products_str))
+            return product_list, group_size
+
+        product_list, group_size = sanitize_products_str(products)
 
         query.update(dict(product=product_list, **dataset_filter))
         dss = ordered_dss(
@@ -210,7 +229,7 @@ class SaveTasks:
 
         return dss
 
-    def _get_dss(
+    def get_dss_by_grid(
         self,
         dc: Datacube,
         products: str,
@@ -301,7 +320,7 @@ class SaveTasks:
         if isinstance(temporal_range, str):
             temporal_range = DateTimeRange(temporal_range)
 
-        dss, cfg = self._get_dss(
+        dss, cfg = self.get_dss_by_grid(
             dc, products, msg, dataset_filter, predicate, temporal_range, tiles
         )
 
