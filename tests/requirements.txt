@@ -1,5 +1,5 @@
 --extra-index-url https://packages.dea.ga.gov.au/
-datacube<=1.8.13
+datacube!=1.8.14
 # for pytest-depends
 deepdiff
 future_fstrings
