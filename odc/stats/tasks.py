@@ -177,11 +177,12 @@ class SaveTasks:
         query: Dict[str, Any],
         dataset_filter=None,
         predicate=None,
+        fuse_dss: bool = True,
     ):
         """
         query and filter the datasets with a string composed by products name
         A string joined by `-` implies union of all datasets
-        A string joined by `+` implies intersect (filtered and then groupby) time
+        A string joined by `+` implies intersect (filtered and then groupby) against time
         return a generator of datasets
         """
         if dataset_filter is None:
@@ -201,9 +202,9 @@ class SaveTasks:
             3. Multiple different separators between the product names is respected by left-right order
             e.g., ga_ls8+-ga_ls7 -> separator is `+` as `+` proceeds `-` from left to right
             """
-            product_list = re.split(r"\+|-", products_str)
+            product_list = re.split(r"[\+-]{1,}", products_str)
             product_list = list(filter(None, product_list))
-            group_size = len(re.findall(r"\w\+{1,}[\w-]", products_str))
+            group_size = len(re.findall(r"\w{1,}\+[-\+]{0,}\w{1,}", products_str))
             return product_list, group_size
 
         product_list, group_size = sanitize_products_str(products)
@@ -222,7 +223,7 @@ class SaveTasks:
             products = [
                 dc.index.products.get_by_name(product) for product in product_list
             ]
-            dss = cls.ds_align(dss, products, group_size + 1)
+            dss = cls.ds_align(dss, products, group_size + 1, fuse_dss)
 
         if predicate is not None:
             dss = filter(predicate, dss)
