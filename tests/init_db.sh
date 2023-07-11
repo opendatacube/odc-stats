@@ -16,6 +16,13 @@ s3-to-dc "s3://dea-public-data/baseline/ga_ls8c_ard_3/089/079/2015/03/*/*.json" 
 s3-to-dc "s3://dea-public-data/baseline/ga_ls8c_ard_3/089/079/2015/04/*/*.json" --no-sign-request --skip-lineage --stac ga_ls8c_ard_3
 s3-to-dc "s3://dea-public-data/baseline/ga_ls8c_ard_3/089/079/2015/05/*/*.json" --no-sign-request --skip-lineage --stac ga_ls8c_ard_3
 
+datacube product add https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/master/products/baseline_satellite_data/c3/ga_ls7e_ard_3.odc-product.yaml
+
+s3-to-dc "s3://dea-public-data/baseline/ga_ls7e_ard_3/089/079/2015/02/*/*.json" --no-sign-request --skip-lineage --stac ga_ls7e_ard_3
+s3-to-dc "s3://dea-public-data/baseline/ga_ls7e_ard_3/089/079/2015/03/*/*.json" --no-sign-request --skip-lineage --stac ga_ls7e_ard_3
+s3-to-dc "s3://dea-public-data/baseline/ga_ls7e_ard_3/089/079/2015/04/*/*.json" --no-sign-request --skip-lineage --stac ga_ls7e_ard_3
+s3-to-dc "s3://dea-public-data/baseline/ga_ls7e_ard_3/089/079/2015/05/*/*.json" --no-sign-request --skip-lineage --stac ga_ls7e_ard_3
+
 # LS WO
 datacube product add https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/master/products/inland_water/c3_wo/ga_ls_wo_3.odc-product.yaml
 

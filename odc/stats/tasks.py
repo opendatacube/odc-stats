@@ -136,11 +136,18 @@ class SaveTasks:
     def out_path(self, suffix: str) -> str:
         return out_path(suffix, self._output)
 
-    def ds_align(self, dss: Iterable, product: DatasetType, group_size: int):
+    @classmethod
+    def ds_align(
+        cls,
+        dss: Iterable,
+        products: List[DatasetType],
+        group_size: int,
+        fuse_dss: bool = True,
+    ):
         def match_dss(groups, group_size):
             for _, ds_group in groups:
                 ds_group = tuple(ds_group)
-                if len(ds_group) == group_size:
+                if len(ds_group) >= group_size:
                     yield ds_group
 
         grouped_dss = groupby(
@@ -151,18 +158,85 @@ class SaveTasks:
         )
         grouped_dss = match_dss(grouped_dss, group_size)
 
-        def map_fuse_func(x):
-            return fuse_ds(*x, product=product)
+        if fuse_dss:
+            fused_product = fuse_products(*products)
 
-        dss = map(map_fuse_func, grouped_dss)
+            def map_fuse_func(x):
+                return fuse_ds(*x, product=fused_product)
+
+            dss = map(map_fuse_func, grouped_dss)
+            return dss
+        else:
+            return grouped_dss
+
+    @classmethod
+    def _find_dss(
+        cls,
+        dc: Datacube,
+        products: str,
+        query: Dict[str, Any],
+        dataset_filter=None,
+        predicate=None,
+        fuse_dss: bool = True,
+    ):
+        """
+        query and filter the datasets with a string composed by products name
+        A string joined by `-` implies union of all datasets
+        A string joined by `+` implies intersect (filtered and then groupby) against time
+        return a generator of datasets
+        """
+        if dataset_filter is None:
+            dataset_filter = {}
+
+        # query by a list of products is not a "officially" supported feature
+        # but it is embedded in the code everywhere
+        # mark it for ref
+
+        def sanitize_products_str(products_str):
+            """
+            split a string composed by product names into a list of product names
+            e.g., ga_ls8-ga_ls7 -> [ga_ls8, ga_ls7]
+            rules:
+            1. Any separator (`+/-`) at the start or the end is disregarded
+            2. Multiple same separators between the product names are treated as one
+            3. Multiple different separators between the product names is respected by left-right order
+            e.g., ga_ls8+-ga_ls7 -> separator is `+` as `+` proceeds `-` from left to right
+            """
+            product_list = re.split(r"[\+-]{1,}", products_str)
+            product_list = list(filter(None, product_list))
+            group_size = len(re.findall(r"\w{1,}\+[-\+]{0,}\w{1,}", products_str))
+            return product_list, group_size
+
+        product_list, group_size = sanitize_products_str(products)
+
+        query.update(dict(product=product_list, **dataset_filter))
+        dss = ordered_dss(
+            dc,
+            freq="y",
+            key=lambda ds: (ds.center_time, ds.metadata.region_code)
+            if hasattr(ds.metadata, "region_code")
+            else (ds.center_time,),
+            **query,
+        )
+
+        if group_size > 0:
+            products = [
+                dc.index.products.get_by_name(product) for product in product_list
+            ]
+            dss = cls.ds_align(dss, products, group_size + 1, fuse_dss)
+
+        if predicate is not None:
+            dss = filter(predicate, dss)
+
         return dss
 
-    def _get_dss(
+    def get_dss_by_grid(
         self,
         dc: Datacube,
-        products: list,
+        products: str,
         msg: Callable[[str], Any],
         dataset_filter=None,
+        predicate=None,
         temporal_range: Optional[DateTimeRange] = None,
         tiles: Optional[TilesRange2d] = None,
     ):
@@ -173,17 +247,12 @@ class SaveTasks:
         - a config dictionary containing the product, temporal range, tiles, and the datacube query used
         """
 
-        if dataset_filter is None:
-            dataset_filter = {}
         cfg: Dict[str, Any] = dict(
             grid=self._grid,
             freq=self._frequency,
         )
 
-        # query by a list of products is not a "officially" supported feature
-        # but it is embedded in the code everywhere
-        # mark it for ref
-        query = dict(product=products, **dataset_filter)
+        query = {}
 
         if tiles is not None:
             (x0, x1), (y0, y1) = tiles
@@ -197,17 +266,10 @@ class SaveTasks:
             )  # pad a bit more than half a day on each side
             cfg["temporal_range"] = temporal_range.short
 
+        msg("Connecting to the database, streaming datasets")
+        dss = self._find_dss(dc, products, query, dataset_filter, predicate)
         cfg["query"] = sanitize_query(query)
 
-        msg("Connecting to the database, streaming datasets")
-        dss = ordered_dss(
-            dc,
-            freq="y",
-            key=lambda ds: (ds.center_time, ds.metadata.region_code)
-            if hasattr(ds.metadata, "region_code")
-            else (ds.center_time,),
-            **query,
-        )
         return dss, cfg
 
     def save(
@@ -232,8 +294,6 @@ class SaveTasks:
         """
         # pylint:disable=too-many-locals,too-many-branches,too-many-statements
 
-        if dataset_filter is None:
-            dataset_filter = {}
         if DatasetCache.exists(self._output) and self._overwrite is False:
             raise ValueError(f"File database already exists: {self._output}")
 
@@ -261,20 +321,9 @@ class SaveTasks:
         if isinstance(temporal_range, str):
             temporal_range = DateTimeRange(temporal_range)
 
-        product_list = re.split(r"\+|-", products)
-        product_list = list(filter(None, product_list))
-        dss, cfg = self._get_dss(
-            dc, product_list, msg, dataset_filter, temporal_range, tiles
+        dss, cfg = self.get_dss_by_grid(
+            dc, products, msg, dataset_filter, predicate, temporal_range, tiles
         )
-        if "+" in products:
-            products = [
-                dc.index.products.get_by_name(product) for product in product_list
-            ]
-            fused_product = fuse_products(*products)
-            dss = self.ds_align(dss, fused_product, len(products))
-
-        if predicate is not None:
-            dss = filter(predicate, dss)
 
         dss_slice = list(islice(dss, 0, 100))
         if len(dss_slice) == 0:
