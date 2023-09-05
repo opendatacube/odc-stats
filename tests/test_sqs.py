@@ -13,7 +13,7 @@ from odc.stats.tasks import TaskReader, render_sqs
 
 def test_geojson(test_geom_path):
     geometry = get_geometry(test_geom_path)
-    assert type(geometry) == Geometry
+    assert isinstance(geometry, Geometry)
 
 
 def test_partition_area(test_db_filter_path, test_geom_path):
