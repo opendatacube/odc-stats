@@ -3,12 +3,12 @@
 datacube[performance,s3]>=1.8.11
 hdstats==0.1.8.post1
 odc-algo==0.2.4.dev3628
-odc-apps-cloud==0.2.1
+odc-apps-cloud==0.2.2
 # For testing
-odc-apps-dc-tools==0.2.4
-odc-cloud==0.2.1
+odc-apps-dc-tools==0.2.12
+odc-cloud==0.2.3
 odc-dscache==0.2.2
-odc-stac==0.3.5
+odc-stac==0.3.6
 
 # odc-stac is in PyPI
 odc-stats[ows]
