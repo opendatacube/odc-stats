@@ -229,7 +229,7 @@ class TaskRunner:
             )
 
             _log.debug("Submitting to Dask (%s)", task.location)
-            ds = client.persist(ds, fifo_timeout="1ms")
+            # ds = client.persist(ds, fifo_timeout="1ms")
 
             aux: Optional[xr.Dataset] = None
 
