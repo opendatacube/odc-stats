@@ -11,8 +11,7 @@ from ._stac_fetch import s3_fetch_dss
 @click.argument("output", type=str)
 @click.option("--bands", type=str)
 @click.option("--resampling", type=str, default="average")
-@click.option("--verbose", "-v", is_flag=True, help="Be verbose")
-def generate_mosaic(input_glob, output, bands, resampling, verbose):
+def generate_mosaic(input_glob, output, bands, resampling):
     """
     Generate mosaic overviews of the stats data.
 
@@ -20,8 +19,7 @@ def generate_mosaic(input_glob, output, bands, resampling, verbose):
     """
     bands = bands.split(",")
 
-    if verbose:
-        print(f"Preparing mosaics from: '{input_glob}'")
+    print(f"Preparing mosaics from: '{input_glob}'")
 
     dss = s3_fetch_dss(input_glob)
 
@@ -33,8 +31,7 @@ def generate_mosaic(input_glob, output, bands, resampling, verbose):
         measurements=bands,
     )
 
-    if verbose:
-        print(f"Writing {output}")
+    print(f"Writing {output}")
 
     xx = xx.squeeze("time").to_stacked_array("bands", ["x", "y"])
     yy = save_cog(

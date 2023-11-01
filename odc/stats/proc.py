@@ -28,6 +28,14 @@ Future = Any
 
 
 class TaskRunner:
+    """
+    Runs one or more Stats Tasks.
+
+    Typically used as a singleton object from the `odc-stats` cli.
+
+    Manages the
+    """
+
     def __init__(
         self,
         cfg: TaskRunnerConfig,
@@ -74,14 +82,11 @@ class TaskRunner:
         self._client = None
 
     def _init_dask(self) -> Client:
-        cfg = self._cfg
-        _log = self._log
-
-        nthreads = cfg.threads
+        nthreads = self._cfg.threads
         if nthreads <= 0:
             nthreads = get_max_cpu()
 
-        memory_limit: Union[str, int] = cfg.memory_limit
+        memory_limit: Union[str, int] = self._cfg.memory_limit
         if memory_limit == "":
             mem_1g = 1 << 30
             memory_limit = get_max_mem()
@@ -93,11 +98,12 @@ class TaskRunner:
             threads_per_worker=nthreads, processes=False, memory_limit=memory_limit
         )
         aws_unsigned = self._cfg.aws_unsigned
+        # Setup AWS Access for both the current process AND the Dask Cluster
         for c in (None, client):
             configure_s3_access(
                 aws_unsigned=aws_unsigned, cloud_defaults=True, client=c
             )
-        _log.info("Started local Dask %s", client)
+        self._log.info("Started local Dask %s", client)
 
         return client
 
