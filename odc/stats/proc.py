@@ -8,7 +8,8 @@ from typing import (
     Tuple,
     Union,
 )
-from dask.distributed import Client
+from contextlib import nullcontext
+from dask.distributed import Client, performance_report
 from datetime import datetime
 import xarray as xr
 import math
@@ -42,7 +43,6 @@ class TaskRunner:
         resolution: Optional[Tuple[float, float]] = None,
         from_sqs: Optional[str] = "",
     ):
-        """ """
         _log = logging.getLogger(__name__)
         self._cfg = cfg
         self._log = _log
@@ -299,11 +299,18 @@ class TaskRunner:
         cfg = self._cfg
         _log = self._log
 
+        if cfg.record_profile:
+            _log.info("Recording dask profiling report into: %s", cfg.record_profile)
+            context_manager = performance_report(filename=cfg.record_profile)
+        else:
+            context_manager = nullcontext()
+
         if tasks is not None:
             _log.info("Starting processing from task list")
-            return self._run(
-                self.tasks(tasks, ds_filters=ds_filters), apply_eodatasets3
-            )
+            with context_manager:
+                return self._run(
+                    self.tasks(tasks, ds_filters=ds_filters), apply_eodatasets3
+                )
         if sqs is not None:
             _log.info(
                 "Processing from SQS: %s, T:%s M:%s seconds",
@@ -311,14 +318,15 @@ class TaskRunner:
                 cfg.job_queue_max_lease,
                 cfg.renew_safety_margin,
             )
-            return self._run(
-                self.rdr.stream_from_sqs(
-                    sqs,
-                    visibility_timeout=cfg.job_queue_max_lease,
-                    ds_filters=ds_filters,
-                ),
-                apply_eodatasets3,
-            )
+            with context_manager:
+                return self._run(
+                    self.rdr.stream_from_sqs(
+                        sqs,
+                        visibility_timeout=cfg.job_queue_max_lease,
+                        ds_filters=ds_filters,
+                    ),
+                    apply_eodatasets3,
+                )
         raise ValueError("Must supply one of tasks= or sqs=")
 
 

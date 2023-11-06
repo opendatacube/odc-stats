@@ -701,6 +701,9 @@ class TaskRunnerConfig:  # pylint:disable=too-many-instance-attributes
     # Heartbeat filepath
     heartbeat_filepath: Optional[str] = None
 
+    # Record a Dask HTML Profile to this path
+    record_profile: Optional[str] = None
+
     # Terminate task if running longer than this amount (seconds)
     max_processing_time: int = 0
 

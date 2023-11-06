@@ -45,7 +45,7 @@ CONFIG_ITEMS = [
 )
 @click.option(
     "--heartbeat-filepath",
-    type=str,
+    type=click.Path(),
     help="Path to store pod's heartbeats when running stats as K8 jobs",
 )
 @click.option(
@@ -82,6 +82,11 @@ CONFIG_ITEMS = [
 @click_yaml_cfg(
     "--plugin-config", help="Config for plugin in yaml format, file or text"
 )
+@click.option(
+    "--record-profile",
+    type=click.Path(dir_okay=False),
+    help="Record profiling information to a local HTML file",
+)
 @click_yaml_cfg("--cog-config", help="Configure COG options")
 @click.option("--resampling", type=str, help="Input resampling strategy, e.g. average")
 @click_resolution("--resolution", help="Override output resolution")
@@ -105,6 +110,7 @@ def run(
     overwrite,
     public,
     location,
+    record_profile,
     max_processing_time,
     heartbeat_filepath,
     dataset_filters,
