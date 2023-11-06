@@ -103,6 +103,8 @@ class S3COGSink:
         public: bool = False,
     ):
         """
+        Write a set of dataset files to S3 or Filesystem based on an input dask delayed graph.
+
         :param creds: S3 write credentials
         :param cog_opts: Configure compression settings, globally and per-band
         :param acl: Canned ACL string:

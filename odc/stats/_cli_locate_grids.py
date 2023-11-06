@@ -44,12 +44,11 @@ def locate_grids(grid_shape, extent_shape, attr_filter):
 @click.argument("grid-shape", type=str)
 @click.argument("extent-shape", type=str)
 @click.argument("csv-path", type=str, required=False)
-@click.option("--verbose", "-v", is_flag=True, help="Be verbose")
-def cli(attr_filter, grid_shape, extent_shape, csv_path, verbose):
+def cli(attr_filter, grid_shape, extent_shape, csv_path):
     """
     Generate a list of grids overlapping with the input shape extent
 
-    GRID_SHAPE is the geojson or ESRI shape file of the grids.
+    GRID_SHAPE is the GeoJSON or ESRI shape file of the grids.
 
     EXTENT_SHAPE is the ESRI shape file where the extent covers the grids.
 
@@ -68,8 +67,10 @@ def cli(attr_filter, grid_shape, extent_shape, csv_path, verbose):
     if csv_path is None:
         tmp_path = tempfile.gettempdir()
         csv_path = path.join(tmp_path, "extent_grids.csv")
+
     with open(csv_path, "w", encoding="utf8") as f:
         f.write(csv_buffer.read())
+
     print("Results saved to", csv_path)
 
 

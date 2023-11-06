@@ -69,7 +69,7 @@ CONFIG_ITEMS = [
     ),
 )
 @click.option(
-    "--location", type=str, help="Output location prefix as a uri: s3://bucket/path/"
+    "--location", type=str, help="Output location prefix as a URI: s3://bucket/path/"
 )
 @click.option("--max-processing-time", type=int, help="Max seconds per task")
 @click.option("--from-sqs", type=str, help="Read tasks from SQS", default="")

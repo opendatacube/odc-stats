@@ -19,14 +19,27 @@ CONFIG_ITEMS = [
     "dataset_filter",
 ]
 
+VALID_FREQUENCIES = (
+    "annual",
+    "annual-fy",
+    "semiannual",
+    "seasonal",
+    "quartely",
+    "3month-seasons",
+    "rolling-3months",
+    "nov-mar",
+    "apr-oct",
+    "all",
+)
+
 
 @main.command("save-tasks")
 @click.option(
     "--grid",
     type=str,
     help=(
-        "Grid name or spec: au-{10|20|30|60},africa-{10|20|30|60},"
-        "albers-au-25 (legacy one) 'crs;pixel_resolution;shape_in_pixels'"
+        "\b\nGrid Name: au-{10|20|30|60},africa-{10|20|30|60},albers-au-25 (legacy) or\n"
+        "Grid Spec: eg. 'crs;pixel_resolution;shape_in_pixels'"
     ),
     default=None,
 )
@@ -34,7 +47,8 @@ CONFIG_ITEMS = [
     "--year",
     type=int,
     help=(
-        "Only extract datasets for a given year."
+        "\b\n"
+        "Only extract datasets for a given year. \n"
         "This is a shortcut for --temporal-range=<int>--P1Y"
     ),
 )
@@ -42,17 +56,15 @@ CONFIG_ITEMS = [
     "--temporal-range",
     type=str,
     help=(
-        "Only extract datasets for a given time range,"
+        "\b\n"
+        "Only extract datasets for a given time range, \n"
         "Example '2020-05--P1M' month of May 2020"
     ),
 )
 @click.option(
     "--frequency",
     type=str,
-    help=(
-        "Specify temporal binning: "
-        "annual|annual-fy|semiannual|seasonal|quartely|3month-seasons|rolling-3months|nov-mar|apr-oct|all"
-    ),
+    help=f'\b\nSpecify temporal binning: \n{"|".join(VALID_FREQUENCIES)}',
 )
 @click.option("--env", "-E", type=str, help="Datacube environment name")
 @click.option(
@@ -60,13 +72,13 @@ CONFIG_ITEMS = [
     "complevel",
     type=int,
     default=6,
-    help="Compression setting for zstandard 1-fast, 9+ good but slow",
+    help="Compression setting for zstandard. 1-fast, 9+ good but slow",
 )
 @click.option(
-    "--overwrite", is_flag=True, default=None, help="Overwrite output if it exists"
+    "--overwrite", is_flag=True, default=None, help="Overwrite OUTPUT if it exists"
 )
 @click.option(
-    "--tiles", help='Limit query to tiles example: "0:3,2:4"', callback=click_range2d
+    "--tiles", help="Limit query to tiles. eg. '0:3,2:4'", callback=click_range2d
 )
 @click.option(
     "--debug",
@@ -78,24 +90,27 @@ CONFIG_ITEMS = [
 @click.option(
     "--gqa",
     type=float,
-    help="Only save datasets that pass `gqa_iterative_mean_xy <= gqa` test",
+    help=(
+        "\b\nOnly save datasets that pass the filter: \n"
+        "`gqa_iterative_mean_xy <= GQA`"
+    ),
 )
 @click.option(
     "--usgs-collection-category",
     type=str,
     help=(
-        "Only save datasets that pass "
-        "`collection_category == usgs_collection_category` test"
+        "\b\nOnly save datasets that pass the filter: \n"
+        "`collection_category == USGS_COLLECTION_CATEGORY`"
     ),
 )
 @click.option(
     "--dataset-filter",
     type=str,
     default=None,
-    help='Filter to apply on datasets - {"collection_category": "T1"}',
+    help='\b\nFilter to apply on datasets. \nA JSON Object. eg. {"collection_category": "T1"}',
 )
-@click_yaml_cfg("--config", help="Save tasks Config")
-@click.option("--input-products", type=str, default="")
+@click_yaml_cfg("--config", help="Stats Configuration File")
+@click.option("--input-products", type=str, default="One or more Products to process")
 @click.argument("output", type=str, nargs=1, default="")
 # pylint: disable=too-many-arguments, too-many-locals
 # pylint: disable=too-many-branches, too-many-statements
@@ -117,8 +132,22 @@ def save_tasks(
     usgs_collection_category=None,
 ):
     """
-    Prepare tasks for processing (query db).
+    Preparation and setup for running ODC Stats Processing.
 
+    \b
+    1. Queries an ODC Database for Datasets
+    2. Groups them into Chunks based on Time and a Spatial Grid
+    3. Saves the results into a task cache file OUTPUT, plus CSV and GeoJSON
+       files for manual checks.
+
+    The configuration comes from CLI flags, a configuration file or
+    by combining both. CLI Flags override settings in a configuration file.
+
+
+    OUTPUTS
+    =======
+
+    odc-stats save-tasks
     <todo more help goes here>
 
     \b
@@ -167,28 +196,16 @@ def save_tasks(
     if _cfg.get("grid") is None:
         print(
             "grid must  be  one of au-{10|20|30|60}, africa-{10|20|30|60}, \
-             albers_au_25 (legacy one) or custom like 'epsg:3857;30;5000' \
+             albers_au_25 (legacy) or custom like 'epsg:3857;30;5000' \
              (30m pixels 5,000 per side in epsg:3857) ",
             file=sys.stderr,
         )
         sys.exit(1)
 
     if _cfg.get("frequency") is not None:
-        if _cfg.get("frequency") not in (
-            "annual",
-            "annual-fy",
-            "semiannual",
-            "seasonal",
-            "quartely",
-            "3month-seasons",
-            "rolling-3months",
-            "nov-mar",
-            "apr-oct",
-            "all",
-        ):
+        if _cfg.get("frequency") not in VALID_FREQUENCIES:
             print(
-                f"""Frequency must be one of annual|annual-fy|semiannual|seasonal|
-                quartely|3month-seasons|rolling-3months|nov-mar|apr-oct|all
+                f"""Frequency must be one of {"|".join(VALID_FREQUENCIES)}
                 and not '{frequency}'""",
                 file=sys.stderr,
             )

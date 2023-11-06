@@ -141,7 +141,10 @@ def click_range2d(ctx, param, value):
             raise click.ClickException(str(e)) from None
 
 
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])  # , max_content_width=120)
+
+
 @click.version_option(package_name="odc_stats")
-@click.group(help="Stats command line interface")
+@click.group(help="Stats command line interface", context_settings=CONTEXT_SETTINGS)
 def main():
     pass

@@ -103,7 +103,11 @@ class TaskRunner:
             configure_s3_access(
                 aws_unsigned=aws_unsigned, cloud_defaults=True, client=c
             )
-        self._log.info("Started local Dask %s", client)
+        self._log.info(
+            "Started local Dask %s. Dashboard available at: %s",
+            client,
+            client.dashboard_link,
+        )
 
         return client
 

@@ -38,7 +38,7 @@ def compute_grid_info(
     cells: Dict[TileIdx_xy, Any], resolution: float = math.inf, title_width: int = 0
 ) -> Dict[TileIdx_xy, Any]:
     """
-    Compute geojson feature for every cell in ``cells``.
+    Compute GeoJSON feature for every cell in ``cells``.
     Where ``cells`` is produced by ``bin_dataset_stream``
     """
     if title_width == 0:
