@@ -110,7 +110,7 @@ VALID_FREQUENCIES = (
     help='\b\nFilter to apply on datasets. \nA JSON Object. eg. {"collection_category": "T1"}',
 )
 @click_yaml_cfg("--config", help="Stats Configuration File")
-@click.option("--input-products", type=str, default="One or more Products to process")
+@click.option("--input-products", type=str, help="One or more Products to process")
 @click.argument("output", type=str, nargs=1, default="")
 # pylint: disable=too-many-arguments, too-many-locals
 # pylint: disable=too-many-branches, too-many-statements
