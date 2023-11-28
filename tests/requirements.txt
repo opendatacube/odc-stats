@@ -1,5 +1,5 @@
 --extra-index-url https://packages.dea.ga.gov.au/
-datacube!=1.8.14
+datacube>=1.8.17
 # for pytest-depends
 deepdiff
 future_fstrings
@@ -7,7 +7,7 @@ mock
 moto
 networkx
 numpy
-odc-algo==0.2.4.dev3628
+odc-algo
 odc-stac
 
 # For tests
@@ -17,4 +17,4 @@ pytest-httpserver
 pytest-timeout
 
 # patch image
-xarray>=2023.1.0
+xarray>=2023.7.0
