@@ -24,6 +24,7 @@ on:
 permissions:
   id-token: write   # This is required for requesting the JWT
   contents: read    # This is required for actions/checkout
+  packages: write  # This is required for pushing to ghcr
 
 jobs:
   test:
@@ -97,16 +98,18 @@ jobs:
       && (needs.set_tags.outputs.image_tag)
     needs: [test, set_tags]
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Push image to dockerhub
+      - name: Push image to ghcr
         uses: whoan/docker-build-with-cache-action@master
         with:
           context: ./docker
-          username: gadockersvc
-          password: ${{ secrets.GADOCKERSVC_PASSWORD }}
-          image_name: ${{ env.IMAGE_NAME }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          image_name: ${{ github.repository }}
           image_tag: latest,${{ needs.set_tags.outputs.image_tag }}
           build_extra_args: '{"--build-arg": "UPDATE_VERSION=${{ needs.set_tags.outputs.image_tag }}"}'
