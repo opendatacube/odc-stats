@@ -177,7 +177,7 @@ def test_resampling(dataset):
 
     dataset = dataset.copy()
     stats_gmls = StatsGMLS(cloud_filters=mask_filters, nodata_classes=(-999,))
-    assert stats_gmls.resampling == "bilinear"
+    assert stats_gmls.resampling == "nearest"
 
 
 def test_no_data_value(monkeypatch):
