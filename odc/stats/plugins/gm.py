@@ -29,7 +29,6 @@ class StatsGM(StatsPluginInterface):
         ] = None,
         basis_band=None,
         aux_names: Dict[str, str] = None,
-        resampling: str = "nearest",
         work_chunks: Tuple[int, int] = (400, 400),
         **kwargs,
     ):
@@ -44,7 +43,6 @@ class StatsGM(StatsPluginInterface):
         if nodata_classes is not None:
             nodata_classes = tuple(nodata_classes)
         self._nodata_classes = nodata_classes
-        self.resampling = resampling
         input_bands = self.bands
         if self._nodata_classes is not None:
             # NOTE: this ends up loading Mask band twice, once to compute
@@ -54,7 +52,6 @@ class StatsGM(StatsPluginInterface):
         super().__init__(
             input_bands=input_bands,
             basis=basis_band or self.bands[0],
-            resampling=self.resampling,
             **kwargs,
         )
 
