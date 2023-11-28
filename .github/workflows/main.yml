@@ -16,6 +16,10 @@ on:
     types:
       - completed
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   build-wheels:
     if: |
@@ -61,7 +65,10 @@ jobs:
   test-wheels:
     runs-on: ubuntu-latest
     container:
-      image: opendatacube/datacube-statistician:latest
+      image: ghcr.io/${{ github.repository }}:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     services:
       postgres:
