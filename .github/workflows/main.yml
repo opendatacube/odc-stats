@@ -11,6 +11,8 @@ on:
       - '!docs/**'
       - '!k8s/**'
       - '!README.md'
+    tags:
+      - '**'
   workflow_run:
     workflows: ["Create a new tag"]
     types:
