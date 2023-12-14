@@ -21,7 +21,7 @@ do
 	then g_name=$(echo $f | cut -d'/' -f3-)
 	else g_name=$(echo $f | cut -d'/' -f2-)
 	fi
-	gdalcompare.py -sds $S3_PREFIX$g_name $f > /dev/null
+	gdalcompare.py -sds -skip_binary $S3_PREFIX$g_name $f > /dev/null
 	if [[ $? -ge 1 ]]
 	then 
 		echo "ERROR: results different from the golden file $S3_PREFIX$g_name"
