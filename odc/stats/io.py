@@ -14,12 +14,11 @@ import io
 from rasterio.crs import CRS
 from numpy import datetime64
 
-from datacube.utils.aws import get_creds_with_retry, mk_boto_session, s3_client
-from odc.aws import s3_head_object  # TODO: move it to datacube
-from datacube.utils.dask import save_blob_to_s3, save_blob_to_file
+from odc.aws.s3_client import S3Client
+from dask.distributed import get_worker
+from datacube.utils.dask import save_blob_to_file
 from datacube.utils.cog import to_cog
 from datacube.model import Dataset
-from botocore.credentials import ReadOnlyCredentials
 from .model import Task, EXT_TIFF
 from .plugins import StatsPluginInterface
 from hashlib import sha1
@@ -41,15 +40,6 @@ DEFAULT_COG_OPTS = dict(
     zlevel=6,
     blocksize=512,
 )
-
-
-def load_creds(profile: Optional[str] = None) -> ReadOnlyCredentials:
-    session = mk_boto_session(profile=profile)
-    creds = get_creds_with_retry(session)
-    if creds is None:
-        raise ValueError("Failed to obtain credentials")
-
-    return creds.get_frozen_credentials()
 
 
 def dump_json(meta: Dict[str, Any]) -> str:
@@ -94,10 +84,16 @@ def _xarray_to_list(image, dest_shape):
     return display_pixels
 
 
+@dask.delayed(name="save_with_s3_client")
+def save_with_s3_client(data, url, with_deps=None, **kw):
+    worker = get_worker()
+    s3_client = worker.s3_client
+    return s3_client.dump(data, url, with_deps=with_deps, **kw)
+
+
 class S3COGSink:
     def __init__(
         self,
-        creds: Union[ReadOnlyCredentials, str, None] = None,
         cog_opts: Optional[Dict[str, Any]] = None,
         acl: Optional[str] = None,
         public: bool = False,
@@ -145,7 +141,7 @@ class S3COGSink:
         if acl is None and public:
             acl = "public-read"
 
-        self._creds = creds
+        self.s3_client = S3Client()
         self._cog_opts = cog_opts
         self._cog_opts_per_band = cog_opts_per_band
         self._stac_meta_ext = "stac-item.json"
@@ -160,18 +156,7 @@ class S3COGSink:
     def uri(self, task: Task) -> str:
         return task.metadata_path("absolute", ext=self._stac_meta_ext)
 
-    def _get_creds(self) -> ReadOnlyCredentials:
-        if self._creds is None:
-            self._creds = load_creds()
-        if isinstance(self._creds, str):
-            self._creds = load_creds(self._creds)
-        return self._creds
-
     def verify_s3_credentials(self, test_uri: Optional[str] = None) -> bool:
-        try:
-            _ = self._get_creds()
-        except ValueError:
-            return False
         if test_uri is None:
             return True
         rr = self._write_blob(b"verifying S3 permissions", test_uri).compute()
@@ -189,14 +174,14 @@ class S3COGSink:
         sha1_data = _dask_sha1(data)
 
         if _u.scheme == "s3":
-            kw = dict(creds=self._get_creds())
+            kw = {}
             if ContentType is not None:
                 kw["ContentType"] = ContentType
             if self._acl is not None:
                 kw["ACL"] = self._acl
 
             return _pack_write_result(
-                save_blob_to_s3(data, url, with_deps=with_deps, **kw), sha1_data
+                save_with_s3_client(data, url, with_deps=with_deps, **kw), sha1_data
             )
         elif _u.scheme == "file":
             _dir = Path(_u.path).parent
@@ -304,8 +289,7 @@ class S3COGSink:
             uri = self.uri(task)
         _u = urlparse(uri)
         if _u.scheme == "s3":
-            s3 = s3_client(creds=self._get_creds(), cache=True)
-            meta = s3_head_object(uri, s3=s3)
+            meta = self.s3_client.head_object(uri)
             return meta is not None
         elif _u.scheme == "file":
             return Path(_u.path).exists()

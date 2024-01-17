@@ -8,12 +8,13 @@ from typing import (
     Tuple,
     Union,
 )
-from dask.distributed import Client
+from dask.distributed import Client, WorkerPlugin
 from datetime import datetime
 import xarray as xr
 import math
 import psutil
 
+from odc.aws.s3_client import S3Client  # TODO: move it to datacube
 from .model import Task, TaskResult, TaskRunnerConfig, product_for_plugin
 from .io import S3COGSink
 from ._text import read_int
@@ -25,6 +26,15 @@ from datacube.utils.rio import configure_s3_access
 
 
 Future = Any
+
+
+class S3ClientPlugin(WorkerPlugin):
+    def __init__(self):
+        return
+
+    def setup(self, worker):
+        # Attach the client to the worker for easy access
+        worker.s3_client = S3Client()
 
 
 class TaskRunner:
@@ -90,13 +100,17 @@ class TaskRunner:
                 memory_limit -= mem_1g
 
         client = start_local_dask(
-            threads_per_worker=nthreads, processes=False, memory_limit=memory_limit
+            threads_per_worker=nthreads,
+            processes=False,
+            memory_limit=memory_limit,
         )
         aws_unsigned = self._cfg.aws_unsigned
         for c in (None, client):
             configure_s3_access(
                 aws_unsigned=aws_unsigned, cloud_defaults=True, client=c
             )
+        plugin = S3ClientPlugin()
+        client.register_plugin(plugin)
         _log.info("Started local Dask %s", client)
 
         return client

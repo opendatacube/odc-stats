@@ -8,6 +8,7 @@ moto
 networkx
 numpy
 odc-algo
+odc-cloud>=0.2.5
 odc-stac
 
 # For tests
