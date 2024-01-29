@@ -341,9 +341,9 @@ def fuse_products(type_1: DatasetType, type_2: DatasetType) -> DatasetType:
     if file_format is not None:
         fused_def["metadata"]["odc:file_format"] = file_format
 
-    fused_def[
-        "description"
-    ] = f"Fused products: {def_1['description']}, {def_2['description']}"
+    fused_def["description"] = (
+        f"Fused products: {def_1['description']}, {def_2['description']}"
+    )
     fused_def["measurements"] = def_1["measurements"] + def_2["measurements"]
     fused_def["metadata_type"] = def_1["metadata_type"]
 

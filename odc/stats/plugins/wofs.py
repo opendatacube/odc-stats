@@ -16,6 +16,7 @@ and the second generates a summary of summaries, which is used when generating a
 of time summary from existing annual summaries.
 
 """
+
 from typing import Dict, Tuple, Iterable
 import numpy as np
 import xarray as xr

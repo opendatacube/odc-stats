@@ -152,9 +152,11 @@ class SaveTasks:
 
         grouped_dss = groupby(
             dss,
-            key=lambda ds: (ds.center_time, ds.metadata.region_code)
-            if hasattr(ds.metadata, "region_code")
-            else (ds.center_time,),
+            key=lambda ds: (
+                (ds.center_time, ds.metadata.region_code)
+                if hasattr(ds.metadata, "region_code")
+                else (ds.center_time,)
+            ),
         )
         grouped_dss = match_dss(grouped_dss, group_size)
 
@@ -213,9 +215,11 @@ class SaveTasks:
         dss = ordered_dss(
             dc,
             freq="y",
-            key=lambda ds: (ds.center_time, ds.metadata.region_code)
-            if hasattr(ds.metadata, "region_code")
-            else (ds.center_time,),
+            key=lambda ds: (
+                (ds.center_time, ds.metadata.region_code)
+                if hasattr(ds.metadata, "region_code")
+                else (ds.center_time,)
+            ),
             **query,
         )
 

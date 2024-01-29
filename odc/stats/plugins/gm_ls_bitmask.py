@@ -1,6 +1,7 @@
 """
 Landsat QA Pixel Geomedian
 """
+
 from functools import partial
 from typing import Iterable, Optional, Sequence, Tuple, Dict, Any
 
