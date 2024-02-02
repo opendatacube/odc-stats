@@ -2,7 +2,7 @@ import pathlib
 import pytest
 from mock import MagicMock
 import boto3
-from moto import mock_sqs
+from moto import mock_aws
 from odc.stats.plugins import register
 from . import DummyPlugin
 
@@ -65,7 +65,7 @@ def sqs_message():
 @pytest.fixture
 def sqs_queue_by_name(aws_env):
     qname = "test-sqs"
-    with mock_sqs():
+    with mock_aws():
         sqs = boto3.resource("sqs")
         sqs.create_queue(QueueName=qname)
 

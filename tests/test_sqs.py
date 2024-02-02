@@ -27,7 +27,7 @@ def test_partition_area(test_db_filter_path, test_geom_path):
     assert len(filtered) == 21
 
 
-@moto.mock_sqs
+@moto.mock_aws
 def test_publish_sqs(test_db_filter_path, test_geom_path):
     TEST_QUEUE_NAME = "test-queue"
     # Create an SQS queue

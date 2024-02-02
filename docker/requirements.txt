@@ -7,7 +7,7 @@ odc-apps-cloud==0.2.2
 # For testing
 odc-apps-dc-tools==0.2.12
 odc-cloud==0.2.5
-odc-dscache==0.2.2
+odc-dscache>=0.2.3
 odc-stac==0.3.8
 
 # odc-stac is in PyPI
