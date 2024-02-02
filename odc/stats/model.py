@@ -478,9 +478,11 @@ class Task:
                         transform=self.geobox.transform,
                         crs=CRS.from_epsg(self.geobox.crs.to_epsg()),
                     ),
-                    nodata=output_dataset[band].nodata
-                    if "nodata" in output_dataset[band].attrs
-                    else None,
+                    nodata=(
+                        output_dataset[band].nodata
+                        if "nodata" in output_dataset[band].attrs
+                        else None
+                    ),
                 )
 
         return dataset_assembler

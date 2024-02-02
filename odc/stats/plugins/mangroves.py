@@ -1,6 +1,7 @@
 """
 Mangroves canopy cover classes
 """
+
 from typing import Tuple
 
 import numpy as np

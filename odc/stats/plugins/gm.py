@@ -1,6 +1,7 @@
 """
 Geomedian
 """
+
 from typing import Optional, Union, Tuple, Iterable, Dict
 import xarray as xr
 from odc.algo import geomedian_with_mads

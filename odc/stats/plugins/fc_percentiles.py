@@ -1,6 +1,7 @@
 """
 Fractional Cover Percentiles
 """
+
 from functools import partial
 from itertools import product
 from typing import Tuple, Dict, Iterable, Optional

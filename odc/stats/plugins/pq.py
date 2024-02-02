@@ -1,6 +1,7 @@
 """
 Sentinel 2 pixel quality stats
 """
+
 from typing import Dict, Iterable, Optional, Tuple, cast
 
 import xarray as xr
