@@ -24,7 +24,7 @@ from odc.dscache.tools.tiling import parse_gridspec_with_name
 from odc.dscache.tools.profiling import ds_stream_test_func
 from ._text import split_and_check
 
-from odc.aws import s3_download, s3_url_parse
+from odc.aws.s3_client import S3Client, s3_url_parse
 
 from .model import DateTimeRange, Task, OutputProduct, TileIdx, TileIdx_txy, TileIdx_xy
 from ._gjson import gs_bounds, compute_grid_info, gjson_from_tasks
@@ -475,10 +475,11 @@ class TaskReader:
         resolution: Optional[Tuple[float, float]] = None,
     ):
         self._cache_path = None
+        self.s3_client = S3Client()
 
         if len(cache) != 0 and isinstance(cache, str):
             if cache.startswith("s3://"):
-                self._cache_path = s3_download(cache)
+                self._cache_path = self.s3_client.download(cache)
                 cache = self._cache_path
             cache = DatasetCache.open_ro(cache)
 
@@ -659,7 +660,7 @@ class TaskReader:
 
                 # Make sure we have this DB downloaded
                 if not os.path.isfile(local_db_file):
-                    s3_download(filedb, destination=local_db_file)
+                    self.s3_client.download(filedb, destination=local_db_file)
             else:
                 # Assume it's a local file if it's not an S3 URL
                 local_db_file = filedb
