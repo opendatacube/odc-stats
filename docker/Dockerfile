@@ -1,4 +1,4 @@
-FROM mambaorg/micromamba:git-e4f55ab-jammy as stats-conda
+FROM mambaorg/micromamba:git-df79b72-jammy as stats-conda
 
 USER root
 COPY env.yaml /conf/
@@ -13,7 +13,7 @@ COPY requirements.txt /conf/
 RUN micromamba run -p /env pip install --no-cache-dir \
     --no-build-isolation -r /conf/requirements.txt
 
-FROM ubuntu:jammy-20230816
+FROM ubuntu:jammy-20240212
 COPY --from=stats-conda /env /env
 COPY distributed.yaml  /etc/dask/
 
