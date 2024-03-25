@@ -406,12 +406,15 @@ class Task:
         warnings.simplefilter(action="ignore", category=UserWarning)
 
         platforms, instruments = ([], [])
+        maturity = []
 
         for dataset in self.datasets:
             if "fused" in dataset.type.name:
                 sources = [e["id"] for e in dataset.metadata.sources.values()]
                 platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
                 instruments.append(dataset.metadata_doc["properties"]["eo:instrument"])
+                maturity.append(
+                    dataset.metadata_doc["properties"]["dea:dataset_maturity"])
                 dataset_assembler.note_source_datasets(
                     self.product.classifier, *sources
                 )
@@ -431,6 +434,9 @@ class Task:
                     platforms.append(source_datasetdoc.properties["eo:platform"])
                 if "eo:instrument" in source_datasetdoc.properties:
                     instruments.append(source_datasetdoc.properties["eo:instrument"])
+                if "dea:dataset_maturity" in source_datasetdoc.properties:
+                    maturity.append(
+                        source_datasetdoc.properties["dea:dataset_maturity"])
 
         dataset_assembler.platform = ",".join(sorted(set(platforms)))
         dataset_assembler.instrument = "_".join(sorted(set(instruments)))
@@ -455,6 +461,8 @@ class Task:
         dataset_assembler.product_name = self.product.name
         dataset_assembler.dataset_version = self.product.version
         dataset_assembler.region_code = self.product.region_code(self.tile_index)
+        dataset_assembler.maturity = self.product.maturity if self.product.maturity else ",".join(
+            sorted(set(maturity)))
 
         # set the warning message back
         warnings.filterwarnings("default")
@@ -463,7 +471,6 @@ class Task:
             processing_dt = datetime.utcnow()
         dataset_assembler.processed = processing_dt
 
-        dataset_assembler.maturity = self.product.maturity
         dataset_assembler.collection_number = self.product.collection_number
 
         if output_dataset is not None:
