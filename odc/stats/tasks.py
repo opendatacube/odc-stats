@@ -37,6 +37,7 @@ from .utils import (
     fuse_ds,
     fuse_products,
 )
+from ._stac_fetch import s3_fetch_dss
 
 TilesRange2d = Tuple[Tuple[int, int], Tuple[int, int]]
 CompressedDataset = namedtuple("CompressedDataset", ["id", "time"])
@@ -177,6 +178,7 @@ class SaveTasks:
         dc: Datacube,
         products: str,
         query: Dict[str, Any],
+        cfg: Dict[str, Any],
         dataset_filter=None,
         predicate=None,
         fuse_dss: bool = True,
@@ -204,35 +206,102 @@ class SaveTasks:
             3. Multiple different separators between the product names is respected by left-right order
             e.g., ga_ls8+-ga_ls7 -> separator is `+` as `+` proceeds `-` from left to right
             """
-            product_list = re.split(r"[\+-]{1,}", products_str)
+            if re.match(r"s3", products_str, flags=re.I) is None:
+                pattern = re.compile(r"[\+-]{1,}")
+            else:
+                pattern = re.compile(r"(?<=/)[-\+]{1,}|[-\+]{1,}(?=s3)", flags=re.I)
+            product_list = re.split(pattern, products_str)
             product_list = list(filter(None, product_list))
-            group_size = len(re.findall(r"\w{1,}\+[-\+]{0,}\w{1,}", products_str))
+            group_size = len(re.findall(r"[\w/]{1,}\+[-\+]{0,}\w{1,}", products_str))
+
+            # indexed: True, not: False
+            product_list = [(p, "s3://" not in p) for p in product_list]
             return product_list, group_size
 
         product_list, group_size = sanitize_products_str(products)
 
-        query.update(dict(product=product_list, **dataset_filter))
-        dss = ordered_dss(
-            dc,
-            freq="y",
-            key=lambda ds: (
-                (ds.center_time, ds.metadata.region_code)
-                if hasattr(ds.metadata, "region_code")
-                else (ds.center_time,)
-            ),
-            **query,
-        )
+        indexed_products = [p for (p, indexed) in product_list if indexed]
+
+        if indexed_products != []:
+            query.update(dict(product=indexed_products, **dataset_filter))
+            dss = ordered_dss(
+                dc,
+                freq="y",
+                key=lambda ds: (
+                    (ds.center_time, ds.metadata.region_code)
+                    if hasattr(ds.metadata, "region_code")
+                    else (ds.center_time,)
+                ),
+                **query,
+            )
+        else:
+            dss = iter([])
+
+        non_indexed_products = [p for (p, indexed) in product_list if not indexed]
+
+        if non_indexed_products != []:
+            dss_stac, prod_stac = cls.create_dss_by_stac(
+                non_indexed_products,
+                tiles=cfg.get("tiles"),
+                temporal_range=cfg.get("temporal_range"),
+            )
+            dss = chain(dss, dss_stac)
 
         if group_size > 0:
             products = [
-                dc.index.products.get_by_name(product) for product in product_list
-            ]
+                dc.index.products.get_by_name(product) for product in indexed_products
+            ] + prod_stac
+
             dss = cls.ds_align(dss, products, group_size + 1, fuse_dss)
 
         if predicate is not None:
             dss = filter(predicate, dss)
 
         return dss
+
+    @classmethod
+    def create_dss_by_stac(
+        cls,
+        s3_path: List[str],
+        pattern: str = "*.stac-item.json",
+        tiles=None,
+        temporal_range=None,
+    ):
+
+        if tiles is not None:
+            glob_path = [
+                "x" + str(x) + "/" + "y" + str(y) + "/"
+                for x in range(*tiles[0])
+                for y in range(*tiles[1])
+            ]
+        else:
+            glob_path = ["*/*"]
+
+        if temporal_range is not None:
+            temp_path = [
+                str(y) + "*"
+                for y in range(temporal_range.start.year, temporal_range.end.year + 1)
+            ]
+        else:
+            temp_path += ["*"]
+
+        products = []
+        dss_stac = iter([])
+        for p in s3_path:
+            for x in glob_path:
+                for y in temp_path:
+                    input_glob = os.path.join(p, x, y, pattern)
+                    print(f"input blob {input_glob}")
+                    dss = s3_fetch_dss(input_glob)
+                    try:
+                        ds0 = next(dss)
+                    except StopIteration:
+                        continue
+                    products += [ds0.product]
+                    dss = chain(iter([ds0]), dss)
+                    dss_stac = chain(dss_stac, dss)
+
+        return dss_stac, products
 
     def get_dss_by_grid(
         self,
@@ -268,11 +337,12 @@ class SaveTasks:
             query.update(
                 temporal_range.dc_query(pad=0.6)
             )  # pad a bit more than half a day on each side
-            cfg["temporal_range"] = temporal_range.short
+            cfg["temporal_range"] = temporal_range
 
         msg("Connecting to the database, streaming datasets")
-        dss = self._find_dss(dc, products, query, dataset_filter, predicate)
+        dss = self._find_dss(dc, products, query, cfg, dataset_filter, predicate)
         cfg["query"] = sanitize_query(query)
+        cfg["temporal_range"] = temporal_range.short
 
         return dss, cfg
 
@@ -410,6 +480,7 @@ class SaveTasks:
         # Duplicates occur when queried datasets are captured around UTC midnight
         # and around weekly boundary
         tasks = {k: set(dss) for k, dss in tasks.items()}
+        print(f"tasks {tasks}")
         tasks_uuid = {k: [ds.id for ds in dss] for k, dss in tasks.items()}
 
         all_ids = set()
