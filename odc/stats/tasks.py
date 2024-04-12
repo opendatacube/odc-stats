@@ -113,6 +113,41 @@ def parse_sqs(s: str) -> Tuple[TileIdx_txy, str]:
     return ((t, int(x.lstrip("x")), int(y.lstrip("y"))), filedb)
 
 
+def sanitize_products_str(products_str):
+    """
+    split a string composed by product names and s3 paths into a list of product names
+    e.g., ga_ls8-ga_ls7-s3://dea-public-data-dev/derivative/ga_ls_tc_pc_cyear_3/2-0-0/
+    -> [ga_ls8, ga_ls7, s3://dea-public-data-dev/derivative/ga_ls_tc_pc_cyear_3/2-0-0/]
+    rules:
+    1. Any separator (`+/-`) at the start or the end is disregarded
+    2. Multiple same separators between the product names are treated as one
+    3. Multiple different separators between the product names is respected by left-right order
+    e.g., ga_ls8+-ga_ls7 -> separator is `+` as `+` proceeds `-` from left to right
+    4. It can NOT deal with the different combo of "+/-"
+    e.g., ga_ls8+ga_ls7-ga_fc
+    """
+    if re.search(r"s3://", products_str, flags=re.I) is None:
+        pattern = re.compile(r"[\+-]{1,}")
+    else:
+        pattern = re.compile(r"(?<=/)[-\+]{1,}|[-\+]{1,}(?=s3)", flags=re.I)
+    product_list = re.split(pattern, products_str)
+    product_list = list(filter(None, product_list))
+    group_size = len(re.findall(r"[\w/]{1,}\+[-\+]{0,}\w{1}", products_str))
+
+    if len(product_list) == 1:
+        # indexed: True, not: False
+        return [(p, "s3://" not in p) for p in product_list], group_size
+    else:
+        final_list = []
+        for p in product_list:
+            if re.search(r"s3://", p, flags=re.I) is None:
+                l, _ = sanitize_products_str(p)
+                final_list += l
+            else:
+                final_list += [(p, False)]
+    return final_list, group_size
+
+
 class SaveTasks:
     def __init__(
         self,
@@ -196,28 +231,6 @@ class SaveTasks:
         # but it is embedded in the code everywhere
         # mark it for ref
 
-        def sanitize_products_str(products_str):
-            """
-            split a string composed by product names into a list of product names
-            e.g., ga_ls8-ga_ls7 -> [ga_ls8, ga_ls7]
-            rules:
-            1. Any separator (`+/-`) at the start or the end is disregarded
-            2. Multiple same separators between the product names are treated as one
-            3. Multiple different separators between the product names is respected by left-right order
-            e.g., ga_ls8+-ga_ls7 -> separator is `+` as `+` proceeds `-` from left to right
-            """
-            if re.match(r"s3", products_str, flags=re.I) is None:
-                pattern = re.compile(r"[\+-]{1,}")
-            else:
-                pattern = re.compile(r"(?<=/)[-\+]{1,}|[-\+]{1,}(?=s3)", flags=re.I)
-            product_list = re.split(pattern, products_str)
-            product_list = list(filter(None, product_list))
-            group_size = len(re.findall(r"[\w/]{1,}\+[-\+]{0,}\w{1,}", products_str))
-
-            # indexed: True, not: False
-            product_list = [(p, "s3://" not in p) for p in product_list]
-            return product_list, group_size
-
         product_list, group_size = sanitize_products_str(products)
 
         indexed_products = [p for (p, indexed) in product_list if indexed]
@@ -288,18 +301,18 @@ class SaveTasks:
         products = []
         dss_stac = iter([])
         for p in s3_path:
+            dss = iter([])
             for x in glob_path:
                 for y in temp_path:
                     input_glob = os.path.join(p, x, y, pattern)
-                    print(f"input blob {input_glob}")
-                    dss = s3_fetch_dss(input_glob)
-                    try:
-                        ds0 = next(dss)
-                    except StopIteration:
-                        continue
-                    products += [ds0.product]
-                    dss = chain(iter([ds0]), dss)
-                    dss_stac = chain(dss_stac, dss)
+                    dss = chain(dss, s3_fetch_dss(input_glob))
+            try:
+                ds0 = next(dss)
+            except StopIteration:
+                continue
+            products += [ds0.product]
+            dss = chain(dss, iter([ds0]))
+            dss_stac = chain(dss_stac, dss)
 
         return dss_stac, products
 
@@ -426,6 +439,7 @@ class SaveTasks:
         cells: Dict[Tuple[int, int], Any] = {}
         dss = cache.tee(dss)
         dss = bin_dataset_stream(self._gridspec, dss, cells, persist=persist)
+
         rr = ds_stream_test_func(dss)
         msg(rr.text)
 
@@ -480,7 +494,6 @@ class SaveTasks:
         # Duplicates occur when queried datasets are captured around UTC midnight
         # and around weekly boundary
         tasks = {k: set(dss) for k, dss in tasks.items()}
-        print(f"tasks {tasks}")
         tasks_uuid = {k: [ds.id for ds in dss] for k, dss in tasks.items()}
 
         all_ids = set()
