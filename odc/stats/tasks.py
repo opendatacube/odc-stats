@@ -261,9 +261,12 @@ class SaveTasks:
             dss = chain(dss, dss_stac)
 
         if group_size > 0:
-            products = [
-                dc.index.products.get_by_name(product) for product in indexed_products
-            ] + prod_stac
+            products = (
+                [dc.index.products.get_by_name(product) for product in indexed_products]
+                + prod_stac
+                if non_indexed_products != []
+                else []
+            )
 
             dss = cls.ds_align(dss, products, group_size + 1, fuse_dss)
 

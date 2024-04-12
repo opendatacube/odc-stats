@@ -155,4 +155,4 @@ def test_create_dss_by_stac(s3_path):
 
 def test_find_dss(dc, query, indexed_product_str):
     dss = SaveTasks._find_dss(dc, indexed_product_str[0], query, {}, fuse_dss=False)
-    assert list(dss) == indexed_product_str[2]
+    assert len(list(dss)) == indexed_product_str[2]
