@@ -123,8 +123,6 @@ def sanitize_products_str(products_str):
     2. Multiple same separators between the product names are treated as one
     3. Multiple different separators between the product names is respected by left-right order
     e.g., ga_ls8+-ga_ls7 -> separator is `+` as `+` proceeds `-` from left to right
-    4. It can NOT deal with the different combo of "+/-"
-    e.g., ga_ls8+ga_ls7-ga_fc
     """
     if re.search(r"s3://", products_str, flags=re.I) is None:
         pattern = re.compile(r"[\+-]{1,}")

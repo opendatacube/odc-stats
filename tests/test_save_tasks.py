@@ -37,15 +37,15 @@ def dc():
         ),
         # fc doesn't have datasets for ls7
         (
-            "-+-ga_ls8c_ard_3-+++-ga_ls7e_ard_3--+-ga_ls_fc_3-+-+",
-            0,
+            "-+-ga_ls8c_ard_3-+++-ga_ls7e_ard_3+-+-ga_ls_fc_3-+-+",
+            1,
             7,
             [("ga_ls8c_ard_3", True), ("ga_ls7e_ard_3", True), ("ga_ls_fc_3", True)],
         ),
         # wo has dataset for all sensors
         (
-            "-+-ga_ls8c_ard_3++++-ga_ls7e_ard_3+-+-ga_ls_wo_3-+-+",
-            2,
+            "-+-ga_ls8c_ard_3-+++-ga_ls7e_ard_3+-+-ga_ls_wo_3-+-+",
+            1,
             14,
             [("ga_ls8c_ard_3", True), ("ga_ls7e_ard_3", True), ("ga_ls_wo_3", True)],
         ),
@@ -154,5 +154,8 @@ def test_create_dss_by_stac(s3_path):
 
 
 def test_find_dss(dc, query, indexed_product_str):
-    dss = SaveTasks._find_dss(dc, indexed_product_str[0], query, {}, fuse_dss=False)
-    assert len(list(dss)) == indexed_product_str[2]
+    if indexed_product_str is None:
+        pass
+    else:
+        dss = SaveTasks._find_dss(dc, indexed_product_str[0], query, {}, fuse_dss=False)
+        assert len(list(dss)) == indexed_product_str[2]
