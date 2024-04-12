@@ -10,6 +10,7 @@ import os
 from urllib.parse import urlparse
 import logging
 import ciso8601
+import sys
 import re
 
 from odc.dscache import DatasetCache
@@ -41,6 +42,7 @@ from ._stac_fetch import s3_fetch_dss
 
 TilesRange2d = Tuple[Tuple[int, int], Tuple[int, int]]
 CompressedDataset = namedtuple("CompressedDataset", ["id", "time"])
+_log = logging.getLogger(__name__)
 
 
 def _xy(tidx: TileIdx) -> TileIdx_xy:
@@ -222,6 +224,7 @@ class SaveTasks:
         A string joined by `+` implies intersect (filtered and then groupby) against time
         return a generator of datasets
         """
+        # pylint:disable=too-many-locals
         if dataset_filter is None:
             dataset_filter = {}
 
@@ -231,9 +234,15 @@ class SaveTasks:
 
         product_list, group_size = sanitize_products_str(products)
 
-        indexed_products = [p for (p, indexed) in product_list if indexed]
+        indexed_products = []
+        non_indexed_products = []
+        for p, indexed in product_list:
+            if indexed:
+                indexed_products += [p]
+            else:
+                non_indexed_products += [p]
 
-        if indexed_products != []:
+        if indexed_products:
             query.update(dict(product=indexed_products, **dataset_filter))
             dss = ordered_dss(
                 dc,
@@ -248,9 +257,7 @@ class SaveTasks:
         else:
             dss = iter([])
 
-        non_indexed_products = [p for (p, indexed) in product_list if not indexed]
-
-        if non_indexed_products != []:
+        if non_indexed_products:
             dss_stac, prod_stac = cls.create_dss_by_stac(
                 non_indexed_products,
                 tiles=cfg.get("tiles"),
@@ -259,11 +266,11 @@ class SaveTasks:
             dss = chain(dss, dss_stac)
 
         if group_size > 0:
-            products = [
-                dc.index.products.get_by_name(product) for product in indexed_products
-            ] + (prod_stac if non_indexed_products != [] else [])
+            product_list = [
+                dc.index.products.get_by_name(p) for p in indexed_products
+            ] + (prod_stac if non_indexed_products else [])
 
-            dss = cls.ds_align(dss, products, group_size + 1, fuse_dss)
+            dss = cls.ds_align(dss, product_list, group_size + 1, fuse_dss)
 
         if predicate is not None:
             dss = filter(predicate, dss)
@@ -307,7 +314,8 @@ class SaveTasks:
             try:
                 ds0 = next(dss)
             except StopIteration:
-                continue
+                _log.error("no datasets available in %s", p)
+                sys.exit(1)
             products += [ds0.product]
             dss = chain(dss, iter([ds0]))
             dss_stac = chain(dss_stac, dss)
@@ -353,7 +361,8 @@ class SaveTasks:
         msg("Connecting to the database, streaming datasets")
         dss = self._find_dss(dc, products, query, cfg, dataset_filter, predicate)
         cfg["query"] = sanitize_query(query)
-        cfg["temporal_range"] = temporal_range.short
+        if cfg.get("temporal_range"):
+            cfg["temporal_range"] = cfg["temporal_range"].short
 
         return dss, cfg
 
@@ -607,8 +616,6 @@ class TaskReader:
         Adding the missing _grid, _gridspec, _gridspec and _all_tiles which skip for sqs task init.
         Upading the cfg which used placeholder filedb path for sqs task init.
         """
-
-        _log = logging.getLogger(__name__)
 
         cache = DatasetCache.open_ro(local_db_path)
 
