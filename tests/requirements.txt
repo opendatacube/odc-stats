@@ -7,9 +7,9 @@ mock
 moto
 networkx
 numpy
-odc-algo
+odc-algo @ git+https://github.com/opendatacube/odc-algo@d37fd41
 odc-cloud>=0.2.5
-odc-stac
+odc-stac @ git+https://github.com/opendatacube/odc-stac@69bdf64
 
 # For tests
 pytest
