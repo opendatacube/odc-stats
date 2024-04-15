@@ -136,7 +136,9 @@ def sanitize_products_str(products_str):
 
     if len(product_list) == 1:
         # indexed: True, not: False
-        return [(p, "s3://" not in p) for p in product_list], group_size
+        return [
+            (re.sub(r"^\s+|\s+$", "", p), "s3://" not in p) for p in product_list
+        ], group_size
     else:
         final_list = []
         for p in product_list:
@@ -144,7 +146,7 @@ def sanitize_products_str(products_str):
                 l, _ = sanitize_products_str(p)
                 final_list += l
             else:
-                final_list += [(p, False)]
+                final_list += [(re.sub(r"^\s+|\s+$", "", p), False)]
     return final_list, group_size
 
 

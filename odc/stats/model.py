@@ -411,7 +411,12 @@ class Task:
             if "fused" in dataset.type.name:
                 sources = [e["id"] for e in dataset.metadata.sources.values()]
                 platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
-                instruments.append(dataset.metadata_doc["properties"]["eo:instrument"])
+                if isinstance(
+                    dataset.metadata_doc["properties"]["eo:instrument"], list
+                ):
+                    instruments += dataset.metadata_doc["properties"]["eo:instrument"]
+                else:
+                    instruments += [dataset.metadata_doc["properties"]["eo:instrument"]]
                 dataset_assembler.note_source_datasets(
                     self.product.classifier, *sources
                 )
