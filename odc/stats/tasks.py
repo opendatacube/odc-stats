@@ -10,12 +10,11 @@ import os
 from urllib.parse import urlparse
 import logging
 import ciso8601
-import sys
 import re
 
 from odc.dscache import DatasetCache
 from datacube import Datacube
-from datacube.model import Dataset, GridSpec, DatasetType
+from datacube.model import Dataset, GridSpec
 from datacube.utils.geometry import Geometry
 from datacube.utils.documents import transform_object_tree
 from datacube.utils.dates import normalise_dt
@@ -178,7 +177,6 @@ class SaveTasks:
     def ds_align(
         cls,
         dss: Iterable,
-        products: List[DatasetType],
         group_size: int,
         fuse_dss: bool = True,
     ):
@@ -197,9 +195,14 @@ class SaveTasks:
             ),
         )
         grouped_dss = match_dss(grouped_dss, group_size)
+        try:
+            ds0 = next(grouped_dss)
+        except StopIteration:
+            return iter([])
+        grouped_dss = chain(grouped_dss, iter([ds0]))
 
         if fuse_dss:
-            fused_product = fuse_products(*products)
+            fused_product = fuse_products(*[d.product for d in ds0])
 
             def map_fuse_func(x):
                 return fuse_ds(*x, product=fused_product)
@@ -260,7 +263,7 @@ class SaveTasks:
             dss = iter([])
 
         if non_indexed_products:
-            dss_stac, prod_stac = cls.create_dss_by_stac(
+            dss_stac = cls.create_dss_by_stac(
                 non_indexed_products,
                 tiles=cfg.get("tiles"),
                 temporal_range=cfg.get("temporal_range"),
@@ -268,11 +271,7 @@ class SaveTasks:
             dss = chain(dss, dss_stac)
 
         if group_size > 0:
-            product_list = [
-                dc.index.products.get_by_name(p) for p in indexed_products
-            ] + (prod_stac if non_indexed_products else [])
-
-            dss = cls.ds_align(dss, product_list, group_size + 1, fuse_dss)
+            dss = cls.ds_align(dss, group_size + 1, fuse_dss)
 
         if predicate is not None:
             dss = filter(predicate, dss)
@@ -305,7 +304,6 @@ class SaveTasks:
         else:
             temp_path += ["*"]
 
-        products = []
         dss_stac = iter([])
         for p in s3_path:
             dss = iter([])
@@ -313,16 +311,9 @@ class SaveTasks:
                 for y in temp_path:
                     input_glob = os.path.join(p, x, y, pattern)
                     dss = chain(dss, s3_fetch_dss(input_glob))
-            try:
-                ds0 = next(dss)
-            except StopIteration:
-                _log.error("no datasets available in %s", p)
-                sys.exit(1)
-            products += [ds0.product]
-            dss = chain(dss, iter([ds0]))
             dss_stac = chain(dss_stac, dss)
 
-        return dss_stac, products
+        return dss_stac
 
     def get_dss_by_grid(
         self,
