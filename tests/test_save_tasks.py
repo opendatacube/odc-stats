@@ -138,14 +138,13 @@ def test_sanitize_products_str(product_str):
 def test_create_dss_by_stac(s3_path):
     temporal_range = DateTimeRange("2010--P2Y")
     tiles = ((35, 37), (32, 34))
-    dss, product = SaveTasks.create_dss_by_stac(
+    dss = SaveTasks.create_dss_by_stac(
         s3_path, tiles=tiles, temporal_range=temporal_range
     )
     dss = list(dss)
-    assert len(product) == len(s3_path)
     assert len(dss) == 4 * 2 * len(s3_path)
-    for p, key in zip(product, s3_path):
-        assert p.name == key.split("/")[-3]
+    products = list(set([d.product for d in dss]))
+    assert len(products) == len(s3_path)
     for d in dss:
         with_uris = False
         for key in s3_path:
