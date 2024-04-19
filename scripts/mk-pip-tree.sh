@@ -14,9 +14,9 @@ create_pip_tree() {
         mkdir -p "${out}"
 
         echo "${src}/${w}"* "-> ${out}/"
-        echo "${src}/${base}"*tar.gz "-> ${out}/"
+        echo "${src}/${w}"*tar.gz "-> ${out}/"
         cp "${src}/${w}"*.whl "${out}/"
-        cp "${src}/${base}"*.tar.gz "${out}/"
+        cp "${src}/${w}"*.tar.gz "${out}/"
     done
 }
 
