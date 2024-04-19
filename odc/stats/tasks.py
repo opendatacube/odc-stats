@@ -14,7 +14,7 @@ import re
 
 from odc.dscache import DatasetCache
 from datacube import Datacube
-from datacube.model import Dataset, GridSpec, DatasetType
+from datacube.model import Dataset, GridSpec
 from datacube.utils.geometry import Geometry
 from datacube.utils.documents import transform_object_tree
 from datacube.utils.dates import normalise_dt
@@ -37,9 +37,11 @@ from .utils import (
     fuse_ds,
     fuse_products,
 )
+from ._stac_fetch import s3_fetch_dss
 
 TilesRange2d = Tuple[Tuple[int, int], Tuple[int, int]]
 CompressedDataset = namedtuple("CompressedDataset", ["id", "time"])
+_log = logging.getLogger(__name__)
 
 
 def _xy(tidx: TileIdx) -> TileIdx_xy:
@@ -112,6 +114,41 @@ def parse_sqs(s: str) -> Tuple[TileIdx_txy, str]:
     return ((t, int(x.lstrip("x")), int(y.lstrip("y"))), filedb)
 
 
+def sanitize_products_str(products_str):
+    """
+    split a string composed by product names and s3 paths into a list of product names
+    e.g., ga_ls8-ga_ls7-s3://dea-public-data-dev/derivative/ga_ls_tc_pc_cyear_3/2-0-0/
+    -> [ga_ls8, ga_ls7, s3://dea-public-data-dev/derivative/ga_ls_tc_pc_cyear_3/2-0-0/]
+    rules:
+    1. Any separator (`+/-`) at the start or the end is disregarded
+    2. Multiple same separators between the product names are treated as one
+    3. Multiple different separators between the product names is respected by left-right order
+    e.g., ga_ls8+-ga_ls7 -> separator is `+` as `+` proceeds `-` from left to right
+    """
+    if re.search(r"s3://", products_str, flags=re.I) is None:
+        pattern = re.compile(r"[\+-]{1,}")
+    else:
+        pattern = re.compile(r"(?<=/)[-\+]{1,}|[-\+]{1,}(?=s3)", flags=re.I)
+    product_list = re.split(pattern, products_str)
+    product_list = list(filter(None, product_list))
+    group_size = len(re.findall(r"[\w/]{1,}\+[-\+]{0,}\w{1}", products_str))
+
+    if len(product_list) == 1:
+        # indexed: True, not: False
+        return [
+            (re.sub(r"^\s+|\s+$", "", p), "s3://" not in p) for p in product_list
+        ], group_size
+    else:
+        final_list = []
+        for p in product_list:
+            if re.search(r"s3://", p, flags=re.I) is None:
+                l, _ = sanitize_products_str(p)
+                final_list += l
+            else:
+                final_list += [(re.sub(r"^\s+|\s+$", "", p), False)]
+    return final_list, group_size
+
+
 class SaveTasks:
     def __init__(
         self,
@@ -140,7 +177,6 @@ class SaveTasks:
     def ds_align(
         cls,
         dss: Iterable,
-        products: List[DatasetType],
         group_size: int,
         fuse_dss: bool = True,
     ):
@@ -159,9 +195,14 @@ class SaveTasks:
             ),
         )
         grouped_dss = match_dss(grouped_dss, group_size)
+        try:
+            ds0 = next(grouped_dss)
+        except StopIteration:
+            return iter([])
+        grouped_dss = chain(grouped_dss, iter([ds0]))
 
         if fuse_dss:
-            fused_product = fuse_products(*products)
+            fused_product = fuse_products(*[d.product for d in ds0])
 
             def map_fuse_func(x):
                 return fuse_ds(*x, product=fused_product)
@@ -177,6 +218,7 @@ class SaveTasks:
         dc: Datacube,
         products: str,
         query: Dict[str, Any],
+        cfg: Dict[str, Any],
         dataset_filter=None,
         predicate=None,
         fuse_dss: bool = True,
@@ -187,6 +229,7 @@ class SaveTasks:
         A string joined by `+` implies intersect (filtered and then groupby) against time
         return a generator of datasets
         """
+        # pylint:disable=too-many-locals
         if dataset_filter is None:
             dataset_filter = {}
 
@@ -194,45 +237,83 @@ class SaveTasks:
         # but it is embedded in the code everywhere
         # mark it for ref
 
-        def sanitize_products_str(products_str):
-            """
-            split a string composed by product names into a list of product names
-            e.g., ga_ls8-ga_ls7 -> [ga_ls8, ga_ls7]
-            rules:
-            1. Any separator (`+/-`) at the start or the end is disregarded
-            2. Multiple same separators between the product names are treated as one
-            3. Multiple different separators between the product names is respected by left-right order
-            e.g., ga_ls8+-ga_ls7 -> separator is `+` as `+` proceeds `-` from left to right
-            """
-            product_list = re.split(r"[\+-]{1,}", products_str)
-            product_list = list(filter(None, product_list))
-            group_size = len(re.findall(r"\w{1,}\+[-\+]{0,}\w{1,}", products_str))
-            return product_list, group_size
-
         product_list, group_size = sanitize_products_str(products)
 
-        query.update(dict(product=product_list, **dataset_filter))
-        dss = ordered_dss(
-            dc,
-            freq="y",
-            key=lambda ds: (
-                (ds.center_time, ds.metadata.region_code)
-                if hasattr(ds.metadata, "region_code")
-                else (ds.center_time,)
-            ),
-            **query,
-        )
+        indexed_products = []
+        non_indexed_products = []
+        for p, indexed in product_list:
+            if indexed:
+                indexed_products += [p]
+            else:
+                non_indexed_products += [p]
+
+        if indexed_products:
+            query.update(dict(product=indexed_products, **dataset_filter))
+            dss = ordered_dss(
+                dc,
+                freq="y",
+                key=lambda ds: (
+                    (ds.center_time, ds.metadata.region_code)
+                    if hasattr(ds.metadata, "region_code")
+                    else (ds.center_time,)
+                ),
+                **query,
+            )
+        else:
+            dss = iter([])
+
+        if non_indexed_products:
+            dss_stac = cls.create_dss_by_stac(
+                non_indexed_products,
+                tiles=cfg.get("tiles"),
+                temporal_range=cfg.get("temporal_range"),
+            )
+            dss = chain(dss, dss_stac)
 
         if group_size > 0:
-            products = [
-                dc.index.products.get_by_name(product) for product in product_list
-            ]
-            dss = cls.ds_align(dss, products, group_size + 1, fuse_dss)
+            dss = cls.ds_align(dss, group_size + 1, fuse_dss)
 
         if predicate is not None:
             dss = filter(predicate, dss)
 
         return dss
+
+    @classmethod
+    def create_dss_by_stac(
+        cls,
+        s3_path: List[str],
+        pattern: str = "*.stac-item.json",
+        tiles=None,
+        temporal_range=None,
+    ):
+
+        if tiles is not None:
+            glob_path = [
+                "x" + str(x) + "/" + "y" + str(y) + "/"
+                for x in range(*tiles[0])
+                for y in range(*tiles[1])
+            ]
+        else:
+            glob_path = ["*/*"]
+
+        if temporal_range is not None:
+            temp_path = [
+                str(y) + "*"
+                for y in range(temporal_range.start.year, temporal_range.end.year + 1)
+            ]
+        else:
+            temp_path += ["*"]
+
+        dss_stac = iter([])
+        for p in s3_path:
+            dss = iter([])
+            for x in glob_path:
+                for y in temp_path:
+                    input_glob = os.path.join(p, x, y, pattern)
+                    dss = chain(dss, s3_fetch_dss(input_glob))
+            dss_stac = chain(dss_stac, dss)
+
+        return dss_stac
 
     def get_dss_by_grid(
         self,
@@ -268,11 +349,13 @@ class SaveTasks:
             query.update(
                 temporal_range.dc_query(pad=0.6)
             )  # pad a bit more than half a day on each side
-            cfg["temporal_range"] = temporal_range.short
+            cfg["temporal_range"] = temporal_range
 
         msg("Connecting to the database, streaming datasets")
-        dss = self._find_dss(dc, products, query, dataset_filter, predicate)
+        dss = self._find_dss(dc, products, query, cfg, dataset_filter, predicate)
         cfg["query"] = sanitize_query(query)
+        if cfg.get("temporal_range"):
+            cfg["temporal_range"] = cfg["temporal_range"].short
 
         return dss, cfg
 
@@ -356,6 +439,7 @@ class SaveTasks:
         cells: Dict[Tuple[int, int], Any] = {}
         dss = cache.tee(dss)
         dss = bin_dataset_stream(self._gridspec, dss, cells, persist=persist)
+
         rr = ds_stream_test_func(dss)
         msg(rr.text)
 
@@ -525,8 +609,6 @@ class TaskReader:
         Adding the missing _grid, _gridspec, _gridspec and _all_tiles which skip for sqs task init.
         Upading the cfg which used placeholder filedb path for sqs task init.
         """
-
-        _log = logging.getLogger(__name__)
 
         cache = DatasetCache.open_ro(local_db_path)
 

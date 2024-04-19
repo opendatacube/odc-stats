@@ -18,5 +18,4 @@ def s3_fetch_dss(glob, s3=None):
 
     blobs = s3(o.url for o in s3_find_glob(glob, skip_check=True, s3=s3))
     stacs = (bytes2stac(b.data) for b in blobs)
-
     return stac2ds(stacs)

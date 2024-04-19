@@ -342,7 +342,7 @@ def fuse_products(type_1: DatasetType, type_2: DatasetType) -> DatasetType:
         fused_def["metadata"]["odc:file_format"] = file_format
 
     fused_def["description"] = (
-        f"Fused products: {def_1['description']}, {def_2['description']}"
+        f"Fused products: {def_1.get('description', 'non_indexed_1')}, {def_2.get('description', 'non_indexed_2')}"
     )
     fused_def["measurements"] = def_1["measurements"] + def_2["measurements"]
     fused_def["metadata_type"] = def_1["metadata_type"]
@@ -388,8 +388,8 @@ def fuse_ds(
     if label_title_doc_1 is None or label_title_doc_2 is None:
         raise ValueError("No label or title field found found")
 
-    label_title_doc_1 = label_title_doc_1.replace(doc_1["product"]["name"], "")
-    label_title_doc_2 = label_title_doc_2.replace(doc_2["product"]["name"], "")
+    label_title_doc_1 = label_title_doc_1.replace(ds_1.product.name, "")
+    label_title_doc_2 = label_title_doc_2.replace(ds_2.product.name, "")
     if label_title_doc_1 != label_title_doc_2:
         raise ValueError(
             f"Label/Title field {label_title_doc_1} is not the same as {label_title_doc_2}"
