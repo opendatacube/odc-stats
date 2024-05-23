@@ -80,9 +80,7 @@ class StatsVegCount(StatsPluginInterface):
         # get valid wo pixels, both dry and wet
         data = expr_eval(
             "where(a|b, a, _nan)",
-            ["a", "b"],
-            wet.data,
-            m_v_1=valid.data,
+            dict(a=wet.data, b=valid.data),
             name="get_valid_pixels",
             dtype="float32",
             **dict(_nan=np.nan),
@@ -117,10 +115,7 @@ class StatsVegCount(StatsPluginInterface):
         # otherwise 0
         data = expr_eval(
             "where((a>b)|(c>b), 1, 0)",
-            ["a", "c", "b"],
-            xx["pv"].data,
-            xx["npv"].data,
-            xx["bs"].data,
+            dict(a=xx["pv"].data, c=xx["npv"].data, b=xx["bs"].data),
             name="get_veg",
             dtype="float32",
         )
@@ -128,9 +123,7 @@ class StatsVegCount(StatsPluginInterface):
         # mark nans
         data = expr_eval(
             "where(a!=a, _nan, b)",
-            ["a", "b"],
-            xx["pv"].data,
-            data,
+            dict(a=xx["pv"].data, b=data),
             name="get_veg",
             dtype="float32",
             **dict(_nan=np.nan),
@@ -139,15 +132,12 @@ class StatsVegCount(StatsPluginInterface):
         # mark water freq >= 0.5 as 0
         data = expr_eval(
             "where(a>0, 0, b)",
-            ["a", "b"],
-            xx["wet"].data,
-            data,
+            dict(a=xx["wet"].data, b=data),
             name="get_veg",
             dtype="float32",
         )
 
-        nan_mask = da.isnan(data).all(axis=0)
-
+        nan_mask = da.ones(data.shape[1:], chunks=data.chunks[1:]).astype("bool")
         tmp = da.zeros(data.shape[1:], chunks=data.chunks[1:])
         max_count = da.zeros(data.shape[1:], chunks=data.chunks[1:])
 
@@ -155,9 +145,7 @@ class StatsVegCount(StatsPluginInterface):
             # +1 if not nan
             tmp = expr_eval(
                 "where(a!=a, b, a+b)",
-                ["a", "b"],
-                t,
-                tmp,
+                dict(a=t, b=tmp),
                 name="compute_consecutive_month",
                 dtype="float32",
             )
@@ -165,9 +153,7 @@ class StatsVegCount(StatsPluginInterface):
             # save the max
             max_count = expr_eval(
                 "where(a>b, a, b)",
-                ["a", "b"],
-                max_count,
-                tmp,
+                dict(a=max_count, b=tmp),
                 name="compute_consecutive_month",
                 dtype="float32",
             )
@@ -175,31 +161,37 @@ class StatsVegCount(StatsPluginInterface):
             # reset if not veg
             tmp = expr_eval(
                 "where((a<=0), 0, b)",
-                ["a", "b"],
-                t,
-                tmp,
+                dict(a=t, b=tmp),
                 name="compute_consecutive_month",
                 dtype="float32",
+            )
+
+            # mark nan
+            nan_mask = expr_eval(
+                "where(a!=a, b, False)",
+                dict(a=t, b=nan_mask),
+                name="mark_nan",
+                dtype="bool",
             )
 
         # mark nan
         max_count = expr_eval(
             "where(a, _nan, b)",
-            ["a", "b"],
-            nan_mask,
-            max_count,
+            dict(a=nan_mask, b=max_count),
             name="mark_no_data",
             dtype="float32",
             **dict(_nan=np.nan),
         )
 
+        attrs = xx.attrs.copy()
+        attrs["nodata"] = np.nan
         data_vars = {
             "veg_frequency": xr.DataArray(
-                max_count, dims=xx["wet"].dims[1:], attrs=xx.attrs
+                max_count, dims=xx["wet"].dims[1:], attrs=attrs
             )
         }
         coords = dict((dim, xx.coords[dim]) for dim in xx["wet"].dims[1:])
-        return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx["wet"].attrs)
+        return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)
 
 
 register("veg_count", StatsVegCount)
