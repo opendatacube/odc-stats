@@ -146,6 +146,8 @@ class StatsVegCount(StatsPluginInterface):
             dtype="float32",
         )
 
+        nan_mask = da.isnan(data).all(axis=0)
+
         tmp = da.zeros(data.shape[1:], chunks=data.chunks[1:])
         max_count = da.zeros(data.shape[1:], chunks=data.chunks[1:])
 
@@ -179,6 +181,17 @@ class StatsVegCount(StatsPluginInterface):
                 name="compute_consecutive_month",
                 dtype="float32",
             )
+
+        # mark nan
+        max_count = expr_eval(
+            "where(a, _nan, b)",
+            ["a", "b"],
+            nan_mask,
+            max_count,
+            name="mark_no_data",
+            dtype="float32",
+            **dict(_nan=np.nan),
+        )
 
         data_vars = {
             "veg_frequency": xr.DataArray(
