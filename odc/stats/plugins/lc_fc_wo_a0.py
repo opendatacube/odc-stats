@@ -16,7 +16,7 @@ from odc.algo._masking import (
     to_float,
     _nodata_fuser,
 )
-from odc.stats._algebra import expr_eval
+from odc.stats._algebra import expr_eval, median_ds
 
 from ._registry import StatsPluginInterface, register
 
@@ -108,8 +108,7 @@ class StatsVegCount(StatsPluginInterface):
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
 
-        xx = xx.groupby("time.month").median(dim="spec", skipna=True)
-        print(xx)
+        xx = xx.groupby("time.month").map(median_ds, dim="spec")
 
         # either pv or npv > bs: 1
         # otherwise 0
