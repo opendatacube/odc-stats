@@ -106,10 +106,7 @@ class StatsVegCount(StatsPluginInterface):
 
         return xx
 
-    def reduce(self, xx: xr.Dataset) -> xr.Dataset:
-
-        xx = xx.groupby("time.month").map(median_ds, dim="spec")
-
+    def _veg_or_not(self, xx: xr.Dataset):
         # either pv or npv > bs: 1
         # otherwise 0
         data = expr_eval(
@@ -136,6 +133,9 @@ class StatsVegCount(StatsPluginInterface):
             dtype="uint8",
         )
 
+        return data
+
+    def _max_consecutive_months(self, data):
         nan_mask = da.ones(data.shape[1:], chunks=data.chunks[1:], dtype="bool")
         tmp = da.zeros(data.shape[1:], chunks=data.chunks[1:], dtype="uint8")
         max_count = da.zeros(data.shape[1:], chunks=data.chunks[1:], dtype="uint8")
@@ -183,6 +183,14 @@ class StatsVegCount(StatsPluginInterface):
             dtype="uint8",
             **dict(nodata=int(NODATA)),
         )
+        return max_count
+
+    def reduce(self, xx: xr.Dataset) -> xr.Dataset:
+
+        xx = xx.groupby("time.month").map(median_ds, dim="spec")
+
+        data = self._veg_or_not(xx)
+        max_count = self._max_consecutive_months(data)
 
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
