@@ -135,7 +135,7 @@ class StatsVegCount(StatsPluginInterface):
 
         return data
 
-    def _max_consecutive_months(self, data):
+    def _max_consecutive_months(self, data, nodata):
         nan_mask = da.ones(data.shape[1:], chunks=data.chunks[1:], dtype="bool")
         tmp = da.zeros(data.shape[1:], chunks=data.chunks[1:], dtype="uint8")
         max_count = da.zeros(data.shape[1:], chunks=data.chunks[1:], dtype="uint8")
@@ -147,7 +147,7 @@ class StatsVegCount(StatsPluginInterface):
                 dict(a=t, b=tmp),
                 name="compute_consecutive_month",
                 dtype="uint8",
-                **dict(nodata=NODATA),
+                **dict(nodata=nodata),
             )
 
             # save the max
@@ -172,7 +172,7 @@ class StatsVegCount(StatsPluginInterface):
                 dict(a=t, b=nan_mask),
                 name="mark_nodata",
                 dtype="bool",
-                **dict(nodata=NODATA),
+                **dict(nodata=nodata),
             )
 
         # mark nodata
@@ -181,7 +181,7 @@ class StatsVegCount(StatsPluginInterface):
             dict(a=nan_mask, b=max_count),
             name="mark_nodata",
             dtype="uint8",
-            **dict(nodata=int(NODATA)),
+            **dict(nodata=int(nodata)),
         )
         return max_count
 
@@ -190,7 +190,7 @@ class StatsVegCount(StatsPluginInterface):
         xx = xx.groupby("time.month").map(median_ds, dim="spec")
 
         data = self._veg_or_not(xx)
-        max_count = self._max_consecutive_months(data)
+        max_count = self._max_consecutive_months(data, NODATA)
 
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
