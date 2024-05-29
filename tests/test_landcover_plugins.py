@@ -3,8 +3,55 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 from odc.stats.plugins.lc_fc_wo_a0 import StatsVegCount
+from odc.stats._algebra import median_ds
 import pytest
 import pandas as pd
+
+
+@pytest.fixture
+def dataset_md():
+    band_1 = np.array(
+        [
+            [
+                [77.0, np.nan, 59.0, np.nan],
+                [8.0, 80.0, 70.0, 97.0],
+                [48.0, 75.0, 80.0, 53.0],
+                [np.nan, 23.0, 70.0, 49.0],
+            ],
+            [
+                [90.0, 90.0, 41.0, np.nan],
+                [np.nan, 51.0, 60.0, np.nan],
+                [42.0, 76.0, 80.0, 86.0],
+                [34.0, np.nan, 52.0, 46.0],
+            ],
+            [
+                [51.0, np.nan, 55.0, np.nan],
+                [31.0, 67.0, 15.0, 69.0],
+                [45.0, 86.0, 29.0, np.nan],
+                [87.0, 83.0, np.nan, 2.0],
+            ],
+        ],
+        dtype="float32",
+    )
+    band_1 = da.from_array(band_1, chunks=(3, -1, -1))
+    tuples = [
+        (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
+        (np.datetime64("2000-01-02T08"), np.datetime64("2000-01-02")),
+        (np.datetime64("2000-01-03T12"), np.datetime64("2000-01-03")),
+    ]
+    index = pd.MultiIndex.from_tuples(tuples, names=["time", "solar_day"])
+    coords = {
+        "x": np.linspace(10, 20, band_1.shape[2]),
+        "y": np.linspace(0, 5, band_1.shape[1]),
+        "spec": index,
+    }
+    data_vars = {
+        "band_1": xr.DataArray(
+            band_1, dims=("spec", "y", "x"), attrs={"nodata": np.nan}
+        ),
+    }
+    xx = xr.Dataset(data_vars=data_vars, coords=coords)
+    return xx
 
 
 @pytest.fixture
@@ -366,3 +413,17 @@ def test_consecutive_month(consecutive_count):
         ]
     )
     assert (xx == expected_value).all()
+
+
+def test_median_ds(dataset_md):
+    xx = dataset_md.groupby("time.month").map(median_ds, dim="spec").compute()
+    yy = dataset_md.groupby("time.month").median(dim="spec", skipna=True).compute()
+
+    assert (
+        (xx.band_1.data == xx.band_1.data) == (yy.band_1.data == yy.band_1.data)
+    ).all()
+    assert np.where(yy.band_1.data != xx.band_1.data) == (
+        np.array([0]),
+        np.array([0]),
+        np.array([3]),
+    )
