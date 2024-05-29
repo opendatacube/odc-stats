@@ -1,3 +1,6 @@
+ci:
+  skip: [pylint]
+
 repos:
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.35.1
@@ -17,10 +20,6 @@ repos:
       - id: requirements-txt-fixer
       - id: check-added-large-files
       - id: check-merge-conflict
-  - repo: https://github.com/pre-commit/mirrors-pylint
-    rev: 'v3.0.0a5'  # Use the sha / tag you want to point at
-    hooks:
-      - id: pylint
   - repo: https://github.com/PyCQA/flake8
     rev: '7.0.0'
     hooks:
@@ -29,3 +28,16 @@ repos:
     rev: 24.4.2
     hooks:
       - id: black
+  - repo: local
+    hooks:
+    - id: pylint
+      name: pylint
+      entry: pylint
+      language: system
+      types: [python]
+      args:
+        [
+          "-rn", # Only display messages
+          "-sn", # Don't display the score
+          "--rcfile=pylintrc", # Link to your config file
+        ]
