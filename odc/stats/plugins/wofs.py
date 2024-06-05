@@ -46,9 +46,11 @@ class StatsWofs(StatsPluginInterface):
     PRODUCT_FAMILY = "wo_summary"
 
     # these get padded out if dilation was requested
-    BAD_BITS_MASK = dict(
-        cloud=(1 << 6), cloud_shadow=(1 << 5), terrain_shadow=(1 << 3)
-    )  # Cloud/Shadow + Terrain Shadow
+    BAD_BITS_MASK = {
+        "cloud": (1 << 6),
+        "cloud_shadow": (1 << 5),
+        "terrain_shadow": (1 << 3),
+    }  # Cloud/Shadow + Terrain Shadow
 
     def __init__(
         self, cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None, **kwargs
@@ -138,11 +140,11 @@ class StatsWofs(StatsPluginInterface):
         count_clear = keep_good_only(count_clear, is_ok)
 
         return xr.Dataset(
-            dict(
-                count_wet=count_wet,
-                count_clear=count_clear,
-                frequency=frequency,
-            )
+            {
+                "count_wet": count_wet,
+                "count_clear": count_clear,
+                "frequency": frequency,
+            }
         )
 
 
@@ -207,7 +209,7 @@ class StatsWofsFullHistory(StatsPluginInterface):
             nodata=nodata,
         ).sum(axis=0, dtype=dtype)
 
-        _yy = xr.Dataset(dict(cc=cc, cw=cw, missing=missing))
+        _yy = xr.Dataset({"cc": cc, "cw": cw, "missing": missing})
 
         frequency = apply_numexpr(
             "where(cc==0, _nan, (_1*cw)/(_1*cc))",
@@ -236,9 +238,10 @@ class StatsWofsFullHistory(StatsPluginInterface):
 
         count_clear.attrs["nodata"] = int(nodata)
         count_wet.attrs["nodata"] = int(nodata)
+        frequency.attrs["nodata"] = np.nan
 
         yy = xr.Dataset(
-            dict(count_clear=count_clear, count_wet=count_wet, frequency=frequency)
+            {"count_clear": count_clear, "count_wet": count_wet, "frequency": frequency}
         )
         return yy
 
