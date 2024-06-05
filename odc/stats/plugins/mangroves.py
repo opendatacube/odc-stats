@@ -32,6 +32,10 @@ class Mangroves(StatsPluginInterface):
         if pv_thresholds is None:
             pv_thresholds = [14, 38, 60]
         self.mangroves_extent = kwargs.pop("mangroves_extent", None)
+        if self.mangroves_extent is None:
+            raise ValueError("Missing mangroves extent shapefile")
+        if not os.path.exists(self.mangroves_extent):
+            raise FileNotFoundError(f"{self.mangroves_extent} not found")
         self.pv_thresholds = pv_thresholds
         self.tcw_threshold = tcw_threshold
         super().__init__(input_bands=["pv_pc_10", "qa", "wet_pc_10"], **kwargs)
@@ -69,14 +73,9 @@ class Mangroves(StatsPluginInterface):
         mangroves computation here
         it is not a 'reduce' though
         """
-        if self.mangroves_extent:
-            if not os.path.exists(self.mangroves_extent):
-                raise FileNotFoundError(f"{self.mangroves_extent} not found")
-            extent_mask = self.rasterize_mangroves_extent(
-                self.mangroves_extent, xx.geobox.transform, xx.pv_pc_10.shape
-            )
-        else:
-            extent_mask = dask.array.ones(xx.pv_pc_10.shape)
+        extent_mask = self.rasterize_mangroves_extent(
+            self.mangroves_extent, xx.geobox.transform, xx.pv_pc_10.shape
+        )
         good_data = extent_mask == 1
         good_data &= xx.wet_pc_10 > self.tcw_threshold
         good_data &= (xx.pv_pc_10 > self.pv_thresholds[0]) & (xx.qa == 2) | (xx.qa == 1)
