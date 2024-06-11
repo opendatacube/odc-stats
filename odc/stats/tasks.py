@@ -3,7 +3,8 @@ from typing import Optional, Tuple, Union, Callable, Any, Dict, List, Iterable, 
 from types import SimpleNamespace
 from collections import namedtuple
 from datetime import datetime
-from itertools import islice, chain, groupby
+from itertools import islice, chain, groupby, starmap
+from itertools import product as iproduct
 import pickle
 import json
 import os
@@ -157,6 +158,7 @@ class SaveTasks:
         frequency: str = "annual",
         overwrite: bool = False,
         complevel: int = 6,
+        ignore_time=None,
     ):
         if DatasetCache.exists(output) and overwrite is False:
             raise ValueError(f"File database already exists: {output}")
@@ -178,23 +180,35 @@ class SaveTasks:
         cls,
         dss: Iterable,
         group_size: int,
+        dss_extra: Optional[Iterable] = None,
         fuse_dss: bool = True,
     ):
-        def match_dss(groups, group_size):
-            for _, ds_group in groups:
-                ds_group = tuple(ds_group)
-                if len(ds_group) >= group_size:
-                    yield ds_group
+        def match_dss(ds_grouped, ds_extra, group_size):
+            k, ds = ds_grouped
+            ds_extra.center_time = k[0]
+            ds_group = tuple(ds) + (ds_extra,)
+            if len(ds_group) >= group_size:
+                return ds_group
+            else:
+                return ()
 
-        grouped_dss = groupby(
-            dss,
-            key=lambda ds: (
-                (ds.center_time, ds.metadata.region_code)
-                if hasattr(ds.metadata, "region_code")
-                else (ds.center_time,)
-            ),
+        def group_dss(dss):
+            grouped_dss = groupby(
+                dss,
+                key=lambda ds: (
+                    (ds.center_time, ds.metadata.region_code)
+                    if hasattr(ds.metadata, "region_code")
+                    else (ds.center_time,)
+                ),
+            )
+            for k, ds in grouped_dss:
+                yield (k, tuple(ds))
+
+        grouped_dss = group_dss(dss)
+        grouped_dss = starmap(
+            match_dss, iproduct(grouped_dss, dss_extra, iter([group_size]))
         )
-        grouped_dss = match_dss(grouped_dss, group_size)
+
         try:
             ds0 = next(grouped_dss)
         except StopIteration:
@@ -222,6 +236,7 @@ class SaveTasks:
         dataset_filter=None,
         predicate=None,
         fuse_dss: bool = True,
+        ignore_time: Optional[Iterable] = None,
     ):
         """
         query and filter the datasets with a string composed by products name
@@ -229,7 +244,7 @@ class SaveTasks:
         A string joined by `+` implies intersect (filtered and then groupby) against time
         return a generator of datasets
         """
-        # pylint:disable=too-many-locals
+        # pylint:disable=too-many-locals,too-many-branches
         if dataset_filter is None:
             dataset_filter = {}
 
@@ -248,19 +263,39 @@ class SaveTasks:
                 non_indexed_products += [p]
 
         if indexed_products:
-            query.update(dict(product=indexed_products, **dataset_filter))
-            dss = ordered_dss(
-                dc,
-                freq="y",
-                key=lambda ds: (
-                    (ds.center_time, ds.metadata.region_code)
-                    if hasattr(ds.metadata, "region_code")
-                    else (ds.center_time,)
-                ),
-                **query,
-            )
+            if ignore_time is not None:
+                indexed_products = list(set(indexed_products) - set(ignore_time))
+            if len(indexed_products) > 0:
+                query.update({"product": indexed_products, **dataset_filter})
+                dss = ordered_dss(
+                    dc,
+                    freq="y",
+                    key=lambda ds: (
+                        (ds.center_time, ds.metadata.region_code)
+                        if hasattr(ds.metadata, "region_code")
+                        else (ds.center_time,)
+                    ),
+                    **query,
+                )
+            else:
+                dss = iter([])
+            if ignore_time is not None:
+                query.update({"product": list(ignore_time), "time": ("1970", "2038")})
+                dss_extra = ordered_dss(
+                    dc,
+                    freq="y",
+                    key=lambda ds: (
+                        (ds.center_time, ds.metadata.region_code)
+                        if hasattr(ds.metadata, "region_code")
+                        else (ds.center_time,)
+                    ),
+                    **query,
+                )
+            else:
+                dss_extra = iter([])
         else:
             dss = iter([])
+            dss_extra = iter([])
 
         if non_indexed_products:
             dss_stac = cls.create_dss_by_stac(
@@ -271,7 +306,7 @@ class SaveTasks:
             dss = chain(dss, dss_stac)
 
         if group_size > 0:
-            dss = cls.ds_align(dss, group_size + 1, fuse_dss)
+            dss = cls.ds_align(dss, group_size + 1, dss_extra, fuse_dss)
 
         if predicate is not None:
             dss = filter(predicate, dss)
@@ -324,6 +359,7 @@ class SaveTasks:
         predicate=None,
         temporal_range: Optional[DateTimeRange] = None,
         tiles: Optional[TilesRange2d] = None,
+        ignore_time: Optional[Iterable] = None,
     ):
         """
         This returns a tuple containing:
@@ -332,10 +368,10 @@ class SaveTasks:
         - a config dictionary containing the product, temporal range, tiles, and the datacube query used
         """
 
-        cfg: Dict[str, Any] = dict(
-            grid=self._grid,
-            freq=self._frequency,
-        )
+        cfg: Dict[str, Any] = {
+            "grid": self._grid,
+            "freq": self._frequency,
+        }
 
         query = {}
 
@@ -352,7 +388,9 @@ class SaveTasks:
             cfg["temporal_range"] = temporal_range
 
         msg("Connecting to the database, streaming datasets")
-        dss = self._find_dss(dc, products, query, cfg, dataset_filter, predicate)
+        dss = self._find_dss(
+            dc, products, query, cfg, dataset_filter, predicate, ignore_time=ignore_time
+        )
         cfg["query"] = sanitize_query(query)
         if cfg.get("temporal_range"):
             cfg["temporal_range"] = cfg["temporal_range"].short
@@ -367,6 +405,7 @@ class SaveTasks:
         temporal_range: Union[str, DateTimeRange, None] = None,
         tiles: Optional[TilesRange2d] = None,
         predicate: Optional[Callable[[Dataset], bool]] = None,
+        ignore_time: Optional[Iterable] = None,
         msg: Optional[Callable[[str], Any]] = None,
         debug: bool = False,
     ) -> bool:
@@ -409,7 +448,14 @@ class SaveTasks:
             temporal_range = DateTimeRange(temporal_range)
 
         dss, cfg = self.get_dss_by_grid(
-            dc, products, msg, dataset_filter, predicate, temporal_range, tiles
+            dc,
+            products,
+            msg,
+            dataset_filter,
+            predicate,
+            temporal_range,
+            tiles,
+            ignore_time,
         )
 
         dss_slice = list(islice(dss, 0, 100))
@@ -434,7 +480,7 @@ class SaveTasks:
             truncate=self._overwrite,
         )
         cache.add_grid(self._gridspec, self._grid)
-        cache.append_info_dict("stats/", dict(config=cfg))
+        cache.append_info_dict("stats/", {"config": cfg})
 
         cells: Dict[Tuple[int, int], Any] = {}
         dss = cache.tee(dss)
@@ -569,19 +615,20 @@ class TaskReader:
 
             # TODO: verify this things are set in the file
             cfg = cache.get_info_dict("stats/config")
-            grid = cfg["grid"]
-            gridspec = cache.grids[grid]
+            self._grid = cfg["grid"]
+            self._gridspec = cache.grids[self._grid]
+            self._all_tiles = sorted(idx for idx, _ in cache.tiles(self._grid))
         else:  # if read from message, there is no filedb at beginning
             cfg = {}
+            self._grid = ""
+            self._gridspec = ""
+            self._all_tiles = []
 
         self._product = product
         # if not from_sqs, the resolution check can finish before init TaskReader
         self.resolution = resolution
         self._dscache = cache
         self._cfg = cfg
-        self._grid = grid if cache else ""
-        self._gridspec = gridspec if cache else ""
-        self._all_tiles = sorted(idx for idx, _ in cache.tiles(grid)) if cache else []
 
     def is_compatible_resolution(self, resolution: Tuple[float, float], tol=1e-8):
         for res, sz in zip(resolution, self._gridspec.tile_size):

@@ -421,6 +421,7 @@ class Task:
                     self.product.classifier, *sources
                 )
             else:
+                dataset.metadata_doc.setdefault("$schema", "")
                 source_datasetdoc = serialise.from_doc(
                     dataset.metadata_doc, skip_validation=True
                 )
@@ -534,7 +535,7 @@ class Task:
         proj_ext.apply(geobox.crs.epsg, transform=geobox.transform, shape=geobox.shape)
 
         # Lineage last
-        item.properties["odc:lineage"] = dict(inputs=inputs)
+        item.properties["odc:lineage"] = {"inputs": inputs}
 
         # Add all the assets
         for band, path in self.paths(ext=ext).items():
@@ -672,13 +673,13 @@ class TaskResult:
 class TaskRunnerConfig:  # pylint:disable=too-many-instance-attributes
     @staticmethod
     def default_cog_settings():
-        return dict(
-            compress="deflate",
-            zlevel=9,
-            blocksize=800,
-            ovr_blocksize=256,  # ovr_blocksize must be powers of 2 for some reason in GDAL
-            overview_resampling="average",
-        )
+        return {
+            "compress": "deflate",
+            "zlevel": 9,
+            "blocksize": 800,
+            "ovr_blocksize": 256,  # ovr_blocksize must be powers of 2 for some reason in GDAL
+            "overview_resampling": "average",
+        }
 
     # Input
     filedb: str = ""
