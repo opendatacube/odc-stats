@@ -313,7 +313,6 @@ def fuse_products(*ds_types) -> DatasetType:
         raise ValueError("Number of products to be fused must be >= 2")
 
     def_s = [s.definition for s in ds_types]
-    print(f"definition {def_s[0]}")
     fused_def = {}
 
     if not all(d["metadata_type"] == "eo3" for d in def_s):
@@ -391,12 +390,14 @@ def fuse_ds(
     for g in common_grids:
         # not sure why z-affine was omitted in odc.stac
         # special treatment for transform until we know
-        if g == "transform":
-            t = list(doc_s[0]["grids"][g])[:6]
-            match_grid &= all(list(d["grids"][g])[:6] == t for d in doc_s[1:])
-        else:
-            t = list(doc_s[0]["grids"][g])
-            match_grid &= all(list(d["grids"][g]) == t for d in doc_s[1:])
+        print(g)
+        for k, v in doc_s[0]["grids"][g].items():
+            if k == "transform":
+                match_grid &= all(
+                    list(d["grids"][g][k])[:6] == list(v)[:6] for d in doc_s[1:]
+                )
+            else:
+                match_grid &= all(list(d["grids"][g][k]) == list(v) for d in doc_s[1:])
     if not match_grid:
         raise ValueError("Grids are not all the same")
 
