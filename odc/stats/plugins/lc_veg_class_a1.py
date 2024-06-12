@@ -74,6 +74,8 @@ class StatsVegClassL1(StatsPluginInterface):
                 "nbart_red",
                 "nbart_green",
                 "nbart_blue",
+                "veg_frequency",
+                "frequency",
                 "dem_h",
             ],
             **kwargs,
@@ -88,14 +90,21 @@ class StatsVegClassL1(StatsPluginInterface):
         return _measurements
 
     def native_transform(self, xx):
-
-        print(xx)
         return xx
 
     def fuser(self, xx):
         return xx
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
+        data = expr_eval(
+            "where(a>nodata, a*b/c, _nan)",
+            {"a": xx.nbart_blue.data, "b": xx.nbart_red.data, "c": xx.nbart_green.data},
+            name="caculate_si5",
+            dtype="float32",
+            **{"_nan": np.nan, "nodata": xx.nbart_blue.attrs["nodata"]},
+        )
+
+        print(f"si5 {data}")
         return xx
 
 

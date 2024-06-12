@@ -12,6 +12,8 @@ from urllib.parse import urlparse
 import logging
 import ciso8601
 import re
+import copy
+import toolz
 
 from odc.dscache import DatasetCache
 from datacube import Datacube
@@ -183,31 +185,63 @@ class SaveTasks:
         dss_extra: Optional[Iterable] = None,
         fuse_dss: bool = True,
     ):
-        def match_dss(ds_grouped, ds_extra, group_size):
+        def pack_dss(grouped_dss, group_size):
+            for _, ds in grouped_dss:
+                if len(ds) >= group_size:
+                    yield ds
+
+        def match_dss(ds_grouped, ds_extra_grouped):
             k, ds = ds_grouped
-            ds_extra.center_time = k[0]
-            ds_group = tuple(ds) + (ds_extra,)
-            if len(ds_group) >= group_size:
-                return ds_group
+            k_e, ds_extra = ds_extra_grouped
+            # same region_code or ds_extra has no region_code
+            if (len(k) == len(k_e)) & (k[1] == k_e[1]) | (len(k) > len(k_e)):
+                d_c = []
+                ds = tuple(ds)
+                for d in ds_extra:
+                    d_c += [copy.deepcopy(d)]
+                    d_c[-1].center_time = k[0]
+                    d_c[-1].metadata_doc["label"] = d.product.name + ds[
+                        0
+                    ].metadata_doc.get(
+                        "label",
+                        toolz.get_in(["properties", "title"], ds[0].metadata_doc),
+                    ).replace(
+                        ds[0].product.name, ""
+                    )
+                    d_c[-1].metadata_doc["properties"]["datetime"] = ds[0].metadata_doc[
+                        "properties"
+                    ]["datetime"]
+                return (k, ds + tuple(d_c))
             else:
-                return ()
+                return (k, ())
+
+        def sorted_key(ds):
+            if hasattr(ds.metadata, "region_code"):
+                return (ds.center_time, ds.metadata.region_code)
+            else:
+                return (ds.center_time,)
 
         def group_dss(dss):
+            grouped_dss = sorted(dss, key=sorted_key)
             grouped_dss = groupby(
-                dss,
-                key=lambda ds: (
-                    (ds.center_time, ds.metadata.region_code)
-                    if hasattr(ds.metadata, "region_code")
-                    else (ds.center_time,)
-                ),
+                grouped_dss,
+                key=sorted_key,
             )
             for k, ds in grouped_dss:
                 yield (k, tuple(ds))
 
         grouped_dss = group_dss(dss)
-        grouped_dss = starmap(
-            match_dss, iproduct(grouped_dss, dss_extra, iter([group_size]))
-        )
+
+        try:
+            ds0 = next(dss_extra)
+        except StopIteration:
+            grouped_dss = pack_dss(grouped_dss, group_size)
+        else:
+            # if dss_extra is non-empty
+            grouped_dss_extra = chain(iter([ds0]), dss_extra)
+            grouped_dss_extra = group_dss(grouped_dss_extra)
+            grouped_dss = starmap(match_dss, iproduct(grouped_dss, grouped_dss_extra))
+            grouped_dss = pack_dss(grouped_dss, group_size)
 
         try:
             ds0 = next(grouped_dss)
@@ -262,39 +296,42 @@ class SaveTasks:
             else:
                 non_indexed_products += [p]
 
+        if ignore_time:
+            ignore_time_indexed = list(set(indexed_products) & set(ignore_time))
+            indexed_products = list(set(indexed_products) - set(ignore_time))
+            ignore_time_nonindexed = set(non_indexed_products) & set(ignore_time)
+            non_indexed_products = list(set(non_indexed_products) - set(ignore_time))
+        else:
+            ignore_time_indexed = []
+            ignore_time_nonindexed = []
+
         if indexed_products:
-            if ignore_time is not None:
-                indexed_products = list(set(indexed_products) - set(ignore_time))
-            if len(indexed_products) > 0:
-                query.update({"product": indexed_products, **dataset_filter})
-                dss = ordered_dss(
-                    dc,
-                    freq="y",
-                    key=lambda ds: (
-                        (ds.center_time, ds.metadata.region_code)
-                        if hasattr(ds.metadata, "region_code")
-                        else (ds.center_time,)
-                    ),
-                    **query,
-                )
-            else:
-                dss = iter([])
-            if ignore_time is not None:
-                query.update({"product": list(ignore_time), "time": ("1970", "2038")})
-                dss_extra = ordered_dss(
-                    dc,
-                    freq="y",
-                    key=lambda ds: (
-                        (ds.center_time, ds.metadata.region_code)
-                        if hasattr(ds.metadata, "region_code")
-                        else (ds.center_time,)
-                    ),
-                    **query,
-                )
-            else:
-                dss_extra = iter([])
+            query.update({"product": indexed_products, **dataset_filter})
+            dss = ordered_dss(
+                dc,
+                freq="y",
+                key=lambda ds: (
+                    (ds.center_time, ds.metadata.region_code)
+                    if hasattr(ds.metadata, "region_code")
+                    else (ds.center_time,)
+                ),
+                **query,
+            )
         else:
             dss = iter([])
+        if ignore_time_indexed:
+            query.update({"product": list(ignore_time), "time": ("1970", "2038")})
+            dss_extra = ordered_dss(
+                dc,
+                freq="y",
+                key=lambda ds: (
+                    (ds.center_time, ds.metadata.region_code)
+                    if hasattr(ds.metadata, "region_code")
+                    else (ds.center_time,)
+                ),
+                **query,
+            )
+        else:
             dss_extra = iter([])
 
         if non_indexed_products:
@@ -304,6 +341,13 @@ class SaveTasks:
                 temporal_range=cfg.get("temporal_range"),
             )
             dss = chain(dss, dss_stac)
+        if ignore_time_nonindexed:
+            dss_stac_extra = cls.create_dss_by_stac(
+                ignore_time_nonindexed,
+                tiles=cfg.get("tiles"),
+                temporal_range=None,
+            )
+            dss_extra = chain(dss_extra, dss_stac_extra)
 
         if group_size > 0:
             dss = cls.ds_align(dss, group_size + 1, dss_extra, fuse_dss)
@@ -337,7 +381,7 @@ class SaveTasks:
                 for y in range(temporal_range.start.year, temporal_range.end.year + 1)
             ]
         else:
-            temp_path += ["*"]
+            temp_path = ["*"]
 
         dss_stac = iter([])
         for p in s3_path:

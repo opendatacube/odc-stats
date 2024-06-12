@@ -299,7 +299,7 @@ def dedup_s2_datasets(dss):
     return out, skipped
 
 
-def fuse_products(type_1: DatasetType, type_2: DatasetType) -> DatasetType:
+def fuse_products(*ds_types) -> DatasetType:
     """
     Fuses two products. This function requires access to a Datacube to access the metadata type.
 
@@ -309,31 +309,36 @@ def fuse_products(type_1: DatasetType, type_2: DatasetType) -> DatasetType:
       - the file formats are identical
     """
 
-    def_1, def_2 = type_1.definition, type_2.definition
+    if len(ds_types) < 2:
+        raise ValueError("Number of products to be fused must be >= 2")
+
+    def_s = [s.definition for s in ds_types]
+    print(f"definition {def_s[0]}")
     fused_def = {}
 
-    if not def_1["metadata_type"] == def_2["metadata_type"]:
-        raise ValueError("metadata_type was different between scenes")
-
-    if not def_1["metadata_type"] == "eo3":
+    if not all(d["metadata_type"] == "eo3" for d in def_s):
         raise ValueError("metadata_type must be eo3")
 
-    measurements_1 = set(m["name"] for m in def_1["measurements"])
-    measurements_2 = set(m["name"] for m in def_2["measurements"])
+    fused_def["metadata_type"] = "eo3"
+    measurements = []
+    for d in def_s:
+        measurements += [m["name"] for m in d["measurements"]]
 
-    if not len(measurements_1.intersection(measurements_2)) == 0:
+    if len(measurements) > len(set(measurements)):
         raise ValueError("Measurements are overlapping, they should be different")
 
     file_format = None
     try:
-        file_format = def_1["metadata"]["properties"]["odc:file_format"]
-        if not file_format == def_2["metadata"]["properties"]["odc:file_format"]:
+        file_format = def_s[0]["metadata"]["properties"]["odc:file_format"]
+        if not all(
+            file_format == d["metadata"]["properties"]["odc:file_format"] for d in def_s
+        ):
             raise ValueError("odc:file_format was different between scenes")
     except KeyError:
         # odc:file_format didn't exist, but it's not required, so we're good
         pass
 
-    name = f"fused__{def_1['name']}__{def_2['name']}"
+    name = "fused__" + "__".join([d["name"] for d in def_s])
 
     fused_def["name"] = name
     fused_def["metadata"] = {"product": {"name": name}}
@@ -341,17 +346,19 @@ def fuse_products(type_1: DatasetType, type_2: DatasetType) -> DatasetType:
     if file_format is not None:
         fused_def["metadata"]["odc:file_format"] = file_format
 
-    fused_def["description"] = (
-        f"Fused products: {def_1.get('description', 'non_indexed_1')}, {def_2.get('description', 'non_indexed_2')}"
+    fused_def["description"] = "Fused products: " + ",".join(
+        [def_s[i].get("description", f"non_indexed_{i}") for i in range(len(def_s))]
     )
-    fused_def["measurements"] = def_1["measurements"] + def_2["measurements"]
-    fused_def["metadata_type"] = def_1["metadata_type"]
+    fused_def["measurements"] = []
+    for d in def_s:
+        fused_def["measurements"] += d["measurements"]
 
-    return DatasetType(type_1.metadata_type, fused_def)
+    return DatasetType(ds_types[0].metadata_type, fused_def)
 
 
 def fuse_ds(
-    ds_1: Dataset, ds_2: Dataset, product: Optional[DatasetType] = None
+    *dss,
+    product: Optional[DatasetType] = None,
 ) -> Dataset:
     """
     This function fuses two datasets. It requires that:
@@ -362,60 +369,90 @@ def fuse_ds(
       - datetimes are identical
       - $schemas are identical
     """
+    # pylint:disable=too-many-locals,too-many-branches,consider-using-enumerate
+    if len(dss) < 2:
+        raise ValueError("Number of products to be fused must be >= 2")
 
-    doc_1, doc_2 = ds_1.metadata_doc, ds_2.metadata_doc
+    doc_s = [ds.metadata_doc for ds in dss]
 
     if product is None:
-        product = fuse_products(ds_1.type, ds_2.type)
+        product = fuse_products(*[ds.type for ds in dss])
 
     fused_doc = {
-        "id": str(odc_uuid(product.name, "0.0.0", sources=[doc_1["id"], doc_2["id"]])),
-        "lineage": {"source_datasets": [doc_1["id"], doc_2["id"]]},
+        "id": str(odc_uuid(product.name, "0.0.0", sources=[d["id"] for d in doc_s])),
+        "lineage": {"source_datasets": [d["id"] for d in doc_s]},
     }
 
     # check that all grids with the same name are identical
-    common_grids = set(doc_1["grids"].keys()).intersection(doc_2["grids"].keys())
-    if not all(doc_1["grids"][g] == doc_2["grids"][g] for g in common_grids):
+    common_grids = set(doc_s[0]["grids"].keys())
+    for d in doc_s[1:]:
+        common_grids &= set(d["grids"].keys())
+    match_grid = True
+    for g in common_grids:
+        # not sure why z-affine was omitted in odc.stac
+        # special treatment for transform until we know
+        if g == "transform":
+            t = list(doc_s[0]["grids"][g])[:6]
+            match_grid &= all(list(d["grids"][g])[:6] == t for d in doc_s[1:])
+        else:
+            t = list(doc_s[0]["grids"][g])
+            match_grid &= all(list(d["grids"][g]) == t for d in doc_s[1:])
+    if not match_grid:
         raise ValueError("Grids are not all the same")
 
     # TODO: handle the case that grids have conflicts in a seperate function
-    fused_doc["grids"] = {**doc_1["grids"], **doc_2["grids"]}
+    fused_doc["grids"] = {**doc_s[0]["grids"]}
+    for d in doc_s[1:]:
+        for k, v in d["grids"].items():
+            fused_doc["grids"].setdefault(k, v)
 
-    # This is currently required, but Alex isn't sure that it should be.
-    label_title_doc_1 = doc_1.get("label", toolz.get_in(["properties", "title"], doc_1))
-    label_title_doc_2 = doc_2.get("label", toolz.get_in(["properties", "title"], doc_2))
-
-    if label_title_doc_1 is None or label_title_doc_2 is None:
+    # This is to match grid, time and maturity
+    label_title_doc_s = [
+        d.get("label", toolz.get_in(["properties", "title"], d)) for d in doc_s
+    ]
+    if any(lt is None for lt in label_title_doc_s):
         raise ValueError("No label or title field found found")
 
-    label_title_doc_1 = label_title_doc_1.replace(ds_1.product.name, "")
-    label_title_doc_2 = label_title_doc_2.replace(ds_2.product.name, "")
-    if label_title_doc_1 != label_title_doc_2:
-        raise ValueError(
-            f"Label/Title field {label_title_doc_1} is not the same as {label_title_doc_2}"
-        )
+    for i in range(len(label_title_doc_s)):
+        label_title_doc_s[i] = label_title_doc_s[i].replace(dss[i].product.name, "")
 
-    fused_doc["label"] = f"{product.name}{label_title_doc_1}"
+    lt = label_title_doc_s[0]
+    if any(t != lt for t in label_title_doc_s[1:]):
+        raise ValueError(f"Label/Title field must be same for all {label_title_doc_s}")
+
+    fused_doc["label"] = f"{product.name}{lt}"
 
     equal_keys = ["$schema", "crs"]
     for key in equal_keys:
-        if not doc_1[key] == doc_2[key]:
+        v = doc_s[0][key]
+        if any(d[key].casefold() != v.casefold() for d in doc_s[1:]):
             raise ValueError(f"{key} is not the same")
-        fused_doc[key] = doc_1[key]
+        fused_doc[key] = v
 
-    fused_doc["properties"] = {}
     # datetime is the only mandatory property
-    if not doc_1["properties"]["datetime"] == doc_2["properties"]["datetime"]:
+    dt = doc_s[0]["properties"]["datetime"].replace("Z", "+00:00")
+    if any(d["properties"]["datetime"].replace("Z", "+00:00") != dt for d in doc_s[1:]):
         raise ValueError("Datetimes are not the same")
+    fused_doc["properties"] = {"datetime": dt}
 
     # copy over all identical properties
-    for key, val in doc_1["properties"].items():
-        if val == doc_2["properties"].get(key, None):
-            fused_doc["properties"][key] = val
+    match_keys = set(doc_s[0]["properties"].keys())
+    for d in doc_s[1:]:
+        match_keys &= set(d["properties"].keys())
 
-    fused_doc["measurements"] = {**doc_1["measurements"], **doc_2["measurements"]}
-    for key, path in {**measurement_paths(ds_1), **measurement_paths(ds_2)}.items():
-        fused_doc["measurements"][key]["path"] = path
+    match_keys -= {"datetime"}
+    for k in match_keys:
+        v = doc_s[0]["properties"][k]
+        if all(d["properties"][k] == v for d in doc_s[1:]):
+            fused_doc["properties"][k] = v
+
+    fused_doc["measurements"] = {}
+    for d in doc_s:
+        fused_doc["measurements"].update({**d["measurements"]})
+
+    for ds in dss:
+        for key, path in {**measurement_paths(ds)}.items():
+            fused_doc["measurements"][key]["path"] = path
 
     fused_ds = Dataset(product, prep_eo3(fused_doc), uris=[""])
     fused_doc["properties"]["fused"] = "True"

@@ -60,7 +60,7 @@ CONFIG_ITEMS = [
     "-z",
     "complevel",
     type=int,
-    default=6,
+    default=None,
     help="Compression setting for zstandard 1-fast, 9+ good but slow",
 )
 @click.option(
@@ -146,6 +146,8 @@ def save_tasks(
 
     _cfg = {k: config.get(k) for k in CONFIG_ITEMS if config.get(k) is not None}
 
+    print(f"config from yaml {_cfg} {complevel}")
+
     cfg_from_cli = {
         k: v
         for k, v in {
@@ -158,11 +160,12 @@ def save_tasks(
             "overwrite": overwrite,
             "ignore_time": ignore_time,
         }.items()
-        if v is not None and v != ""
+        if v
     }
 
     _log.info("Config overrides: %s", cfg_from_cli)
     _cfg.update(cfg_from_cli)
+    _cfg.setdefault("complevel", 6)
     _log.info("Using config: %s", _cfg)
 
     gqa = _cfg.pop("gqa", None)
