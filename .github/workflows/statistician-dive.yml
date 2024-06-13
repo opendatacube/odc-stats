@@ -38,7 +38,7 @@ jobs:
           docker build -t ${ORG}/${IMAGE}:_build ./docker/
 
       - name: Dive
-        uses: yuichielectric/dive-action@0.0.3
+        uses: yuichielectric/dive-action@main
         with:
           image: ${{ env.ORG }}/${{ env.IMAGE}}:_build
           config-file: ${{ github.workspace }}/docker/dive-ci.yml
