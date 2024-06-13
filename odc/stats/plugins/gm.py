@@ -221,6 +221,7 @@ class StatsGMLS(StatsGM):
             if aux_names is None
             else aux_names
         )
+        print(aux_names)
 
         if bands is None:
             bands = (
@@ -238,7 +239,12 @@ class StatsGMLS(StatsGM):
         # ideally it should be read from product def
         self.nodata_defs = kwargs.pop(
             "nodata_defs",
-            {"count": -999, "sdev": np.nan, "edev": np.nan, "bcdev": np.nan},
+            {
+                aux_names["count"]: -999,
+                aux_names["smad"]: np.nan,
+                aux_names["bcmad"]: np.nan,
+                aux_names["emad"]: np.nan,
+            },
         )
 
         super().__init__(
