@@ -221,7 +221,6 @@ class StatsGMLS(StatsGM):
             if aux_names is None
             else aux_names
         )
-        print(aux_names)
 
         if bands is None:
             bands = (
