@@ -33,7 +33,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         id: wheels_cache
         with:
           path: ./wheels
