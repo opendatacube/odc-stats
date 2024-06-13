@@ -17,6 +17,8 @@ on:
 env:
   ORG: odc
   IMAGE: statistician
+  DIVE: wagoodman/dive:v0.12.0
+  DOCKER_API: 1.37
 
 jobs:
   dive:
@@ -38,11 +40,11 @@ jobs:
           docker build -t ${ORG}/${IMAGE}:_build ./docker/
 
       - name: Dive
-        uses: yuichielectric/dive-action@0.0.3
-        with:
-          image: ${{ env.ORG }}/${{ env.IMAGE}}:_build
-          config-file: ${{ github.workspace }}/docker/dive-ci.yml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker pull ${DIVE}
+          docker run -e CI=true -e DOCKER_API_VERSION=${DOCKER_API} --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          --mount type=bind,source=${{ github.workspace }}/docker/dive-ci.yml,target=/.dive-ci \
+          wagoodman/dive:v0.12.0  --ci-config /.dive-ci ${ORG}/${IMAGE}:_build
 
       - name: Docker image size check
         uses: wemake-services/docker-image-size-limit@master
