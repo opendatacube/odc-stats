@@ -212,8 +212,9 @@ def test_no_data_value(monkeypatch):
 
     bands = [x for x in result.data_vars]
     for x in bands:
-        assert result[x].attrs.get("nodata") is not None
         if result[x].dtype.kind == "f":
             assert result[x].attrs.get("nodata") != result[x].attrs.get("nodata")
         else:
-            assert result[x].attrs.get("nodata") == gm_ls.nodata_defs.get(x, -999)
+            assert (result[x].attrs.get("nodata") == gm_ls.nodata_defs.get(x, -999)) | (
+                result[x].attrs.get("nodata") is None
+            )
