@@ -9,7 +9,6 @@ from ._registry import StatsPluginInterface, register
 from odc.algo import enum_to_bool, erase_bad
 from odc.algo import mask_cleanup
 import logging
-import numpy as np
 
 _log = logging.getLogger(__name__)
 
@@ -112,9 +111,9 @@ class StatsGM(StatsPluginInterface):
             "maxiters": 1000,
             "num_threads": 1,
             "scale": scale,
-            "offset": 1 * scale,
+            "offset": -1 * scale,
             "reshape_strategy": "mem",
-            "out_chunks": (1, -1, -1),
+            "out_chunks": (-1, -1, -1),
             "work_chunks": self._work_chunks,
             "compute_count": True,
             "compute_mads": True,
@@ -239,10 +238,9 @@ class StatsGMLS(StatsGM):
         self.nodata_defs = kwargs.pop(
             "nodata_defs",
             {
-                aux_names["count"]: -999,
-                aux_names["smad"]: np.nan,
-                aux_names["bcmad"]: np.nan,
-                aux_names["emad"]: np.nan,
+                aux_names["smad"]: float("nan"),
+                aux_names["bcmad"]: float("nan"),
+                aux_names["emad"]: float("nan"),
             },
         )
 
@@ -267,6 +265,7 @@ class StatsGMLS(StatsGM):
         gm = super().reduce(xx)
         for key, val in self.nodata_defs.items():
             gm[key].attrs["nodata"] = val
+
         return gm
 
 
