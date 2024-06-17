@@ -34,7 +34,7 @@ class StatsGM(StatsPluginInterface):
         **kwargs,
     ):
         aux_names = (
-            dict(smad="smad", emad="emad", bcmad="bcmad", count="count")
+            {"smad": "smad", "emad": "emad", "bcmad": "bcmad", "count": "count"}
             if aux_names is None
             else aux_names
         )
@@ -107,17 +107,17 @@ class StatsGM(StatsPluginInterface):
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         scale = 1 / 10_000
-        cfg = dict(
-            maxiters=1000,
-            num_threads=1,
-            scale=scale,
-            offset=-1 * scale,
-            reshape_strategy="mem",
-            out_chunks=(-1, -1, -1),
-            work_chunks=self._work_chunks,
-            compute_count=True,
-            compute_mads=True,
-        )
+        cfg = {
+            "maxiters": 1000,
+            "num_threads": 1,
+            "scale": scale,
+            "offset": -1 * scale,
+            "reshape_strategy": "mem",
+            "out_chunks": (-1, -1, -1),
+            "work_chunks": self._work_chunks,
+            "compute_count": True,
+            "compute_mads": True,
+        }
 
         gm = geomedian_with_mads(xx, **cfg)
         gm = gm.rename(self._renames)
@@ -161,7 +161,7 @@ class StatsGMS2(StatsGM):
         )
 
         aux_names = (
-            dict(smad="SMAD", emad="EMAD", bcmad="BCMAD", count="COUNT")
+            {"smad": "SMAD", "emad": "EMAD", "bcmad": "BCMAD", "count": "COUNT"}
             if aux_names is None
             else aux_names
         )
@@ -216,12 +216,7 @@ class StatsGMLS(StatsGM):
         **kwargs,
     ):
         aux_names = (
-            dict(
-                smad="sdev",
-                emad="edev",
-                bcmad="bcdev",
-                count="count",
-            )
+            {"smad": "sdev", "emad": "edev", "bcmad": "bcdev", "count": "count"}
             if aux_names is None
             else aux_names
         )
@@ -239,6 +234,16 @@ class StatsGMLS(StatsGM):
             if rgb_bands is None:
                 rgb_bands = ("nbart_red", "nbart_green", "nbart_blue")
 
+        # ideally it should be read from product def
+        self.nodata_defs = kwargs.pop(
+            "nodata_defs",
+            {
+                aux_names["smad"]: float("nan"),
+                aux_names["bcmad"]: float("nan"),
+                aux_names["emad"]: float("nan"),
+            },
+        )
+
         super().__init__(
             bands=bands,
             mask_band=mask_band,
@@ -255,6 +260,13 @@ class StatsGMLS(StatsGM):
         return (
             tuple(b for b in self.bands if b != self._contiguity_band) + self.aux_bands
         )
+
+    def reduce(self, xx: xr.Dataset) -> xr.Dataset:
+        gm = super().reduce(xx)
+        for key, val in self.nodata_defs.items():
+            gm[key].attrs["nodata"] = val
+
+        return gm
 
 
 register("gm-ls", StatsGMLS)
