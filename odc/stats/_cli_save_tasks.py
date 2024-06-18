@@ -18,6 +18,7 @@ CONFIG_ITEMS = [
     "input_products",
     "dataset_filter",
     "ignore_time",
+    "non_obligate",
 ]
 
 
@@ -99,7 +100,13 @@ CONFIG_ITEMS = [
     "--ignore-time",
     multiple=True,
     default=None,
-    help="Ignore time for particular products, e.g., --ignore-time ga_srtm_dem1sv1_0",
+    help="Ignore time for particular products in input, e.g., --ignore-time ga_srtm_dem1sv1_0",
+)
+@click.option(
+    "--non-obligate",
+    multiple=True,
+    default=None,
+    help="Optional products in input, e.g., --non-obligate ga_ls_mangrove_cover_cyear_3",
 )
 @click_yaml_cfg("--config", help="Save tasks Config")
 @click.option("--input-products", type=str, default="")
@@ -123,6 +130,7 @@ def save_tasks(
     gqa=None,
     usgs_collection_category=None,
     ignore_time=None,
+    non_obligate=None,
 ):
     """
     Prepare tasks for processing (query db).
@@ -159,6 +167,7 @@ def save_tasks(
             "dataset_filter": dataset_filter,
             "overwrite": overwrite,
             "ignore_time": ignore_time,
+            "non_obligate": non_obligate,
         }.items()
         if v
     }
@@ -172,6 +181,7 @@ def save_tasks(
     input_products = _cfg.pop("input_products", None)
     dataset_filter = _cfg.pop("dataset_filter", None)
     ignore_time = _cfg.pop("ignore_time", None)
+    non_obligate = _cfg.pop("non_obligate", None)
 
     if input_products is None:
         print("Input products has to be specified", file=sys.stderr)
@@ -266,6 +276,7 @@ def save_tasks(
             predicate=predicate,
             debug=debug,
             ignore_time=ignore_time,
+            non_obligate=non_obligate,
             msg=on_message,
         )
     except ValueError as e:

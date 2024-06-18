@@ -390,7 +390,6 @@ def fuse_ds(
     for g in common_grids:
         # not sure why z-affine was omitted in odc.stac
         # special treatment for transform until we know
-        print(g)
         for k, v in doc_s[0]["grids"][g].items():
             if k == "transform":
                 match_grid &= all(

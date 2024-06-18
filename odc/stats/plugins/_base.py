@@ -15,10 +15,12 @@ class StatsPluginInterface(ABC):
     VERSION = "0.0.0"
     PRODUCT_FAMILY = "statistics"
 
+    # pylint:disable=too-many-arguments
     def __init__(
         self,
         resampling: str = "bilinear",
         input_bands: Optional[Sequence[str]] = None,
+        optional_bands: Optional[Sequence[str]] = None,
         chunks: Optional[Mapping[str, int]] = None,
         basis: Optional[str] = None,
         group_by: str = "solar_day",
@@ -29,6 +31,7 @@ class StatsPluginInterface(ABC):
     ):
         self.resampling = resampling
         self.input_bands = input_bands if input_bands is not None else []
+        self.optional_bands = optional_bands if optional_bands is not None else []
         self.chunks = chunks if chunks is not None else {"y": -1, "x": -1}
         self.basis = basis
         self.group_by = group_by
@@ -61,6 +64,7 @@ class StatsPluginInterface(ABC):
             fuser=self.fuser,
             resampling=self.resampling,
             chunks=self.chunks,
+            optional_bands=self.optional_bands,
             **kwargs,
         )
         return xx

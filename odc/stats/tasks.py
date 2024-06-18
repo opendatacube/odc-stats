@@ -5,6 +5,7 @@ from collections import namedtuple
 from datetime import datetime
 from itertools import islice, chain, groupby, starmap
 from itertools import product as iproduct
+from functools import partial
 import pickle
 import json
 import os
@@ -160,7 +161,6 @@ class SaveTasks:
         frequency: str = "annual",
         overwrite: bool = False,
         complevel: int = 6,
-        ignore_time=None,
     ):
         if DatasetCache.exists(output) and overwrite is False:
             raise ValueError(f"File database already exists: {output}")
@@ -183,18 +183,31 @@ class SaveTasks:
         dss: Iterable,
         group_size: int,
         dss_extra: Optional[Iterable] = None,
+        non_obligate: Optional[Iterable] = None,
         fuse_dss: bool = True,
     ):
         def pack_dss(grouped_dss, group_size):
             for _, ds in grouped_dss:
                 if len(ds) >= group_size:
                     yield ds
+                elif non_obligate is not None:
+                    # make sure only nonobligate datasets missing
+                    i = 0
+                    if len(ds) >= (group_size - len(non_obligate)):
+                        for d in ds:
+                            i += (
+                                1
+                                if any(d.product.name in p for p in non_obligate)
+                                else 0
+                            )
+                        if (len(ds) - i) >= (group_size - len(non_obligate)):
+                            yield ds
 
         def match_dss(ds_grouped, ds_extra_grouped):
             k, ds = ds_grouped
             k_e, ds_extra = ds_extra_grouped
-            # same region_code or ds_extra has no region_code
-            if (len(k) == len(k_e)) & (k[1] == k_e[1]) | (len(k) > len(k_e)):
+            # ds_extra has no time but same region_code
+            if (len(k) > len(k_e)) & (k[1] == k_e[0]):
                 d_c = []
                 ds = tuple(ds)
                 for d in ds_extra:
@@ -215,17 +228,20 @@ class SaveTasks:
             else:
                 return (k, ())
 
-        def sorted_key(ds):
-            if hasattr(ds.metadata, "region_code"):
-                return (ds.center_time, ds.metadata.region_code)
-            else:
-                return (ds.center_time,)
+        def sorted_key(ds, keys=("center_time", "region_code")):
+            sort_keys = ()
+            for k in keys:
+                if k == "center_time":
+                    sort_keys += (ds.center_time,)
+                elif hasattr(ds.metadata, k):
+                    sort_keys += (getattr(ds.metadata, k),)
+            return sort_keys
 
-        def group_dss(dss):
-            grouped_dss = sorted(dss, key=sorted_key)
+        def group_dss(dss, keys=("center_time", "region_code")):
+            grouped_dss = sorted(dss, key=partial(sorted_key, keys=keys))
             grouped_dss = groupby(
                 grouped_dss,
-                key=sorted_key,
+                key=partial(sorted_key, keys=keys),
             )
             for k, ds in grouped_dss:
                 yield (k, tuple(ds))
@@ -239,7 +255,7 @@ class SaveTasks:
         else:
             # if dss_extra is non-empty
             grouped_dss_extra = chain(iter([ds0]), dss_extra)
-            grouped_dss_extra = group_dss(grouped_dss_extra)
+            grouped_dss_extra = group_dss(grouped_dss_extra, keys=["region_code"])
             grouped_dss = starmap(match_dss, iproduct(grouped_dss, grouped_dss_extra))
             grouped_dss = pack_dss(grouped_dss, group_size)
 
@@ -271,6 +287,7 @@ class SaveTasks:
         predicate=None,
         fuse_dss: bool = True,
         ignore_time: Optional[Iterable] = None,
+        non_obligate: Optional[Iterable] = None,
     ):
         """
         query and filter the datasets with a string composed by products name
@@ -350,7 +367,7 @@ class SaveTasks:
             dss_extra = chain(dss_extra, dss_stac_extra)
 
         if group_size > 0:
-            dss = cls.ds_align(dss, group_size + 1, dss_extra, fuse_dss)
+            dss = cls.ds_align(dss, group_size + 1, dss_extra, non_obligate, fuse_dss)
 
         if predicate is not None:
             dss = filter(predicate, dss)
@@ -404,6 +421,7 @@ class SaveTasks:
         temporal_range: Optional[DateTimeRange] = None,
         tiles: Optional[TilesRange2d] = None,
         ignore_time: Optional[Iterable] = None,
+        non_obligate: Optional[Iterable] = None,
     ):
         """
         This returns a tuple containing:
@@ -412,6 +430,7 @@ class SaveTasks:
         - a config dictionary containing the product, temporal range, tiles, and the datacube query used
         """
 
+        # pylint:disable=too-many-locals
         cfg: Dict[str, Any] = {
             "grid": self._grid,
             "freq": self._frequency,
@@ -433,7 +452,14 @@ class SaveTasks:
 
         msg("Connecting to the database, streaming datasets")
         dss = self._find_dss(
-            dc, products, query, cfg, dataset_filter, predicate, ignore_time=ignore_time
+            dc,
+            products,
+            query,
+            cfg,
+            dataset_filter,
+            predicate,
+            ignore_time=ignore_time,
+            non_obligate=non_obligate,
         )
         cfg["query"] = sanitize_query(query)
         if cfg.get("temporal_range"):
@@ -441,6 +467,7 @@ class SaveTasks:
 
         return dss, cfg
 
+    # pylint:disable=too-many-locals,too-many-branches,too-many-statements,too-many-arguments
     def save(
         self,
         dc: Datacube,
@@ -450,6 +477,7 @@ class SaveTasks:
         tiles: Optional[TilesRange2d] = None,
         predicate: Optional[Callable[[Dataset], bool]] = None,
         ignore_time: Optional[Iterable] = None,
+        non_obligate: Optional[Iterable] = None,
         msg: Optional[Callable[[str], Any]] = None,
         debug: bool = False,
     ) -> bool:
@@ -462,7 +490,6 @@ class SaveTasks:
         :param msg: Observe messages if needed via callback
         :param debug: Dump some intermediate state to files for debugging
         """
-        # pylint:disable=too-many-locals,too-many-branches,too-many-statements
 
         if DatasetCache.exists(self._output) and self._overwrite is False:
             raise ValueError(f"File database already exists: {self._output}")
@@ -500,6 +527,7 @@ class SaveTasks:
             temporal_range,
             tiles,
             ignore_time,
+            non_obligate,
         )
 
         dss_slice = list(islice(dss, 0, 100))
