@@ -2,7 +2,7 @@
 Plugin of Module A1 in LandCover PipeLine
 """
 
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
 
 import numpy as np
 import xarray as xr
@@ -68,6 +68,7 @@ class StatsVegClassL1(StatsPluginInterface):
 
     def __init__(
         self,
+        output_classes: Dict,
         dem_threshold: Optional[int] = None,
         mudflat_threshold: Optional[int] = None,
         saltpan_threshold: Optional[int] = None,
@@ -85,10 +86,11 @@ class StatsVegClassL1(StatsPluginInterface):
         )
         self.water_threshold = water_threshold if water_threshold is not None else 0.2
         self.veg_threshold = veg_threshold if veg_threshold is not None else 2
+        self.output_classes = output_classes
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["veg_class_l1"]
+        _measurements = ["classes_l3"]
         return _measurements
 
     def native_transform(self, xx):
@@ -97,8 +99,8 @@ class StatsVegClassL1(StatsPluginInterface):
     def fuser(self, xx):
         return xx
 
-    def veg_class(self, xx: xr.Dataset):
-        data = expr_eval(
+    def l3_class(self, xx: xr.Dataset):
+        si5 = expr_eval(
             "where(a>nodata, a*b/c, _nan)",
             {"a": xx.nbart_blue.data, "b": xx.nbart_red.data, "c": xx.nbart_green.data},
             name="caculate_si5",
@@ -106,67 +108,116 @@ class StatsVegClassL1(StatsPluginInterface):
             **{"_nan": np.nan, "nodata": xx.nbart_blue.attrs["nodata"]},
         )
 
-        # non veg (0): (si5 > 1000 & dem <=6 ) | (si5 > 1500) | (water_freq > 0.2) | (veg_freq < 2)
-        veg_mask = expr_eval(
-            "where((a>mt)&(b<=dt)|(a>st)|(c>wt)|(d<vt), 0, 1)",
-            {
-                "a": data,
-                "b": xx.dem_h.data,
-                "c": xx["frequency"].data,
-                "d": xx.veg_frequency.data,
+        # water  (water_freq >= 0.2)
+
+        l3_mask = expr_eval(
+            "where((a>=wt), m, 0)",
+            {"a": xx["frequency"].data},
+            name="mark_water",
+            dtype="uint8",
+            **{
+                "wt": self.water_threshold,
+                "m": self.output_classes["water"],
             },
-            name="caculate_veg",
-            dtype="bool",
+        )
+
+        # surface: (si5 > 1000 & dem <=6 ) | (si5 > 1500) | (veg_freq < 2) & !water
+        # rest:  aquatic/terretrial veg
+        l3_mask = expr_eval(
+            "where(((a>mt)&(b<=dt)|(a>st)|(d<vt))&(c<=0), m, c)",
+            {
+                "a": si5,
+                "b": xx.dem_h.data,
+                "d": xx.veg_frequency.data,
+                "c": l3_mask,
+            },
+            name="mark_surface",
+            dtype="uint8",
             **{
                 "mt": self.mudflat_threshold,
                 "dt": self.dem_threshold,
                 "st": self.saltpan_threshold,
-                "wt": self.water_threshold,
                 "vt": self.veg_threshold,
+                "m": self.output_classes["surface"],
             },
         )
 
+        # if its mangrove or coast region
         for b in self.optional_bands:
-            if (b in xx.data_vars) & (b == "mangroves_cover_extent"):
-                # veg: (mangroves > 0) & (mangroves != nodata)
-                veg_mask = expr_eval(
-                    "where((a>0)&(a!=nodata), 1|b, b)",
-                    {"a": xx[b].data, "b": veg_mask},
-                    name="calculate_mangroves",
-                    dtype="bool",
-                    **{"nodata": NODATA},
-                )
+            if b in xx.data_vars:
+                if b == "elevation":
+                    # intertidal: water | surface & elevation
+                    # aquatic_veg: veg & elevation
+                    data = expr_eval(
+                        "where((a==a), 1, 0)",
+                        {
+                            "a": xx[b].data,
+                        },
+                        name="mark_intertidal",
+                        dtype="bool",
+                    )
+
+                    l3_mask = expr_eval(
+                        "where(a&(b>0), m, b)",
+                        {"a": data, "b": l3_mask},
+                        name="intertidal_water",
+                        dtype="uint8",
+                        **{"m": self.output_classes["intertidal"]},
+                    )
+
+                    l3_mask = expr_eval(
+                        "where(a&(b<=0), m, b)",
+                        {"a": data, "b": l3_mask},
+                        name="intertidal_veg",
+                        dtype="uint8",
+                        **{"m": self.output_classes["aquatic_veg"]},
+                    )
+                elif b == "canopy_cover_class":
+                    # aquatic_veg: (mangroves > 0) & (mangroves != nodata)
+                    l3_mask = expr_eval(
+                        "where((a>0)&(a<nodata), m, b)",
+                        {"a": xx[b].data, "b": l3_mask},
+                        name="mark_mangroves",
+                        dtype="uint8",
+                        **{"nodata": NODATA, "m": self.output_classes["aquatic_veg"]},
+                    )
+
+        # all unmarked values (0) is terretrial veg
+
+        l3_mask = expr_eval(
+            "where(a<=0, m, a)",
+            {"a": l3_mask},
+            name="mark_veg",
+            dtype="uint8",
+            **{"m": self.output_classes["terrestrial_veg"]},
+        )
 
         # mark nodata if any source is nodata
-        # veg 1 := 100
-        # no veg 2:= 200
         # issues:
-        # - hardcoded output is not ideal
         # - nodata information from non-indexed datasets missing
 
-        veg_mask = expr_eval(
-            "where((a!=a)|(b==nodata)|(c!=c)|(d!=d), nodata, 200-e*100)",
+        l3_mask = expr_eval(
+            "where((a!=a)|(b>=nodata), nodata, e)",
             {
-                "a": data,
+                "a": si5,
                 "b": xx.veg_frequency.data,
-                "c": xx["frequency"].data,
-                "d": xx.dem_h.data,
-                "e": veg_mask,
+                "e": l3_mask,
             },
             name="mark_nodata",
             dtype="uint8",
             **{"nodata": NODATA},
         )
-        return veg_mask
+
+        return l3_mask
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
-        veg_mask = self.veg_class(xx)
+        l3_mask = self.l3_class(xx)
 
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
         data_vars = {
-            "veg_class_l1": xr.DataArray(
-                veg_mask[0], dims=xx["veg_frequency"].dims[1:], attrs=attrs
+            "classes_l3": xr.DataArray(
+                l3_mask[0], dims=xx["veg_frequency"].dims[1:], attrs=attrs
             )
         }
         coords = dict((dim, xx.coords[dim]) for dim in xx["veg_frequency"].dims[1:])

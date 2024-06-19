@@ -183,24 +183,24 @@ class SaveTasks:
         dss: Iterable,
         group_size: int,
         dss_extra: Optional[Iterable] = None,
-        non_obligate: Optional[Iterable] = None,
+        optional_products: Optional[Iterable] = None,
         fuse_dss: bool = True,
     ):
         def pack_dss(grouped_dss, group_size):
             for _, ds in grouped_dss:
                 if len(ds) >= group_size:
                     yield ds
-                elif non_obligate is not None:
+                elif optional_products is not None:
                     # make sure only nonobligate datasets missing
                     i = 0
-                    if len(ds) >= (group_size - len(non_obligate)):
+                    if len(ds) >= (group_size - len(optional_products)):
                         for d in ds:
                             i += (
                                 1
-                                if any(d.product.name in p for p in non_obligate)
+                                if any(d.product.name in p for p in optional_products)
                                 else 0
                             )
-                        if (len(ds) - i) >= (group_size - len(non_obligate)):
+                        if (len(ds) - i) >= (group_size - len(optional_products)):
                             yield ds
 
         def match_dss(ds_grouped, ds_extra_grouped):
@@ -287,7 +287,7 @@ class SaveTasks:
         predicate=None,
         fuse_dss: bool = True,
         ignore_time: Optional[Iterable] = None,
-        non_obligate: Optional[Iterable] = None,
+        optional_products: Optional[Iterable] = None,
     ):
         """
         query and filter the datasets with a string composed by products name
@@ -367,7 +367,9 @@ class SaveTasks:
             dss_extra = chain(dss_extra, dss_stac_extra)
 
         if group_size > 0:
-            dss = cls.ds_align(dss, group_size + 1, dss_extra, non_obligate, fuse_dss)
+            dss = cls.ds_align(
+                dss, group_size + 1, dss_extra, optional_products, fuse_dss
+            )
 
         if predicate is not None:
             dss = filter(predicate, dss)
@@ -421,7 +423,7 @@ class SaveTasks:
         temporal_range: Optional[DateTimeRange] = None,
         tiles: Optional[TilesRange2d] = None,
         ignore_time: Optional[Iterable] = None,
-        non_obligate: Optional[Iterable] = None,
+        optional_products: Optional[Iterable] = None,
     ):
         """
         This returns a tuple containing:
@@ -459,7 +461,7 @@ class SaveTasks:
             dataset_filter,
             predicate,
             ignore_time=ignore_time,
-            non_obligate=non_obligate,
+            optional_products=optional_products,
         )
         cfg["query"] = sanitize_query(query)
         if cfg.get("temporal_range"):
@@ -477,7 +479,7 @@ class SaveTasks:
         tiles: Optional[TilesRange2d] = None,
         predicate: Optional[Callable[[Dataset], bool]] = None,
         ignore_time: Optional[Iterable] = None,
-        non_obligate: Optional[Iterable] = None,
+        optional_products: Optional[Iterable] = None,
         msg: Optional[Callable[[str], Any]] = None,
         debug: bool = False,
     ) -> bool:
@@ -527,7 +529,7 @@ class SaveTasks:
             temporal_range,
             tiles,
             ignore_time,
-            non_obligate,
+            optional_products,
         )
 
         dss_slice = list(islice(dss, 0, 100))
