@@ -90,7 +90,7 @@ class StatsVegClassL1(StatsPluginInterface):
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["classes_l3"]
+        _measurements = ["classes_l3_l4"]
         return _measurements
 
     def native_transform(self, xx):
@@ -216,7 +216,7 @@ class StatsVegClassL1(StatsPluginInterface):
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
         data_vars = {
-            "classes_l3": xr.DataArray(
+            "classes_l3_l4": xr.DataArray(
                 l3_mask[0], dims=xx["veg_frequency"].dims[1:], attrs=attrs
             )
         }
