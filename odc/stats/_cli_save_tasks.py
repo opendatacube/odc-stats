@@ -17,6 +17,8 @@ CONFIG_ITEMS = [
     "gqa",
     "input_products",
     "dataset_filter",
+    "ignore_time",
+    "optional_products",
 ]
 
 
@@ -59,7 +61,7 @@ CONFIG_ITEMS = [
     "-z",
     "complevel",
     type=int,
-    default=6,
+    default=None,
     help="Compression setting for zstandard 1-fast, 9+ good but slow",
 )
 @click.option(
@@ -94,6 +96,19 @@ CONFIG_ITEMS = [
     default=None,
     help='Filter to apply on datasets - {"collection_category": "T1"}',
 )
+@click.option(
+    "--ignore-time",
+    multiple=True,
+    default=None,
+    help="Ignore time for particular products in input, e.g., --ignore-time ga_srtm_dem1sv1_0",
+)
+@click.option(
+    "--optional-products",
+    multiple=True,
+    default=None,
+    help="Allow the products to be optional and not present for every tile, "
+    "e.g., --optional-products ga_ls_mangrove_cover_cyear_3",
+)
 @click_yaml_cfg("--config", help="Save tasks Config")
 @click.option("--input-products", type=str, default="")
 @click.argument("output", type=str, nargs=1, default="")
@@ -115,6 +130,8 @@ def save_tasks(
     debug=False,
     gqa=None,
     usgs_collection_category=None,
+    ignore_time=None,
+    optional_products=None,
 ):
     """
     Prepare tasks for processing (query db).
@@ -138,27 +155,34 @@ def save_tasks(
 
     _cfg = {k: config.get(k) for k in CONFIG_ITEMS if config.get(k) is not None}
 
+    print(f"config from yaml {_cfg} {complevel}")
+
     cfg_from_cli = {
         k: v
-        for k, v in dict(
-            grid=grid,
-            frequency=frequency,
-            gqa=gqa,
-            input_products=input_products,
-            complevel=complevel,
-            dataset_filter=dataset_filter,
-            overwrite=overwrite,
-        ).items()
-        if v is not None and v != ""
+        for k, v in {
+            "grid": grid,
+            "frequency": frequency,
+            "gqa": gqa,
+            "input_products": input_products,
+            "complevel": complevel,
+            "dataset_filter": dataset_filter,
+            "overwrite": overwrite,
+            "ignore_time": ignore_time,
+            "optional_products": optional_products,
+        }.items()
+        if v
     }
 
     _log.info("Config overrides: %s", cfg_from_cli)
     _cfg.update(cfg_from_cli)
+    _cfg.setdefault("complevel", 6)
     _log.info("Using config: %s", _cfg)
 
     gqa = _cfg.pop("gqa", None)
     input_products = _cfg.pop("input_products", None)
     dataset_filter = _cfg.pop("dataset_filter", None)
+    ignore_time = _cfg.pop("ignore_time", None)
+    optional_products = _cfg.pop("optional_products", None)
 
     if input_products is None:
         print("Input products has to be specified", file=sys.stderr)
@@ -252,6 +276,8 @@ def save_tasks(
             tiles=tiles,
             predicate=predicate,
             debug=debug,
+            ignore_time=ignore_time,
+            optional_products=optional_products,
             msg=on_message,
         )
     except ValueError as e:

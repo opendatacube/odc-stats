@@ -488,7 +488,7 @@ def test_fuse_dss(wo_definition, fc_definition):
     ]
     fc_ds = Dataset(fc_product, prep_eo3(fc_metadata), uris=fc_uris)
 
-    fused_ds = fuse_ds(wo_ds, fc_ds, fused_product)
+    fused_ds = fuse_ds(wo_ds, fc_ds, product=fused_product)
     assert _get_msr_paths(fused_ds) == _get_msr_paths(fc_ds).union(
         _get_msr_paths(wo_ds)
     )
@@ -501,25 +501,25 @@ def test_fuse_dss(wo_definition, fc_definition):
     bad_metadata["properties"]["datetime"] = "2020-04-03T23:33:10.644420Z"
     bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uris=fc_uris)
     with pytest.raises(ValueError):
-        fused_ds = fuse_ds(wo_ds, bad_ds, fused_product)
+        fused_ds = fuse_ds(wo_ds, bad_ds, product=fused_product)
 
     bad_metadata = deepcopy(fc_metadata)
     bad_metadata["crs"] = "epsg:32656"
     bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uris=fc_uris)
     with pytest.raises(ValueError):
-        fused_ds = fuse_ds(wo_ds, bad_ds, fused_product)
+        fused_ds = fuse_ds(wo_ds, bad_ds, product=fused_product)
 
     bad_metadata = deepcopy(fc_metadata)
     bad_metadata["grids"]["default"]["shape"] = [7212, 8311]
     bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uris=fc_uris)
     with pytest.raises(ValueError):
-        fused_ds = fuse_ds(wo_ds, bad_ds, fused_product)
+        fused_ds = fuse_ds(wo_ds, bad_ds, product=fused_product)
 
     bad_metadata = deepcopy(fc_metadata)
     bad_metadata["label"] += "a"
     bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uris=fc_uris)
     with pytest.raises(ValueError):
-        fused_ds = fuse_ds(wo_ds, bad_ds, fused_product)
+        fused_ds = fuse_ds(wo_ds, bad_ds, product=fused_product)
 
     # Test fuse without odc:file_format
     wo_no_ff = deepcopy(wo_metadata)
@@ -528,4 +528,4 @@ def test_fuse_dss(wo_definition, fc_definition):
     del fc_no_ff["properties"]["odc:file_format"]
     wo_ds = Dataset(wo_product, prep_eo3(wo_no_ff), uris=wo_uris)
     fc_ds = Dataset(fc_product, prep_eo3(fc_no_ff), uris=fc_uris)
-    fuse_ds(wo_ds, fc_ds, fused_product)
+    fuse_ds(wo_ds, fc_ds, product=fused_product)

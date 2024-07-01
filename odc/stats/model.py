@@ -396,6 +396,7 @@ class Task:
         Put together metadata document for the output of this task. It needs the source_dataset to inherit
         several properties and lineages. It also needs the output_dataset to get the measurement information.
         """
+        # pylint:disable=too-many-branches
         dataset_assembler = DatasetAssembler(
             naming_conventions=self.product.naming_conventions_values,
             dataset_location=Path(self.product.explorer_path),
@@ -410,17 +411,24 @@ class Task:
         for dataset in self.datasets:
             if "fused" in dataset.type.name:
                 sources = [e["id"] for e in dataset.metadata.sources.values()]
-                platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
-                if isinstance(
-                    dataset.metadata_doc["properties"]["eo:instrument"], list
-                ):
-                    instruments += dataset.metadata_doc["properties"]["eo:instrument"]
-                else:
-                    instruments += [dataset.metadata_doc["properties"]["eo:instrument"]]
+                if dataset.metadata_doc["properties"].get("eo:platform") is not None:
+                    platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
+                if dataset.metadata_doc["properties"].get("eo:instrument") is not None:
+                    if isinstance(
+                        dataset.metadata_doc["properties"]["eo:instrument"], list
+                    ):
+                        instruments += dataset.metadata_doc["properties"][
+                            "eo:instrument"
+                        ]
+                    else:
+                        instruments += [
+                            dataset.metadata_doc["properties"]["eo:instrument"]
+                        ]
                 dataset_assembler.note_source_datasets(
                     self.product.classifier, *sources
                 )
             else:
+                dataset.metadata_doc.setdefault("$schema", "")
                 source_datasetdoc = serialise.from_doc(
                     dataset.metadata_doc, skip_validation=True
                 )
@@ -534,7 +542,7 @@ class Task:
         proj_ext.apply(geobox.crs.epsg, transform=geobox.transform, shape=geobox.shape)
 
         # Lineage last
-        item.properties["odc:lineage"] = dict(inputs=inputs)
+        item.properties["odc:lineage"] = {"inputs": inputs}
 
         # Add all the assets
         for band, path in self.paths(ext=ext).items():
@@ -672,13 +680,13 @@ class TaskResult:
 class TaskRunnerConfig:  # pylint:disable=too-many-instance-attributes
     @staticmethod
     def default_cog_settings():
-        return dict(
-            compress="deflate",
-            zlevel=9,
-            blocksize=800,
-            ovr_blocksize=256,  # ovr_blocksize must be powers of 2 for some reason in GDAL
-            overview_resampling="average",
-        )
+        return {
+            "compress": "deflate",
+            "zlevel": 9,
+            "blocksize": 800,
+            "ovr_blocksize": 256,  # ovr_blocksize must be powers of 2 for some reason in GDAL
+            "overview_resampling": "average",
+        }
 
     # Input
     filedb: str = ""

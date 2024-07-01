@@ -3,7 +3,9 @@ from typing import Optional, Tuple, Union, Callable, Any, Dict, List, Iterable, 
 from types import SimpleNamespace
 from collections import namedtuple
 from datetime import datetime
-from itertools import islice, chain, groupby
+from itertools import islice, chain, groupby, starmap
+from itertools import product as iproduct
+from functools import partial
 import pickle
 import json
 import os
@@ -11,6 +13,8 @@ from urllib.parse import urlparse
 import logging
 import ciso8601
 import re
+import copy
+import toolz
 
 from odc.dscache import DatasetCache
 from datacube import Datacube
@@ -178,23 +182,83 @@ class SaveTasks:
         cls,
         dss: Iterable,
         group_size: int,
+        dss_extra: Optional[Iterable] = None,
+        optional_products: Optional[Iterable] = None,
         fuse_dss: bool = True,
     ):
-        def match_dss(groups, group_size):
-            for _, ds_group in groups:
-                ds_group = tuple(ds_group)
-                if len(ds_group) >= group_size:
-                    yield ds_group
+        def pack_dss(grouped_dss, group_size):
+            for _, ds in grouped_dss:
+                if len(ds) >= group_size:
+                    yield ds
+                elif optional_products is not None:
+                    # make sure only nonobligate datasets missing
+                    i = 0
+                    if len(ds) >= (group_size - len(optional_products)):
+                        for d in ds:
+                            i += (
+                                1
+                                if any(d.product.name in p for p in optional_products)
+                                else 0
+                            )
+                        if (len(ds) - i) >= (group_size - len(optional_products)):
+                            yield ds
 
-        grouped_dss = groupby(
-            dss,
-            key=lambda ds: (
-                (ds.center_time, ds.metadata.region_code)
-                if hasattr(ds.metadata, "region_code")
-                else (ds.center_time,)
-            ),
-        )
-        grouped_dss = match_dss(grouped_dss, group_size)
+        def match_dss(ds_grouped, ds_extra_grouped):
+            k, ds = ds_grouped
+            k_e, ds_extra = ds_extra_grouped
+            # ds_extra has no time but same region_code
+            if (len(k) > len(k_e)) & (k[1] == k_e[0]):
+                d_c = []
+                ds = tuple(ds)
+                for d in ds_extra:
+                    d_c += [copy.deepcopy(d)]
+                    d_c[-1].center_time = k[0]
+                    d_c[-1].metadata_doc["label"] = d.product.name + ds[
+                        0
+                    ].metadata_doc.get(
+                        "label",
+                        toolz.get_in(["properties", "title"], ds[0].metadata_doc),
+                    ).replace(
+                        ds[0].product.name, ""
+                    )
+                    d_c[-1].metadata_doc["properties"]["datetime"] = ds[0].metadata_doc[
+                        "properties"
+                    ]["datetime"]
+                return (k, ds + tuple(d_c))
+            else:
+                return (k, ())
+
+        def sorted_key(ds, keys=("center_time", "region_code")):
+            sort_keys = ()
+            for k in keys:
+                if k == "center_time":
+                    sort_keys += (ds.center_time,)
+                elif hasattr(ds.metadata, k):
+                    sort_keys += (getattr(ds.metadata, k),)
+            return sort_keys
+
+        def group_dss(dss, keys=("center_time", "region_code")):
+            grouped_dss = sorted(dss, key=partial(sorted_key, keys=keys))
+            grouped_dss = groupby(
+                grouped_dss,
+                key=partial(sorted_key, keys=keys),
+            )
+            for k, ds in grouped_dss:
+                yield (k, tuple(ds))
+
+        grouped_dss = group_dss(dss)
+
+        try:
+            ds0 = next(dss_extra)
+        except StopIteration:
+            grouped_dss = pack_dss(grouped_dss, group_size)
+        else:
+            # if dss_extra is non-empty
+            grouped_dss_extra = chain(iter([ds0]), dss_extra)
+            grouped_dss_extra = group_dss(grouped_dss_extra, keys=["region_code"])
+            grouped_dss = starmap(match_dss, iproduct(grouped_dss, grouped_dss_extra))
+            grouped_dss = pack_dss(grouped_dss, group_size)
+
         try:
             ds0 = next(grouped_dss)
         except StopIteration:
@@ -222,6 +286,8 @@ class SaveTasks:
         dataset_filter=None,
         predicate=None,
         fuse_dss: bool = True,
+        ignore_time: Optional[Iterable] = None,
+        optional_products: Optional[Iterable] = None,
     ):
         """
         query and filter the datasets with a string composed by products name
@@ -229,7 +295,7 @@ class SaveTasks:
         A string joined by `+` implies intersect (filtered and then groupby) against time
         return a generator of datasets
         """
-        # pylint:disable=too-many-locals
+        # pylint:disable=too-many-locals,too-many-branches
         if dataset_filter is None:
             dataset_filter = {}
 
@@ -247,8 +313,17 @@ class SaveTasks:
             else:
                 non_indexed_products += [p]
 
+        if ignore_time:
+            ignore_time_indexed = list(set(indexed_products) & set(ignore_time))
+            indexed_products = list(set(indexed_products) - set(ignore_time))
+            ignore_time_nonindexed = set(non_indexed_products) & set(ignore_time)
+            non_indexed_products = list(set(non_indexed_products) - set(ignore_time))
+        else:
+            ignore_time_indexed = []
+            ignore_time_nonindexed = []
+
         if indexed_products:
-            query.update(dict(product=indexed_products, **dataset_filter))
+            query.update({"product": indexed_products, **dataset_filter})
             dss = ordered_dss(
                 dc,
                 freq="y",
@@ -261,6 +336,20 @@ class SaveTasks:
             )
         else:
             dss = iter([])
+        if ignore_time_indexed:
+            query.update({"product": list(ignore_time), "time": ("1970", "2038")})
+            dss_extra = ordered_dss(
+                dc,
+                freq="y",
+                key=lambda ds: (
+                    (ds.center_time, ds.metadata.region_code)
+                    if hasattr(ds.metadata, "region_code")
+                    else (ds.center_time,)
+                ),
+                **query,
+            )
+        else:
+            dss_extra = iter([])
 
         if non_indexed_products:
             dss_stac = cls.create_dss_by_stac(
@@ -269,9 +358,18 @@ class SaveTasks:
                 temporal_range=cfg.get("temporal_range"),
             )
             dss = chain(dss, dss_stac)
+        if ignore_time_nonindexed:
+            dss_stac_extra = cls.create_dss_by_stac(
+                ignore_time_nonindexed,
+                tiles=cfg.get("tiles"),
+                temporal_range=None,
+            )
+            dss_extra = chain(dss_extra, dss_stac_extra)
 
         if group_size > 0:
-            dss = cls.ds_align(dss, group_size + 1, fuse_dss)
+            dss = cls.ds_align(
+                dss, group_size + 1, dss_extra, optional_products, fuse_dss
+            )
 
         if predicate is not None:
             dss = filter(predicate, dss)
@@ -302,7 +400,7 @@ class SaveTasks:
                 for y in range(temporal_range.start.year, temporal_range.end.year + 1)
             ]
         else:
-            temp_path += ["*"]
+            temp_path = ["*"]
 
         dss_stac = iter([])
         for p in s3_path:
@@ -324,6 +422,8 @@ class SaveTasks:
         predicate=None,
         temporal_range: Optional[DateTimeRange] = None,
         tiles: Optional[TilesRange2d] = None,
+        ignore_time: Optional[Iterable] = None,
+        optional_products: Optional[Iterable] = None,
     ):
         """
         This returns a tuple containing:
@@ -332,10 +432,11 @@ class SaveTasks:
         - a config dictionary containing the product, temporal range, tiles, and the datacube query used
         """
 
-        cfg: Dict[str, Any] = dict(
-            grid=self._grid,
-            freq=self._frequency,
-        )
+        # pylint:disable=too-many-locals
+        cfg: Dict[str, Any] = {
+            "grid": self._grid,
+            "freq": self._frequency,
+        }
 
         query = {}
 
@@ -352,13 +453,23 @@ class SaveTasks:
             cfg["temporal_range"] = temporal_range
 
         msg("Connecting to the database, streaming datasets")
-        dss = self._find_dss(dc, products, query, cfg, dataset_filter, predicate)
+        dss = self._find_dss(
+            dc,
+            products,
+            query,
+            cfg,
+            dataset_filter,
+            predicate,
+            ignore_time=ignore_time,
+            optional_products=optional_products,
+        )
         cfg["query"] = sanitize_query(query)
         if cfg.get("temporal_range"):
             cfg["temporal_range"] = cfg["temporal_range"].short
 
         return dss, cfg
 
+    # pylint:disable=too-many-locals,too-many-branches,too-many-statements,too-many-arguments
     def save(
         self,
         dc: Datacube,
@@ -367,6 +478,8 @@ class SaveTasks:
         temporal_range: Union[str, DateTimeRange, None] = None,
         tiles: Optional[TilesRange2d] = None,
         predicate: Optional[Callable[[Dataset], bool]] = None,
+        ignore_time: Optional[Iterable] = None,
+        optional_products: Optional[Iterable] = None,
         msg: Optional[Callable[[str], Any]] = None,
         debug: bool = False,
     ) -> bool:
@@ -379,7 +492,6 @@ class SaveTasks:
         :param msg: Observe messages if needed via callback
         :param debug: Dump some intermediate state to files for debugging
         """
-        # pylint:disable=too-many-locals,too-many-branches,too-many-statements
 
         if DatasetCache.exists(self._output) and self._overwrite is False:
             raise ValueError(f"File database already exists: {self._output}")
@@ -409,7 +521,15 @@ class SaveTasks:
             temporal_range = DateTimeRange(temporal_range)
 
         dss, cfg = self.get_dss_by_grid(
-            dc, products, msg, dataset_filter, predicate, temporal_range, tiles
+            dc,
+            products,
+            msg,
+            dataset_filter,
+            predicate,
+            temporal_range,
+            tiles,
+            ignore_time,
+            optional_products,
         )
 
         dss_slice = list(islice(dss, 0, 100))
@@ -434,7 +554,7 @@ class SaveTasks:
             truncate=self._overwrite,
         )
         cache.add_grid(self._gridspec, self._grid)
-        cache.append_info_dict("stats/", dict(config=cfg))
+        cache.append_info_dict("stats/", {"config": cfg})
 
         cells: Dict[Tuple[int, int], Any] = {}
         dss = cache.tee(dss)
@@ -569,19 +689,20 @@ class TaskReader:
 
             # TODO: verify this things are set in the file
             cfg = cache.get_info_dict("stats/config")
-            grid = cfg["grid"]
-            gridspec = cache.grids[grid]
+            self._grid = cfg["grid"]
+            self._gridspec = cache.grids[self._grid]
+            self._all_tiles = sorted(idx for idx, _ in cache.tiles(self._grid))
         else:  # if read from message, there is no filedb at beginning
             cfg = {}
+            self._grid = ""
+            self._gridspec = ""
+            self._all_tiles = []
 
         self._product = product
         # if not from_sqs, the resolution check can finish before init TaskReader
         self.resolution = resolution
         self._dscache = cache
         self._cfg = cfg
-        self._grid = grid if cache else ""
-        self._gridspec = gridspec if cache else ""
-        self._all_tiles = sorted(idx for idx, _ in cache.tiles(grid)) if cache else []
 
     def is_compatible_resolution(self, resolution: Tuple[float, float], tol=1e-8):
         for res, sz in zip(resolution, self._gridspec.tile_size):
