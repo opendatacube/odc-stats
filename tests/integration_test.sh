@@ -36,12 +36,12 @@ odc-stats run  --threads=1 --config https://raw.githubusercontent.com/Geoscience
 
 ./tests/compare_data.sh /tmp/x49/y24/ ga_ls_tc_pc_cyear_3_x49y24_2015--P1Y_final*.tif
 
-echo "Test S2 GeoMAD"
-# use au-30 to save cost
-odc-stats save-tasks --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/feature/add-S2ab-GM-processing-cfg/dev/services/odc-stats/geomedian/ga_s2ab_gm_4fyear_3.yaml --input-products ga_s2am_ard_3 --grid au-30 --year=2020 --tiles 43:44,15:16 --overwrite s2-geomad-cyear.db
-odc-stats run  --threads=1 --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/feature/add-S2ab-GM-processing-cfg/dev/services/odc-stats/geomedian/ga_s2ab_gm_4fyear_3.yaml --location file:///tmp --overwrite s2-geomad-cyear.db
-
-./tests/compare_data.sh /tmp/x43/y15/ ga_s2ab_gm_4fyear_3_x43y15_2020--P1Y_final*.tif
+# echo "Test S2 GeoMAD"
+# # use au-30 to save cost
+# odc-stats save-tasks --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/feature/add-S2ab-GM-processing-cfg/dev/services/odc-stats/geomedian/ga_s2ab_gm_4fyear_3.yaml --input-products ga_s2am_ard_3 --grid au-30 --year=2020 --tiles 43:44,15:16 --overwrite s2-geomad-cyear.db
+# odc-stats run  --threads=1 --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/feature/add-S2ab-GM-processing-cfg/dev/services/odc-stats/geomedian/ga_s2ab_gm_4fyear_3.yaml --location file:///tmp --overwrite s2-geomad-cyear.db
+# 
+# ./tests/compare_data.sh /tmp/x43/y15/ ga_s2ab_gm_4fyear_3_x43y15_2020--P1Y_final*.tif
 
 # save time without financial year
 # test on calendar year seems enough

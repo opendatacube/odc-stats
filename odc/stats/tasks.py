@@ -387,28 +387,38 @@ class SaveTasks:
 
         if tiles is not None:
             glob_path = [
-                "x" + str(x) + "/" + "y" + str(y) + "/"
+                "x" + str(x) + "/" + "y" + str(y) + "/" + "*"
                 for x in range(*tiles[0])
                 for y in range(*tiles[1])
             ]
         else:
-            glob_path = ["*/*"]
+            glob_path = ["*/*/*"]
 
-        if temporal_range is not None:
-            temp_path = [
-                str(y) + "*"
-                for y in range(temporal_range.start.year, temporal_range.end.year + 1)
-            ]
-        else:
-            temp_path = ["*"]
+        def filter_ds_by_time(dss, temporal_range):
+            for ds in dss:
+                if temporal_range.start.tzinfo is None:
+                    start_time = temporal_range.start.replace(
+                        tzinfo=ds.center_time.tzinfo
+                    )
+                else:
+                    start_time = temporal_range.start
+                if temporal_range.end.tzinfo is None:
+                    end_time = temporal_range.end.replace(tzinfo=ds.center_time.tzinfo)
+                else:
+                    end_time = temporal_range.end
+
+                if (ds.center_time >= start_time) & (ds.center_time <= end_time):
+                    yield ds
 
         dss_stac = iter([])
         for p in s3_path:
             dss = iter([])
             for x in glob_path:
-                for y in temp_path:
-                    input_glob = os.path.join(p, x, y, pattern)
-                    dss = chain(dss, s3_fetch_dss(input_glob))
+                input_glob = os.path.join(p, x, pattern)
+                fetched_dss = s3_fetch_dss(input_glob)
+                if temporal_range is not None:
+                    fetched_dss = filter_ds_by_time(fetched_dss, temporal_range)
+                dss = chain(dss, fetched_dss)
             dss_stac = chain(dss_stac, dss)
 
         return dss_stac

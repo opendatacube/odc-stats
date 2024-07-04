@@ -124,8 +124,8 @@ def indexed_product_str(product_str):
 @pytest.fixture
 def s3_path():
     return [
-        "s3://dea-public-data/derivative/ga_ls_tc_pc_cyear_3/1-0-0/",
-        "s3://dea-public-data/derivative/ga_ls_fc_pc_cyear_3/3-0-0/",
+        "s3://dea-public-data-dev/stats-golden-files/ga_ls_tc_pc_cyear_3/1-0-0/",
+        "s3://dea-public-data-dev/stats-golden-files/ga_ls_fc_pc_cyear_3/3-0-0/",
     ]
 
 
@@ -148,7 +148,7 @@ def test_create_dss_by_stac(s3_path):
     for d in dss:
         with_uris = False
         for key in s3_path:
-            with_uris |= key in d.uris[0]
+            with_uris |= "/".join(key.split("/")[-2:]) in d.uris[0]
         assert with_uris
 
 
