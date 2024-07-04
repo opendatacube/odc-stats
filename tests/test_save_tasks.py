@@ -148,7 +148,7 @@ def test_create_dss_by_stac(s3_path):
     for d in dss:
         with_uris = False
         for key in s3_path:
-            with_uris |= key in d.uris[0]
+            with_uris |= "/".join(key.split("/")[-2:]) in d.uris[0]
         assert with_uris
 
 
