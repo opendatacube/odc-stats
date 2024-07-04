@@ -134,6 +134,7 @@ class StatsWofs(StatsPluginInterface):
 
         count_wet.attrs["nodata"] = nodata
         count_clear.attrs["nodata"] = nodata
+        frequency.attrs["nodata"] = np.nan
 
         is_ok = count_some > 0
         count_wet = keep_good_only(count_wet, is_ok)
