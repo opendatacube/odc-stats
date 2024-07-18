@@ -5,6 +5,8 @@ from odc.stats.plugins.lc_tf_urban import StatsUrbanClass
 from pathlib import Path
 import pytest
 import boto3
+from botocore import UNSIGNED
+from botocore.config import Config
 from datacube.utils.dask import start_local_dask
 
 client = start_local_dask(n_workers=1, threads_per_worker=2)
@@ -20,7 +22,7 @@ def tflite_model_path():
     local_path = "/tmp/model.tflite"
 
     # Download the model from S3
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
     s3.download_file(s3_bucket, s3_key, local_path)
 
     yield local_path
