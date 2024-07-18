@@ -111,6 +111,8 @@ class TaskRunner:
             )
         plugin = S3ClientPlugin()
         client.register_plugin(plugin)
+        if self.proc.dask_worker_plugin is not None:
+            client.register_plugin(self.proc.dask_worker_plugin)
         _log.info("Started local Dask %s", client)
 
         return client
@@ -251,7 +253,7 @@ class TaskRunner:
             if "overrides" in cfg.cog_opts and "rgba" in cfg.cog_opts["overrides"]:
                 rgba = proc.rgba(ds)
                 if rgba is not None:
-                    aux = xr.Dataset(dict(rgba=rgba))
+                    aux = xr.Dataset({"rgba": rgba})
 
             cog = sink.dump(task, ds, aux, proc, apply_eodatasets3)
             cog = client.compute(cog, fifo_timeout="1ms")
