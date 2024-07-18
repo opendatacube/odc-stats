@@ -16,6 +16,7 @@ pytest
 pytest-cov
 pytest-httpserver
 pytest-timeout
+tflite-runtime
 
 # patch image
 xarray>=2023.7.0

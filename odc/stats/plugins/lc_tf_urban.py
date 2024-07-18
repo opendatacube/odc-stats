@@ -58,6 +58,8 @@ def pad_and_predict(block, crop_size=(256, 256), nodata=NODATA):
 
     prediction = np.copy(output_data[0])
     prediction = np.squeeze(prediction, axis=-1)[0 : block.shape[0], 0 : block.shape[1]]
+    prediction = ne.evaluate("where(a>0.5, 1, 0)", local_dict={"a": prediction})
+
     # mark small holes as nodata
     prediction = ne.evaluate(
         "where(a==a, b, nodata)",
@@ -105,13 +107,13 @@ class StatsUrbanClass(StatsPluginInterface):
                 [ds],
                 bands=self.input_bands,
                 geobox=geobox,
-                native_transform=None,
+                native_transform=self.native_transform,
                 basis=self.basis,
                 groupby=None,
                 fuser=None,
                 resampling=self.resampling,
                 chunks=self.chunks,
-                optional_bands=None,
+                optional_bands=self.optional_bands,
                 **kwargs,
             )
             input_array = yxbt_sink(
@@ -178,8 +180,8 @@ class StatsUrbanClass(StatsPluginInterface):
                 name="merge_masks",
                 dtype="uint8",
                 **{
-                    "_u": self.output_class["artificial"],
-                    "_nu": self.output_class["natural"],
+                    "_u": self.output_classes["artificial"],
+                    "_nu": self.output_classes["natural"],
                 },
             )
         um = um.rechunk(-1, -1)

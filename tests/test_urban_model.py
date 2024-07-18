@@ -73,6 +73,8 @@ def test_impute_missing_values(tflite_model_path, image_groups):
 
 
 def test_urban_class(tflite_model_path, image_groups):
+    # test better than random for a prediction
+    # check correctness in integration test
     stats_urban = StatsUrbanClass(output_classes, tflite_model_path)
     client.register_plugin(stats_urban.dask_worker_plugin)
     input_img = np.load(f"{data_dir}/expected_img.npy")
