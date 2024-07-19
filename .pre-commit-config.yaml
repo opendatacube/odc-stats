@@ -19,7 +19,6 @@ repos:
         args: ['--django']
       - id: requirements-txt-fixer
       - id: check-added-large-files
-        args: ["--maxkb=5000"]
       - id: check-merge-conflict
   - repo: https://github.com/PyCQA/flake8
     rev: '7.1.0'

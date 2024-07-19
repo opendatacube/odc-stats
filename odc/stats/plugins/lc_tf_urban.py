@@ -164,27 +164,55 @@ class StatsUrbanClass(StatsPluginInterface):
             images += [image]
         return images
 
+    def aggregate_results_from_group(self, urban_masks):
+        # if there are >= 2 images
+        # any is urban -> final class is urban
+        # any is valid -> final class is valid
+        # for each pixel
+        m_size = len(urban_masks)
+        if m_size > 1:
+            urban_masks = da.stack(urban_masks).sum(axis=0)
+        else:
+            urban_masks = urban_masks[0]
+
+        urban_masks = expr_eval(
+            "where((a/nodata)>=_l, nodata, a%nodata)",
+            {"a": urban_masks},
+            name="mark_nodata",
+            dtype="float32",
+            **{"_l": m_size, "nodata": NODATA},
+        )
+
+        urban_masks = expr_eval(
+            "where((a>0)&(a<nodata), _u, a)",
+            {"a": urban_masks},
+            name="output_classes_artificial",
+            dtype="float32",
+            **{
+                "_u": self.output_classes["artificial"],
+                "nodata": NODATA,
+            },
+        )
+
+        urban_masks = expr_eval(
+            "where(a<=0, _nu, a)",
+            {"a": urban_masks},
+            name="output_classes_natrual",
+            dtype="uint8",
+            **{
+                "_nu": self.output_classes["natural"],
+            },
+        )
+
+        return urban_masks.rechunk(-1, -1)
+
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         urban_masks = []
         images = self.impute_missing_values_from_group(xx)
         for image in images:
             urban_masks += [self.urban_class(image)]
 
-        # if there are >= 2 images
-        # any is urban -> final class is urban for each pixel
-        um = urban_masks[0]
-        for _um in urban_masks[1:]:
-            um = expr_eval(
-                "where((a==1)|(b==1), _u, _nu)",
-                {"a": um, "b": _um},
-                name="merge_masks",
-                dtype="uint8",
-                **{
-                    "_u": self.output_classes["artificial"],
-                    "_nu": self.output_classes["natural"],
-                },
-            )
-        um = um.rechunk(-1, -1)
+        um = self.aggregate_results_from_group(urban_masks)
 
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
