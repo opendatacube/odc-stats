@@ -39,6 +39,7 @@ class StatsPluginInterface(ABC):
         self.rgb_clamp = rgb_clamp
         self.transform_code = transform_code
         self.area_of_interest = area_of_interest
+        self.dask_worker_plugin = None
 
     @property
     @abstractmethod

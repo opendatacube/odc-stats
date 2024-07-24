@@ -12,3 +12,6 @@ odc-stac @ git+https://github.com/opendatacube/odc-stac@69bdf64
 
 # odc-stac is in PyPI
 odc-stats[ows]
+
+# For ML
+tflite-runtime
