@@ -6,7 +6,7 @@ future_fstrings
 mock
 moto
 networkx
-numpy
+numpy<2.0
 odc-algo @ git+https://github.com/opendatacube/odc-algo@bb662fe
 odc-cloud>=0.2.5
 odc-stac @ git+https://github.com/opendatacube/odc-stac@69bdf64
