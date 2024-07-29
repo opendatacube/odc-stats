@@ -51,9 +51,6 @@ class StatsDem(StatsPluginInterface):
 
         return xx
 
-    def fuser(self, xx):
-        return xx
-
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         if self.measurements != self.input_bands:
             xx = xx.rename(dict(zip(self.input_bands, self.measurements)))
