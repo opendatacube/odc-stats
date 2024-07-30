@@ -440,10 +440,15 @@ class Task:
                     inherit_skip_properties=self.product.inherit_skip_properties,
                 )
 
-                if "eo:platform" in source_datasetdoc.properties:
+                if source_datasetdoc.properties.get("eo:platform") is not None:
                     platforms.append(source_datasetdoc.properties["eo:platform"])
-                if "eo:instrument" in source_datasetdoc.properties:
-                    instruments.append(source_datasetdoc.properties["eo:instrument"])
+                if source_datasetdoc.properties.get("eo:instrument") is not None:
+                    if isinstance(source_datasetdoc.properties["eo:instrument"], list):
+                        instruments += source_datasetdoc.properties["eo:instrument"]
+                    else:
+                        instruments.append(
+                            source_datasetdoc.properties["eo:instrument"]
+                        )
 
         dataset_assembler.platform = ",".join(sorted(set(platforms)))
         dataset_assembler.instrument = "_".join(sorted(set(instruments)))
