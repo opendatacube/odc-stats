@@ -31,7 +31,8 @@ class StatsWoodyCover(StatsMLTree):
             ptype="regression",
             nodata=NODATA,
             drop_axis=-1,
-            dtype="uint8",
+            dtype="float32",
+            name="woody_cover_predict",
         )
         return wc
 
@@ -40,34 +41,33 @@ class StatsWoodyCover(StatsMLTree):
         # if there are >= 2 images
         # any valid -> valid
         # any herbaceous -> herbaceous
-        woody_covers = predict_output
-        m_size = len(woody_covers)
+        m_size = len(predict_output)
         if m_size > 1:
-            woody_covers = da.stack(woody_covers)
+            predict_output = da.stack(predict_output)
         else:
-            woody_covers = woody_covers[0]
+            predict_output = predict_output[0]
 
-        woody_covers = expr_eval(
+        predict_output = expr_eval(
             "where(a<=20, 1, a)",
-            {"a": woody_covers},
+            {"a": predict_output},
             name="mark_herbaceous",
             dtype="float32",
         )
 
-        woody_covers = expr_eval(
+        predict_output = expr_eval(
             "where((a>20)&(a<nodata), 0, a)",
-            {"a": woody_covers},
+            {"a": predict_output},
             name="mark_woody",
             dtype="float32",
             **{"nodata": NODATA},
         )
 
         if m_size > 1:
-            woody_covers = da.sum(woody_covers, axis=0)
+            predict_output = predict_output.sum(axis=0).astype("int")
 
-        woody_covers = expr_eval(
+        predict_output = expr_eval(
             "where((a/nodata)>=_l, nodata, a%nodata)",
-            {"a": woody_covers},
+            {"a": predict_output},
             name="summary_over_classes",
             dtype="uint8",
             **{
@@ -76,23 +76,23 @@ class StatsWoodyCover(StatsMLTree):
             },
         )
 
-        woody_covers = expr_eval(
+        predict_output = expr_eval(
             "where((a>0)&(a<nodata), _nw, a)",
-            {"a": woody_covers},
+            {"a": predict_output},
             name="output_classes_herbaceous",
             dtype="uint8",
             **{"nodata": NODATA, "_nw": self.output_classes["herbaceous"]},
         )
 
-        woody_covers = expr_eval(
+        predict_output = expr_eval(
             "where(a<=0, _nw, a)",
-            {"a": woody_covers},
+            {"a": predict_output},
             name="output_classes_woody",
             dtype="uint8",
             **{"_nw": self.output_classes["woody"]},
         )
 
-        return woody_covers.rechunk(-1, -1)
+        return predict_output.rechunk(-1, -1)
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         res = super().reduce(xx)

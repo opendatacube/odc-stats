@@ -23,7 +23,9 @@ from ._worker import TreeliteModelPlugin
 import tl2cgen
 
 
-def mask_and_predict(block, ptype="categorical", nodata=np.nan, output_dtype="float32"):
+def mask_and_predict(
+    block, block_info=None, ptype="categorical", nodata=np.nan, output_dtype="float32"
+):
     worker = get_worker()
     plugin_instance = worker.plugin_instance
     predictor = plugin_instance.get_predictor()
@@ -36,16 +38,17 @@ def mask_and_predict(block, ptype="categorical", nodata=np.nan, output_dtype="fl
     ).astype("bool")
     block_masked = block_flat[mask_flat, :-1]
 
-    prediction = np.full((block.shape[0] * block.shape[1], 1), nodata)
+    prediction = np.full(
+        (block.shape[0] * block.shape[1], 1), nodata, dtype=output_dtype
+    )
     if block_masked.shape[0] > 0:
         dmat = tl2cgen.DMatrix(block_masked)
         output_data = predictor.predict(dmat).squeeze(axis=1)
         if ptype == "categorical":
-            prediction[mask_flat] = np.copy(output_data.argmax(axis=-1))
+            prediction[mask_flat] = output_data.argmax(axis=-1)
         else:
-            prediction[mask_flat] = np.copy(output_data)
-
-    return prediction.reshape(*block.shape[:-1]).astype(output_dtype)
+            prediction[mask_flat] = output_data
+    return prediction.reshape(*block.shape[:-1])
 
 
 class StatsMLTree(StatsPluginInterface):
@@ -68,28 +71,11 @@ class StatsMLTree(StatsPluginInterface):
         self.output_classes = output_classes
         self.mask_bands = mask_bands
 
-    def make_mask(self, xx: xr.Dataset, output_dtype="int16") -> xr.Dataset:
-        if self.mask_bands is None:
-            for var in xx.data_vars:
-                xx[var] = xx[var].astype(output_dtype)
-        else:
-            for key, val in self.mask_bands.items():
-                mask = expr_eval(
-                    "where(a==_v, 1, 0)",
-                    {"a": xx[key].data},
-                    name="make_mask",
-                    dtype=output_dtype,
-                    **{"_v": int(val)},
-                )
-                xx[key].data = mask
-        return xx
-
     def input_data(
         self, datasets: Sequence[Dataset], geobox: GeoBox, **kwargs
     ) -> xr.Dataset:
         # load data in the same time and location but different sensors
         data_vars = {}
-        dup_dss = {}
 
         for ds in datasets:
             if "gm" in ds.type.name:
@@ -111,45 +97,43 @@ class StatsMLTree(StatsPluginInterface):
                 **kwargs,
             )
             if "gm" in ds.type.name:
-                data_vars[ds.type.name] = xx
+                input_array = yxbt_sink(
+                    xx,
+                    (self.chunks["x"], self.chunks["y"], -1, -1),
+                    name=ds.type.name + "_yxbt",
+                ).squeeze("spec", drop=True)
+                data_vars[ds.type.name] = input_array
             else:
-                dup_dss[ds.type.name] = self.make_mask(xx).drop_vars(["spec"])
-
-        for ds_type in data_vars:
-            for ds in dup_dss.values():
-                data_vars[ds_type] = data_vars[ds_type].update(ds)
-            input_array = yxbt_sink(
-                data_vars[ds_type], (self.chunks["x"], self.chunks["y"], -1, -1)
-            ).squeeze("spec", drop=True)
-            data_vars[ds_type] = input_array
+                for var in xx.data_vars:
+                    data_vars[var] = xx[var].squeeze(dim="spec")
 
         coords = dict((dim, input_array.coords[dim]) for dim in input_array.dims)
         return xr.Dataset(data_vars=data_vars, coords=coords)
 
     def preprocess_predict_input(self, xx: xr.Dataset):
-        masks = {k: xx.sel(band=k) for k in self.mask_bands}
-        xx = xx.drop_sel(band=self.mask_bands.keys())
         images = []
         for var in xx.data_vars:
             image = xx[var].data
-            nodata = xx[var].attrs.get("nodata", -999)
-            image = expr_eval(
-                "where((a<=nodata), _nan, a)",
-                {
-                    "a": image,
-                },
-                name="convert_dtype",
-                dtype="float32",
-                **{"nodata": nodata, "_nan": np.nan},
-            )
-            images += [image]
-
-        for v in masks.values():
-            dv = None
-            for dv in v.data_vars:
-                if "gm" in dv:
-                    break
-            veg_mask = v[dv].data
+            if var not in self.mask_bands:
+                nodata = xx[var].attrs.get("nodata", -999)
+                image = expr_eval(
+                    "where((a<=nodata), _nan, a)",
+                    {
+                        "a": image,
+                    },
+                    name="convert_dtype",
+                    dtype="float32",
+                    **{"nodata": nodata, "_nan": np.nan},
+                )
+                images += [image]
+            else:
+                veg_mask = expr_eval(
+                    "where(a==_v, 1, 0)",
+                    {"a": image},
+                    name="make_mask",
+                    dtype="float32",
+                    **{"_v": int(self.mask_bands[var])},
+                )
 
         images = [
             da.concatenate([image, veg_mask[..., np.newaxis]], axis=-1)
@@ -166,13 +150,15 @@ class StatsMLTree(StatsPluginInterface):
         pass
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
+        print(f"input dataset {xx}")
         images = self.preprocess_predict_input(xx)
+        print(f"after preprocess  {images}")
         res = []
 
         for image in images:
             res += [self.predict(image)]
-        res = self.aggregate_results_from_group(res)
 
+        res = self.aggregate_results_from_group(res)
         attrs = xx.attrs.copy()
         dims = list(xx.dims.keys())[:2]
         data_vars = {"predict_output": xr.DataArray(res, dims=dims, attrs=attrs)}
