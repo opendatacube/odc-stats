@@ -117,7 +117,9 @@ class StatsUrbanClass(StatsPluginInterface):
                 **kwargs,
             )
             input_array = yxbt_sink(
-                xx, (self.crop_size[0], self.crop_size[0], -1, -1)
+                xx,
+                (self.crop_size[0], self.crop_size[0], -1, -1),
+                name=ds.type.name + "_yxbt",
             ).squeeze("spec", drop=True)
             data_vars[ds.type.name] = input_array
 
