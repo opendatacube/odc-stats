@@ -1,5 +1,5 @@
 """
-Plugin of TF urban model in LandCover PipeLine
+Plugin of RFregressor woody cover model in LandCover PipeLine
 """
 
 from typing import Tuple

@@ -14,7 +14,7 @@ from dask.distributed import get_worker
 
 from datacube.model import Dataset
 from datacube.utils.geometry import GeoBox
-from odc.algo._memsink import yxbt_sink
+from odc.algo._memsink import yxbt_sink, yxt_sink
 from odc.algo.io import load_with_native_transform
 
 from odc.stats._algebra import expr_eval
@@ -45,7 +45,7 @@ def mask_and_predict(
         dmat = tl2cgen.DMatrix(block_masked)
         output_data = predictor.predict(dmat).squeeze(axis=1)
         if ptype == "categorical":
-            prediction[mask_flat] = output_data.argmax(axis=-1)
+            prediction[mask_flat] = output_data.argmax(axis=-1)[..., np.newaxis]
         else:
             prediction[mask_flat] = output_data
     return prediction.reshape(*block.shape[:-1])
@@ -100,12 +100,17 @@ class StatsMLTree(StatsPluginInterface):
                 input_array = yxbt_sink(
                     xx,
                     (self.chunks["x"], self.chunks["y"], -1, -1),
+                    dtype="float32",
                     name=ds.type.name + "_yxbt",
                 ).squeeze("spec", drop=True)
                 data_vars[ds.type.name] = input_array
             else:
                 for var in xx.data_vars:
-                    data_vars[var] = xx[var].squeeze(dim="spec")
+                    data_vars[var] = yxt_sink(
+                        xx[var].astype("uint8"),
+                        (self.chunks["x"], self.chunks["y"], -1),
+                        name=ds.type.name + "_yxt",
+                    ).squeeze("spec", drop=True)
 
         coords = dict((dim, input_array.coords[dim]) for dim in input_array.dims)
         return xr.Dataset(data_vars=data_vars, coords=coords)
@@ -136,7 +141,9 @@ class StatsMLTree(StatsPluginInterface):
                 )
 
         images = [
-            da.concatenate([image, veg_mask[..., np.newaxis]], axis=-1)
+            da.concatenate([image, veg_mask[..., np.newaxis]], axis=-1).rechunk(
+                (None, None, image.shape[-1] + veg_mask.shape[-1])
+            )
             for image in images
         ]
         return images
