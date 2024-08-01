@@ -150,9 +150,7 @@ class StatsMLTree(StatsPluginInterface):
         pass
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
-        print(f"input dataset {xx}")
         images = self.preprocess_predict_input(xx)
-        print(f"after preprocess  {images}")
         res = []
 
         for image in images:
