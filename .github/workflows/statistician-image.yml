@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           cd docker
-          docker-compose build
+          docker compose build
 
       - name: Run Dockerized Tests for Statistician
         shell: bash
