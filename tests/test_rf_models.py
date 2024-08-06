@@ -12,10 +12,16 @@ from botocore import UNSIGNED
 from botocore.config import Config
 from datacube.utils.dask import start_local_dask
 
-client = start_local_dask(n_workers=1, threads_per_worker=2)
 
 project_root = Path(__file__).parents[1]
 data_dir = f"{project_root}/tests/data/"
+
+
+@pytest.fixture(scope="module")
+def dask_client():
+    client = start_local_dask(n_workers=1, threads_per_worker=2)
+    yield client
+    client.close()
 
 
 @pytest.fixture(scope="module")
@@ -399,6 +405,7 @@ def test_cultivated_predict(
     mask_bands,
     cultivated_classes,
     input_datasets,
+    dask_client,
 ):
     cultivated = StatsCultivatedClass(
         cultivated_classes,
@@ -406,7 +413,7 @@ def test_cultivated_predict(
         mask_bands,
         input_bands=cultivated_input_bands,
     )
-    client.register_plugin(cultivated.dask_worker_plugin)
+    dask_client.register_plugin(cultivated.dask_worker_plugin)
     imgs = cultivated.preprocess_predict_input(input_datasets)
     res = [cultivated.predict(img).compute() for img in imgs]
     assert (
@@ -440,6 +447,7 @@ def test_cultivated_reduce(
     mask_bands,
     cultivated_classes,
     input_datasets,
+    dask_client,
 ):
     cultivated = StatsCultivatedClass(
         cultivated_classes,
@@ -447,7 +455,7 @@ def test_cultivated_reduce(
         mask_bands,
         input_bands=cultivated_input_bands,
     )
-    client.register_plugin(cultivated.dask_worker_plugin)
+    dask_client.register_plugin(cultivated.dask_worker_plugin)
     res = cultivated.reduce(input_datasets)
     assert res["cultivated_class"].attrs["nodata"] == 255
     assert (
