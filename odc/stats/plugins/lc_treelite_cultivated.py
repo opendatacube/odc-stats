@@ -238,8 +238,8 @@ class StatsCultivatedClass(StatsMLTree):
             input_array,
             bands_indices,
             chunks=(
-                self.chunks["x"],
-                self.chunks["y"],
+                input_array.chunks[0],
+                input_array.chunks[1],
                 15 + len(bands_indices) - bands_indices["bcdev"] - 1,
             ),
             dtype="float32",
@@ -254,6 +254,7 @@ class StatsCultivatedClass(StatsMLTree):
             dtype="float32",
             name="cultivated_predict",
         )
+
         return cc
 
     def aggregate_results_from_group(self, predict_output):
@@ -263,9 +264,20 @@ class StatsCultivatedClass(StatsMLTree):
         # for each pixel
         m_size = len(predict_output)
         if m_size > 1:
-            predict_output = da.stack(predict_output).sum(axis=0)
+            predict_output = da.stack(predict_output)
         else:
             predict_output = predict_output[0]
+
+        predict_output = expr_eval(
+            "where(a<nodata, 1-a, a)",
+            {"a": predict_output},
+            name="invert_output",
+            dtype="float32",
+            **{"nodata": NODATA},
+        )
+
+        if m_size > 1:
+            predict_output = predict_output.sum(axis=0)
 
         predict_output = expr_eval(
             "where((a/nodata)>=_l, nodata, a%nodata)",
@@ -276,19 +288,19 @@ class StatsCultivatedClass(StatsMLTree):
         )
 
         predict_output = expr_eval(
-            "where((a>=_l)&(a<nodata), _u, a)",
+            "where((a>0)&(a<nodata), _u, a)",
             {"a": predict_output},
-            name="output_classes_natural",
+            name="output_classes_cultivated",
             dtype="float32",
-            **{"_u": self.output_classes["natural"], "nodata": NODATA, "_l": m_size},
+            **{"_u": self.output_classes["cultivated"], "nodata": NODATA},
         )
 
         predict_output = expr_eval(
-            "where(a<_l, _nu, a)",
+            "where(a<=0, _nu, a)",
             {"a": predict_output},
-            name="output_classes_cultivated",
+            name="output_classes_natural",
             dtype="uint8",
-            **{"_nu": self.output_classes["cultivated"], "_l": m_size},
+            **{"_nu": self.output_classes["natural"]},
         )
 
         return predict_output.rechunk(-1, -1)

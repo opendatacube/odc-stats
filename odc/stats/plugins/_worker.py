@@ -44,6 +44,7 @@ class TreeliteModelPlugin(WorkerPlugin):
     def setup(self, worker):
         worker.plugin_instance = self
         worker.predictors = {}
+        print(f"registered worker {worker}")
 
     def get_predictor(self):
         worker = get_worker()
