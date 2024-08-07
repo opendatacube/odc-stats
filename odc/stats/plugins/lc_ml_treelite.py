@@ -1,5 +1,5 @@
 """
-Plugin of TF urban model in LandCover PipeLine
+Base class for treelite models in LandCover PipeLine
 """
 
 from abc import abstractmethod
