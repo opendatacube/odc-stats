@@ -16,6 +16,13 @@ data_dir = f"{project_root}/tests/data/"
 
 
 @pytest.fixture(scope="module")
+def dask_client():
+    client = start_local_dask(n_workers=1, threads_per_worker=2)
+    yield client
+    client.close()
+
+
+@pytest.fixture(scope="module")
 def tflite_model_path():
     s3_bucket = "dea-public-data-dev"
     s3_key = "lccs_models/urban_models/tflite/urban_model_tf_2_16_2.tflite"
@@ -137,11 +144,11 @@ def test_impute_missing_values(output_classes, tflite_model_path, image_groups):
     assert (res[1][:3, :3, :] == image_groups["ga_ls8"][:3, :3, :]).all()
 
 
-def test_urban_class(output_classes, tflite_model_path, image_groups):
+def test_urban_class(output_classes, tflite_model_path, image_groups, dask_client):
     # test better than random for a prediction
     # check correctness in integration test
     stats_urban = StatsUrbanClass(output_classes, tflite_model_path)
-    client.register_plugin(stats_urban.dask_worker_plugin)
+    dask_client.register_plugin(stats_urban.dask_worker_plugin)
     input_img = stats_urban.impute_missing_values_from_group(image_groups)
     input_img[0][1, 1, :] = np.nan
     input_img[1][1, 1, :] = np.nan

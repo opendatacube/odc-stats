@@ -2,7 +2,7 @@
 --extra-index-url https://packages.dea.ga.gov.au/
 datacube[performance,s3]>=1.8.17
 hdstats==0.1.8.post1
-odc-algo @ git+https://github.com/opendatacube/odc-algo@bb662fe
+odc-algo @ git+https://github.com/opendatacube/odc-algo@adb1856
 odc-apps-cloud>=0.2.2
 # For testing
 odc-apps-dc-tools>=0.2.12
@@ -15,3 +15,4 @@ odc-stats[ows]
 
 # For ML
 tflite-runtime
+tl2cgen
