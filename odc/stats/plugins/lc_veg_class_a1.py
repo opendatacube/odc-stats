@@ -118,26 +118,45 @@ class StatsVegClassL1(StatsPluginInterface):
             },
         )
 
-        # surface: (si5 > 1000 & dem <=6 ) | (si5 > 1500) | (veg_freq < 2) & !water
+        # surface: (si5 > 1000 & ((dem <=6) | (dem is nan)) ) | (si5 > 1500) | (veg_freq < 2) & !water
         # rest:  aquatic/terretrial veg
-        l3_mask = expr_eval(
-            "where(((a>mt)&(b<=dt)|(a>st)|(d<vt))&(c<=0), m, c)",
-            {
-                "a": si5,
-                "b": xx.dem_h.data,
-                "d": xx.veg_frequency.data,
-                "c": l3_mask,
-            },
-            name="mark_surface",
-            dtype="uint8",
-            **{
-                "mt": self.mudflat_threshold,
-                "dt": self.dem_threshold,
-                "st": self.saltpan_threshold,
-                "vt": self.veg_threshold,
-                "m": self.output_classes["surface"],
-            },
-        )
+        # note: dem nodata := dem <= any threshold
+        if "dem_h" in xx.data_vars:
+            l3_mask = expr_eval(
+                "where(((a>mt)&((b<=dt)|(b!=b))|(a>st)|(d<vt))&(c<=0), m, c)",
+                {
+                    "a": si5,
+                    "b": xx.dem_h.data,
+                    "d": xx.veg_frequency.data,
+                    "c": l3_mask,
+                },
+                name="mark_surface",
+                dtype="uint8",
+                **{
+                    "mt": self.mudflat_threshold,
+                    "dt": self.dem_threshold,
+                    "st": self.saltpan_threshold,
+                    "vt": self.veg_threshold,
+                    "m": self.output_classes["surface"],
+                },
+            )
+        else:
+            l3_mask = expr_eval(
+                "where(((a>mt)|(a>st)|(d<vt))&(c<=0), m, c)",
+                {
+                    "a": si5,
+                    "d": xx.veg_frequency.data,
+                    "c": l3_mask,
+                },
+                name="mark_surface",
+                dtype="uint8",
+                **{
+                    "mt": self.mudflat_threshold,
+                    "st": self.saltpan_threshold,
+                    "vt": self.veg_threshold,
+                    "m": self.output_classes["surface"],
+                },
+            )
 
         # if its mangrove or coast region
         for b in self.optional_bands:
