@@ -44,6 +44,8 @@ def mask_and_predict(
     if block_masked.shape[0] > 0:
         dmat = tl2cgen.DMatrix(block_masked)
         output_data = predictor.predict(dmat).squeeze(axis=1)
+        # round the number to float32 resolution
+        output_data = np.round(output_data, 6)
         if ptype == "categorical":
             prediction[mask_flat] = output_data.argmax(axis=-1)[..., np.newaxis]
         else:
