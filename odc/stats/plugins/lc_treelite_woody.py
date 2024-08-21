@@ -63,7 +63,7 @@ class StatsWoodyCover(StatsMLTree):
         )
 
         if m_size > 1:
-            predict_output = predict_output.sum(axis=0).astype("int")
+            predict_output = predict_output.sum(axis=0)
 
         predict_output = expr_eval(
             "where((a/nodata)>=_l, nodata, a%nodata)",
