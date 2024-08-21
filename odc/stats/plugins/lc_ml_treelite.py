@@ -6,6 +6,7 @@ from abc import abstractmethod
 from typing import Dict, Sequence, Optional
 
 import os
+import sys
 import numpy as np
 import numexpr as ne
 import xarray as xr
@@ -21,6 +22,7 @@ from odc.stats._algebra import expr_eval
 from ._registry import StatsPluginInterface
 from ._worker import TreeliteModelPlugin
 import tl2cgen
+import logging
 
 
 def mask_and_predict(
@@ -72,6 +74,7 @@ class StatsMLTree(StatsPluginInterface):
         self.dask_worker_plugin = TreeliteModelPlugin(model_path)
         self.output_classes = output_classes
         self.mask_bands = mask_bands
+        self._log = logging.getLogger(__name__)
 
     def input_data(
         self, datasets: Sequence[Dataset], geobox: GeoBox, **kwargs
@@ -119,6 +122,7 @@ class StatsMLTree(StatsPluginInterface):
 
     def preprocess_predict_input(self, xx: xr.Dataset):
         images = []
+        veg_mask = None
         for var in xx.data_vars:
             image = xx[var].data
             if var not in self.mask_bands:
@@ -142,6 +146,9 @@ class StatsMLTree(StatsPluginInterface):
                     **{"_v": int(self.mask_bands[var])},
                 )
 
+        if veg_mask is None:
+            raise TypeError("Missing Veg Mask")
+
         images = [
             da.concatenate([image, veg_mask[..., np.newaxis]], axis=-1).rechunk(
                 (None, None, image.shape[-1] + veg_mask.shape[-1])
@@ -159,7 +166,12 @@ class StatsMLTree(StatsPluginInterface):
         pass
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
-        images = self.preprocess_predict_input(xx)
+        try:
+            images = self.preprocess_predict_input(xx)
+        except TypeError as e:
+            self._log.warning(e)
+            sys.exit(0)
+
         res = []
 
         for image in images:
