@@ -25,7 +25,7 @@ ENV GDAL_DRIVER_PATH=/env/lib/gdalplugins \
 # here is very hacky fix for the threading issue
 # MUST follow up with package owner and further address the issue accordingly
 
-RUN wget -O /env/lib/python3.10/site-packages/numexpr/necompiler.py https://raw.githubusercontent.com/emmaai/numexpr/master/numexpr/necompiler.py
+RUN wget -q -O /env/lib/python3.10/site-packages/numexpr/necompiler.py https://raw.githubusercontent.com/emmaai/numexpr/master/numexpr/necompiler.py
 
 WORKDIR /tmp
 
