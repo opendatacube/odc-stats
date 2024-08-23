@@ -11,7 +11,7 @@ odc-dscache>=0.2.3
 odc-stac @ git+https://github.com/opendatacube/odc-stac@69bdf64
 
 # odc-stac is in PyPI
-odc-stats[ows] @ git+https://github.com/opendatacube/odc-stats@bad6a6c
+odc-stats[ows]
 
 # For ML
 tflite-runtime

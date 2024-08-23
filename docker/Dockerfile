@@ -22,6 +22,8 @@ ENV GDAL_DRIVER_PATH=/env/lib/gdalplugins \
     GDAL_DATA=/env/share/gdal \
     PATH=/env/bin:$PATH
 
+RUN wget -O /env/lib/python3.10/site-packages/numexpr/necompiler.py https://raw.githubusercontent.com/emmaai/numexpr/master/numexpr/necompiler.py
+
 WORKDIR /tmp
 
 RUN odc-stats --version 
