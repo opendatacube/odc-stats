@@ -492,6 +492,10 @@ def test_cultivated_reduce(
         == np.array([[112, 255], [112, 112]], dtype="uint8")
     ).all()
 
+    with pytest.raises(SystemExit) as excinfo:
+        cultivated.reduce(input_datasets.drop("classes_l3_l4"))
+    assert excinfo.value.code == 0
+
 
 def test_woody_aggregate_results(
     woody_input_bands,

@@ -63,13 +63,13 @@ class StatsWoodyCover(StatsMLTree):
         )
 
         if m_size > 1:
-            predict_output = predict_output.sum(axis=0).astype("int")
+            predict_output = predict_output.sum(axis=0)
 
         predict_output = expr_eval(
             "where((a/nodata)>=_l, nodata, a%nodata)",
             {"a": predict_output},
             name="summary_over_classes",
-            dtype="uint8",
+            dtype="float32",
             **{
                 "_l": m_size,
                 "nodata": NODATA,
@@ -80,7 +80,7 @@ class StatsWoodyCover(StatsMLTree):
             "where((a>0)&(a<nodata), _nw, a)",
             {"a": predict_output},
             name="output_classes_herbaceous",
-            dtype="uint8",
+            dtype="float32",
             **{"nodata": NODATA, "_nw": self.output_classes["herbaceous"]},
         )
 
