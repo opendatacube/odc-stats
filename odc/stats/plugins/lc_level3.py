@@ -1,6 +1,7 @@
 """
 Land Cover Level3 classification
 """
+
 from typing import Tuple
 import xarray as xr
 from ._registry import StatsPluginInterface, register
@@ -29,7 +30,9 @@ class StatsLccsLevel3(StatsPluginInterface):
         l34_cultivated_masked = xr.where(cultivated_mask, cultivated_dss, l34_dss)
 
         urban_mask = l34_dss == 210
-        l34_urban_cultivated_masked = xr.where(urban_mask, urban_dss, l34_cultivated_masked)
+        l34_urban_cultivated_masked = xr.where(
+            urban_mask, urban_dss, l34_cultivated_masked
+        )
 
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
