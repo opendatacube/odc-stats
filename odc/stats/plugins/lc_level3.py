@@ -26,16 +26,19 @@ class StatsLccsLevel3(StatsPluginInterface):
         urban_dss = xx.urban_classes
         cultivated_dss = xx.cultivated_class
 
-        cultivated_mask = l34_dss == 110
+        # Cultivated pipeline applies a mask which feeds only terrestrial veg (110) to the model
+        # Just exclude no data (255) and apply the cultivated results
+        cultivated_mask = cultivated_dss != int(NODATA)
         l34_cultivated_masked = xr.where(cultivated_mask, cultivated_dss, l34_dss)
 
+        # Urban is classified on l3/4 surface output (210)
         urban_mask = l34_dss == 210
         l34_urban_cultivated_masked = xr.where(
             urban_mask, urban_dss, l34_cultivated_masked
         )
 
         attrs = xx.attrs.copy()
-        attrs["nodata"] = int(NODATA)
+        attrs["nodata"] = NODATA
         l34_urban_cultivated_masked = l34_urban_cultivated_masked.squeeze(dim=["spec"])
         dims = l34_urban_cultivated_masked.dims
 

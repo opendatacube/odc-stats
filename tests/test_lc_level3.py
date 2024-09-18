@@ -1,19 +1,14 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
-import dask.array as da
+
 from odc.stats.plugins.lc_level3 import StatsLccsLevel3
-from pathlib import Path
 import pytest
-import boto3
-from botocore import UNSIGNED
-from botocore.config import Config
-from datacube.utils.dask import start_local_dask
 
 expected_l3_classes = [
-    [111, 124, 215],
+    [111, 112, 215],
     [124, 112, 215],
-    [221, 111, 216],
+    [221, 215, 216],
     [223, 255, 223],
 ]
 
@@ -23,9 +18,9 @@ def image_groups():
     l34 = np.array(
         [
             [
-                [110, 124, 210],
+                [110, 110, 210],
                 [124, 110, 210],
-                [221, 110, 210],
+                [221, 210, 210],
                 [223, 255, 223],
             ]
         ],
@@ -47,10 +42,10 @@ def image_groups():
     cultivated = np.array(
         [
             [
-                [111, 111, 111],
-                [112, 112, 111],
-                [111, 111, 111],
-                [111, 111, 112],
+                [111, 112, 255],
+                [255, 112, 255],
+                [255, 255, 255],
+                [255, 255, 255],
             ]
         ],
         dtype="int",
