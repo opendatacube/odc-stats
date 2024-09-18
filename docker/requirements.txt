@@ -2,6 +2,7 @@
 --extra-index-url https://packages.dea.ga.gov.au/
 datacube[performance,s3]>=1.8.17
 hdstats==0.1.8.post1
+numexpr @ git+https://github.com/pydata/numexpr@a99412e
 odc-algo @ git+https://github.com/opendatacube/odc-algo@adb1856
 odc-apps-cloud>=0.2.2
 # For testing

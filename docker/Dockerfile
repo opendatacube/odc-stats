@@ -10,6 +10,11 @@ RUN micromamba create  -y -p /env -f /conf/env.yaml && \
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
 ARG UPDATE_VERSION=1
 COPY requirements.txt /conf/
+# required to build numexpr
+# or any --no-binary
+ENV CC=/env/bin/x86_64-conda_cos6-linux-gnu-gcc \
+    CXX=/env/bin/x86_64-conda_cos6-linux-gnu-g++ \
+    LDSHARED="/env/bin/x86_64-conda_cos6-linux-gnu-gcc -pthread -shared -B /env/compiler_compat -L/env/lib -Wl,-rpath=/env/lib -Wl,--no-as-needed"
 RUN micromamba run -p /env pip install --no-cache-dir \
     --no-build-isolation -r /conf/requirements.txt
 
@@ -21,11 +26,6 @@ ENV GDAL_DRIVER_PATH=/env/lib/gdalplugins \
     PROJ_LIB=/env/share/proj \
     GDAL_DATA=/env/share/gdal \
     PATH=/env/bin:$PATH
-
-# here is very hacky fix for the threading issue
-# MUST follow up with package owner and further address the issue accordingly
-
-RUN wget -q -O /env/lib/python3.10/site-packages/numexpr/necompiler.py https://raw.githubusercontent.com/emmaai/numexpr/master/numexpr/necompiler.py
 
 WORKDIR /tmp
 
