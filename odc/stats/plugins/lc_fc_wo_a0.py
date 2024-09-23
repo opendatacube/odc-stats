@@ -44,7 +44,7 @@ class StatsVegCount(StatsPluginInterface):
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["veg_frequency"]
+        _measurements = ["veg_frequency", "water_frequency"]
         return _measurements
 
     def native_transform(self, xx):
