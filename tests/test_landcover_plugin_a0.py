@@ -381,6 +381,23 @@ def test_veg_or_not(fc_wo_dataset):
         i += 1
 
 
+def test_water_or_not(fc_wo_dataset):
+    stats_veg = StatsVegCount()
+    xx = stats_veg.native_transform(fc_wo_dataset)
+    xx = xx.groupby("solar_day").map(partial(StatsVegCount.fuser, None))
+    yy = stats_veg._water_or_not(xx).compute()
+    valid_index = (
+        np.array([0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 2, 2, 2]),
+        np.array([1, 1, 3, 5, 6, 2, 6, 0, 0, 2, 2, 3, 5, 6]),
+        np.array([0, 3, 2, 1, 3, 5, 6, 0, 2, 1, 4, 2, 5, 6]),
+    )
+    expected_value = np.array([0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0])
+    i = 0
+    for idx in zip(*valid_index):
+        assert yy[idx] == expected_value[i]
+        i += 1
+
+
 def test_reduce(fc_wo_dataset):
     stats_veg = StatsVegCount()
     xx = stats_veg.native_transform(fc_wo_dataset)
@@ -399,6 +416,20 @@ def test_reduce(fc_wo_dataset):
     )
 
     assert (xx.veg_frequency.data == expected_value).all()
+
+    expected_value = np.array(
+        [
+            [0, 255, 1, 255, 255, 255, 255],
+            [0, 255, 255, 0, 255, 255, 255],
+            [255, 1, 255, 255, 0, 0, 255],
+            [255, 255, 0, 255, 255, 255, 255],
+            [255, 255, 255, 255, 255, 255, 255],
+            [255, 0, 255, 255, 255, 0, 255],
+            [255, 255, 255, 0, 255, 255, 1],
+        ]
+    )
+
+    assert (xx.water_frequency.data == expected_value).all()
 
 
 def test_consecutive_month(consecutive_count):
