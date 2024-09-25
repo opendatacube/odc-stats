@@ -29,7 +29,7 @@ class StatsVegCount(StatsPluginInterface):
     VERSION = "0.0.1"
     PRODUCT_FAMILY = "lccs"
 
-    BAD_BITS_MASK = dict(cloud=(1 << 6), cloud_shadow=(1 << 5))
+    BAD_BITS_MASK = {"cloud": (1 << 6), "cloud_shadow": (1 << 5)}
 
     def __init__(
         self,
@@ -44,7 +44,7 @@ class StatsVegCount(StatsPluginInterface):
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["veg_frequency"]
+        _measurements = ["veg_frequency", "water_frequency"]
         return _measurements
 
     def native_transform(self, xx):
@@ -80,10 +80,10 @@ class StatsVegCount(StatsPluginInterface):
         # get valid wo pixels, both dry and wet
         data = expr_eval(
             "where(a|b, a, _nan)",
-            dict(a=wet.data, b=valid.data),
+            {"a": wet.data, "b": valid.data},
             name="get_valid_pixels",
             dtype="float32",
-            **dict(_nan=np.nan),
+            **{"_nan": np.nan},
         )
 
         # Pick out the fc pixels that have an unmixing error of less than the threshold
@@ -111,7 +111,7 @@ class StatsVegCount(StatsPluginInterface):
         # otherwise 0
         data = expr_eval(
             "where((a>b)|(c>b), 1, 0)",
-            dict(a=xx["pv"].data, c=xx["npv"].data, b=xx["bs"].data),
+            {"a": xx["pv"].data, "c": xx["npv"].data, "b": xx["bs"].data},
             name="get_veg",
             dtype="uint8",
         )
@@ -119,20 +119,39 @@ class StatsVegCount(StatsPluginInterface):
         # mark nans
         data = expr_eval(
             "where(a!=a, nodata, b)",
-            dict(a=xx["pv"].data, b=data),
+            {"a": xx["pv"].data, "b": data},
             name="get_veg",
             dtype="uint8",
-            **dict(nodata=int(NODATA)),
+            **{"nodata": int(NODATA)},
         )
 
         # mark water freq >= 0.5 as 0
         data = expr_eval(
             "where(a>0, 0, b)",
-            dict(a=xx["wet"].data, b=data),
+            {"a": xx["wet"].data, "b": data},
             name="get_veg",
             dtype="uint8",
         )
 
+        return data
+
+    def _water_or_not(self, xx: xr.Dataset):
+        # mark water freq > 0.5 as 1
+        data = expr_eval(
+            "where(a>0.5, 1, 0)",
+            {"a": xx["wet"].data},
+            name="get_water",
+            dtype="uint8",
+        )
+
+        # mark nans
+        data = expr_eval(
+            "where(a!=a, nodata, b)",
+            {"a": xx["wet"].data, "b": data},
+            name="get_water",
+            dtype="uint8",
+            **{"nodata": int(NODATA)},
+        )
         return data
 
     def _max_consecutive_months(self, data, nodata):
@@ -144,16 +163,16 @@ class StatsVegCount(StatsPluginInterface):
             # +1 if not nodata
             tmp = expr_eval(
                 "where(a==nodata, b, a+b)",
-                dict(a=t, b=tmp),
+                {"a": t, "b": tmp},
                 name="compute_consecutive_month",
                 dtype="uint8",
-                **dict(nodata=nodata),
+                **{"nodata": nodata},
             )
 
             # save the max
             max_count = expr_eval(
                 "where(a>b, a, b)",
-                dict(a=max_count, b=tmp),
+                {"a": max_count, "b": tmp},
                 name="compute_consecutive_month",
                 dtype="uint8",
             )
@@ -161,7 +180,7 @@ class StatsVegCount(StatsPluginInterface):
             # reset if not veg
             tmp = expr_eval(
                 "where((a<=0), 0, b)",
-                dict(a=t, b=tmp),
+                {"a": t, "b": tmp},
                 name="compute_consecutive_month",
                 dtype="uint8",
             )
@@ -169,19 +188,19 @@ class StatsVegCount(StatsPluginInterface):
             # mark nodata
             nan_mask = expr_eval(
                 "where(a==nodata, b, False)",
-                dict(a=t, b=nan_mask),
+                {"a": t, "b": nan_mask},
                 name="mark_nodata",
                 dtype="bool",
-                **dict(nodata=nodata),
+                **{"nodata": nodata},
             )
 
         # mark nodata
         max_count = expr_eval(
             "where(a, nodata, b)",
-            dict(a=nan_mask, b=max_count),
+            {"a": nan_mask, "b": max_count},
             name="mark_nodata",
             dtype="uint8",
-            **dict(nodata=int(nodata)),
+            **{"nodata": int(nodata)},
         )
         return max_count
 
@@ -190,14 +209,20 @@ class StatsVegCount(StatsPluginInterface):
         xx = xx.groupby("time.month").map(median_ds, dim="spec")
 
         data = self._veg_or_not(xx)
-        max_count = self._max_consecutive_months(data, NODATA)
+        max_count_veg = self._max_consecutive_months(data, NODATA)
+
+        data = self._water_or_not(xx)
+        max_count_water = self._max_consecutive_months(data, NODATA)
 
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
         data_vars = {
             "veg_frequency": xr.DataArray(
-                max_count, dims=xx["wet"].dims[1:], attrs=attrs
-            )
+                max_count_veg, dims=xx["wet"].dims[1:], attrs=attrs
+            ),
+            "water_frequency": xr.DataArray(
+                max_count_water, dims=xx["wet"].dims[1:], attrs=attrs
+            ),
         }
         coords = dict((dim, xx.coords[dim]) for dim in xx["wet"].dims[1:])
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)
