@@ -168,10 +168,10 @@ def test_l4_water_seasonality(dataset):
     wo_fq = np.array(
         [
             [
-                [0.0, 0.021, 0.152, np.nan],
+                [0.0, 0.021, 0.152, 255],
                 [0.249, 0.273, 0.252, 0.0375],
-                [0.302, 0.311, 0.789, 0.078],
-                [0.021, 0.243, np.nan, 0.255],
+                [0.302, 0, 0.789, 0.078],
+                [0.021, 0.243, 255, 0.255],
             ]
         ],
         dtype="float32",
@@ -185,17 +185,17 @@ def test_l4_water_seasonality(dataset):
     expected_water_seasonality = np.array(
         [
             [
-                [0.0, 0.25, 0.25, np.nan],
-                [0.25, 1.0, 1, 0.25],
-                [1.0, 1.0, 1.0, 0.25],
-                [0.25, 0.25, np.nan, 1.0],
+                [0, 1, 1, 255],
+                [1, 2, 2, 1],
+                [2, 0, 2, 1],
+                [1, 1, 255, 2],
             ]
         ],
         dtype="float32",
     )
 
     res, water_seasonality = stats_l3.l3_class(dataset)
-    assert np.allclose(water_seasonality, expected_water_seasonality, equal_nan=True)
+    assert np.allclose(water_seasonality, expected_water_seasonality)
 
 
 def test_reduce(dataset):

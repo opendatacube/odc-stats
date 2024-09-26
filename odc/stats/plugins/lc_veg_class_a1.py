@@ -197,6 +197,7 @@ class StatsVegClassL1(StatsPluginInterface):
         # issues:
         # - nodata information from non-indexed datasets missing
 
+        # Mask nans with NODATA
         l3_mask = expr_eval(
             "where((a!=a)|(b>=nodata), nodata, e)",
             {
@@ -212,29 +213,39 @@ class StatsVegClassL1(StatsPluginInterface):
         # Now add the water frequency
         # Divide water frequency into following classes:
         # 0 --> 0
-        # (0,0.25] --> 0.25
-        # (0.25,1] --> 1
+        # (0,0.25] --> 1
+        # (0.25,1] --> 2
+
         water_seasonality = expr_eval(
-            "where((a > 0) & (a <= wt), wt, a)",
+            "where((a > 0) & (a <= wt), 1, a)",
             {"a": xx["frequency"].data},
-            name="mark_veg",
+            name="mark_wo_fq",
             dtype="float32",
-            **{"wt": self.water_seasonality_threshold, "nodata": NODATA},
+            **{"wt": self.water_seasonality_threshold},
         )
 
         water_seasonality = expr_eval(
-            "where((a > wt) & (a <= 1), 1, a)",
-            {"a": water_seasonality},
-            name="mark_water_seasonality",
+            "where((a > wt) & (a <= 1), 2, b)",
+            {"a": xx["frequency"].data, "b": water_seasonality},
+            name="mark_wo_fq",
             dtype="float32",
-            **{"wt": self.water_seasonality_threshold, "nodata": NODATA},
+            **{"wt": self.water_seasonality_threshold},
+        )
+
+        water_seasonality = expr_eval(
+            "where((a != a), nodata, a)",
+            {
+                "a": water_seasonality,
+            },
+            name="mark_nodata",
+            dtype="uint8",
+            **{"nodata": NODATA},
         )
 
         return l3_mask, water_seasonality
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         l3_mask, water_seasonality = self.l3_class(xx)
-
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
         data_vars = {
