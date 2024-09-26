@@ -71,7 +71,7 @@ class StatsVegClassL1(StatsPluginInterface):
         saltpan_threshold: Optional[int] = None,
         water_threshold: Optional[float] = None,
         veg_threshold: Optional[int] = None,
-        water_seasonality_threshold: Optional[int] = None,
+        water_seasonality_threshold: Optional[float] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -218,7 +218,7 @@ class StatsVegClassL1(StatsPluginInterface):
             "where((a > 0) & (a <= wt), wt, a)",
             {"a": xx["frequency"].data},
             name="mark_veg",
-            dtype="float",
+            dtype="float32",
             **{"wt": self.water_seasonality_threshold, "nodata": NODATA},
         )
 
@@ -234,7 +234,6 @@ class StatsVegClassL1(StatsPluginInterface):
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         l3_mask, water_seasonality = self.l3_class(xx)
-        print(np.unique(water_seasonality))
 
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
