@@ -149,8 +149,53 @@ def test_l3_classes(dataset):
         dtype="uint8",
     )
 
-    res = stats_l3.l3_class(dataset)
+    res, water_seasonality = stats_l3.l3_class(dataset)
     assert (res == expected_res).all()
+
+
+def test_l4_water_seasonality(dataset):
+    stats_l3 = StatsVegClassL1(
+        output_classes={
+            "aquatic_veg": 124,
+            "terrestrial_veg": 110,
+            "water": 221,
+            "intertidal": 223,
+            "surface": 210,
+        },
+        optional_bands=["canopy_cover_class", "elevation"],
+    )
+
+    wo_fq = np.array(
+        [
+            [
+                [0.0, 0.021, 0.152, np.nan],
+                [0.249, 0.273, 0.252, 0.0375],
+                [0.302, 0.311, 0.789, 0.078],
+                [0.021, 0.243, np.nan, 0.255],
+            ]
+        ],
+        dtype="float32",
+    )
+    wo_fq = da.from_array(wo_fq, chunks=(1, -1, -1))
+
+    dataset["frequency"] = xr.DataArray(
+        wo_fq, dims=("spec", "y", "x"), attrs={"nodata": np.nan}
+    )
+
+    expected_water_seasonality = np.array(
+        [
+            [
+                [0.0, 0.25, 0.25, np.nan],
+                [0.25, 1.0, 1, 0.25],
+                [1.0, 1.0, 1.0, 0.25],
+                [0.25, 0.25, np.nan, 1.0],
+            ]
+        ],
+        dtype="float32",
+    )
+
+    res, water_seasonality = stats_l3.l3_class(dataset)
+    assert np.allclose(water_seasonality, expected_water_seasonality, equal_nan=True)
 
 
 def test_reduce(dataset):
