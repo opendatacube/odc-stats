@@ -1,5 +1,5 @@
 """
-Plugin of Module A1 in LandCover PipeLine
+Plugin of Module A3 in LandCover PipeLine
 """
 
 from typing import Tuple, Optional, Dict, List
