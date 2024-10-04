@@ -43,6 +43,7 @@ def import_all():
         "odc.stats.plugins.lc_level3",
         "odc.stats.plugins.lc_treelite_woody",
         "odc.stats.plugins.lc_tf_urban",
+        "odc.stats.plugins.lc_veg_bare_water_a3",
         "odc.stats.plugins.lc_veg_class_a1",
         "odc.stats.plugins.lc_fc_wo_a0",
         "odc.stats.plugins.mangroves",
