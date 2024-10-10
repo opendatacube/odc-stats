@@ -37,6 +37,12 @@ class StatsLccsLevel3(StatsPluginInterface):
             urban_mask, urban_dss, l34_cultivated_masked
         )
 
+        # Water = watre + intertidal - set water to 220 in level-3 to match C2
+        water_mask = (l34_dss == 221) | (l34_dss == 223)
+        l34_urban_cultivated_masked = xr.where(
+            water_mask, 220, l34_urban_cultivated_masked
+        )
+
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
         l34_urban_cultivated_masked = l34_urban_cultivated_masked.squeeze(dim=["spec"])
