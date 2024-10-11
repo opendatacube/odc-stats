@@ -91,6 +91,7 @@ class Mangroves(StatsPluginInterface):
         cover_type = keep_good_only(cover_type, good_data, nodata=NODATA)
         cover_type.attrs["nodata"] = NODATA
 
+        cover_type = cover_type.astype(np.uint8)
         cover_type = cover_type.to_dataset(name="canopy_cover_class")
         # don't want the dimension spec from input but keep the info in case
         if "spec" in cover_type.dims:
