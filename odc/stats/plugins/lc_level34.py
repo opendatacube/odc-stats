@@ -10,60 +10,13 @@ import xarray as xr
 from odc.stats._algebra import expr_eval
 from ._registry import StatsPluginInterface, register
 
-from .l34_utils import l4_water_persistence, l4_veg_cover, lc_level3, l4_cultivated, l4_natural_veg, l4_natural_aquatic, l4_surface, l4_bare_gradation
+from .l34_utils import l4_water_persistence, l4_veg_cover, lc_level3, l4_cultivated, l4_natural_veg, l4_natural_aquatic, l4_surface, l4_bare_gradation, l4_water
 
 
 NODATA = 255
 
-# class StatsLccsLevel3(StatsPluginInterface):
-#     NAME = "ga_ls_lccs_level3"
-#     SHORT_NAME = NAME
-#     VERSION = "0.0.1"
-#     PRODUCT_FAMILY = "lccs"
 
-#     @property
-#     def measurements(self) -> Tuple[str, ...]:
-#         _measurements = ["level3_class"]
-#         return _measurements
-
-#     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
-
-#         l34_dss = xx.classes_l3_l4
-#         urban_dss = xx.urban_classes
-#         cultivated_dss = xx.cultivated_class
-    
-#         # Map intertidal areas to water
-#         intertidal = l34_dss == 223
-#         l34_dss = xr.where(intertidal, 220, l34_dss)
-        
-#         # Cultivated pipeline applies a mask which feeds only terrestrial veg (110) to the model
-#         # Just exclude no data (255) and apply the cultivated results
-#         cultivated_mask = cultivated_dss != int(NODATA)
-#         l34_cultivated_masked = xr.where(cultivated_mask, cultivated_dss, l34_dss)
-
-#         # Urban is classified on l3/4 surface output (210)
-#         urban_mask = l34_dss == 210
-#         l34_urban_cultivated_masked = xr.where(
-#             urban_mask, urban_dss, l34_cultivated_masked
-#         )
-
-#         attrs = xx.attrs.copy()
-#         attrs["nodata"] = NODATA
-#         l34_urban_cultivated_masked = l34_urban_cultivated_masked.squeeze(dim=["spec"])
-#         dims = l34_urban_cultivated_masked.dims
-
-#         data_vars = {
-#             "level3_class": xr.DataArray(
-#                 l34_urban_cultivated_masked.data, dims=dims, attrs=attrs
-#             )
-#         }
-
-#         coords = dict((dim, xx.coords[dim]) for dim in dims)
-#         level3 = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
-
-#         return level3
-    
-class StatsVegDryClassA3(StatsPluginInterface):
+class StatsL4(StatsPluginInterface):
     NAME = "ga_ls_lccs_veg_bare_class_a3"
     SHORT_NAME = NAME
     VERSION = "0.0.1"
@@ -158,7 +111,7 @@ class StatsVegDryClassA3(StatsPluginInterface):
         # Define mapping from current output to expected a3 output
         veg_cover = self.apply_mapping(veg_cover, self.veg_mapping)
         # Define life form
-        lifeform = self.define_life_form(xx).compute()
+        lifeform = self.define_life_form(xx)
 
         # Apply cultivated Level-4 classes (1-18)
         l4_ctv = l4_cultivated.lc_l4_cultivated(level3, lifeform, veg_cover)
@@ -182,23 +135,16 @@ class StatsVegDryClassA3(StatsPluginInterface):
 
         l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(l4_ctv_ntv, level3, lifeform, veg_cover, water_seasonality)
 
-
         l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(l4_ctv_ntv_nav, bare_gradation)
-        #TODO WATER (99-105) if not added 
+        
+        #TODO WATER (99-104)
+        l4_ctv_ntv_nav_surface_water = l4_water.water_classification(l4_ctv_ntv_nav_surface, intertidal_mask, water_persistence)
         
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
         l3 = level3.squeeze(dim=["spec"])
         dims = level3.dims
 
-        # data_vars = {
-        #     "level3_class": xr.DataArray(
-        #         l3.data, dims=dims, attrs=attrs
-        #     )
-        # }
-
-        # coords = dict((dim, xx.coords[dim]) for dim in dims)
-        # level3 = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
         
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
@@ -208,12 +154,8 @@ class StatsVegDryClassA3(StatsPluginInterface):
                 level3.data, dims=xx["pv_pc_50"].dims, attrs=attrs
             ),
             "level4": xr.DataArray(
-                l4_ctv_ntv_nav_surface, dims=xx["pv_pc_50"].dims, attrs=attrs
+                l4_ctv_ntv_nav_surface_water, dims=xx["pv_pc_50"].dims, attrs=attrs
             )
-            # "waterper_wat_cin": xr.DataArray(
-            #     a3[2], dims=xx["water_frequency"].dims, attrs=attrs
-            # ),
-            # "level3": xr.DataArray(a3[3], dims=xx["level3_class"].dims, attrs=attrs),
         }
 
         coords = dict((dim, xx.coords[dim]) for dim in dims)
@@ -221,4 +163,4 @@ class StatsVegDryClassA3(StatsPluginInterface):
 
 
 # register("lccs_level3", StatsLccsLevel3)
-register("lc_l3_l4", StatsVegDryClassA3)
+register("lc_l3_l4", StatsL4)
