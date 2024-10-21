@@ -77,7 +77,7 @@ def test_ctv_classes_woody():
         ],
         dtype="int",
     )
-
+    # 111 --> cultivated
     cultivated = np.array(
         [
             [

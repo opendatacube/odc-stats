@@ -1,7 +1,8 @@
 from odc.stats._algebra import expr_eval
 
 def lc_l4_cultivated(level3, lifeform, veg_cover):
-            
+
+    
     l4 = expr_eval(
         "where((a==111)&(b==10)&(c==1), 9, a)",
         {"a": level3,

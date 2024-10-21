@@ -14,7 +14,7 @@ from .l34_utils import l4_water_persistence, l4_veg_cover, lc_level3, l4_cultiva
 
 
 NODATA = 255
-
+water_frequency_nodata = -9999
 
 class StatsL4(StatsPluginInterface):
     NAME = "ga_ls_lccs_veg_bare_class_a3"
@@ -31,6 +31,7 @@ class StatsL4(StatsPluginInterface):
         bs_mapping: Optional[Dict[int, int]] = None,
         waterper_wat_mapping: Optional[Dict[int, int]] = None,
         l3_to_l4_mapping: Optional[Dict[int, int]] = None,
+        water_seasonality_threshold: int = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -42,7 +43,8 @@ class StatsL4(StatsPluginInterface):
         self.watper_threshold = (
             watper_threshold if watper_threshold is not None else [1, 4, 7, 10]
         )
-
+        self.water_seasonality_threshold = water_seasonality_threshold if water_seasonality_threshold else 3
+        
         # The mapping below are from the LC KH page
         # Map vegetation cover classes
         self.veg_mapping = {160: 16, 150: 15, 130: 13, 120: 12, 100: 10}
@@ -87,12 +89,50 @@ class StatsL4(StatsPluginInterface):
         # 113 ----> 1 woody
         # 114 ----> 2 herbaceous
         lifeform_mask = expr_eval(
-            "where(a==113, 1, 2)",
+            "where(a==113, 1, a)",
             {"a": xx.woody_cover.data},
             name="mark_lifeform",
             dtype="uint8"
         )
+        lifeform_mask = expr_eval(
+            "where(a==114, 2, a)",
+            {"a": lifeform_mask},
+            name="mark_lifeform",
+            dtype="uint8"
+        )
+ 
         return lifeform_mask
+        
+    def define_water_seasonality(self, xx: xr.Dataset):
+        # >= 3 months ----> 1  Semi-permanent or permanent
+        # < 3 months  ----> 2 Temporary or seasonal
+
+        water_season_mask = expr_eval(
+            "where((a>watseas_trh)&(a<=12), 100, a)",
+            {"a": xx.water_frequency.data},
+            name="mark_water_season",
+            dtype="uint8",
+            **{"watseas_trh": self.water_seasonality_threshold},
+        )
+        water_season_mask = expr_eval(
+            "where((a<=watseas_trh)&(a<=12), 200, a)",
+            {"a": water_season_mask},
+            name="mark_water_season",
+            dtype="uint8",
+            **{"watseas_trh": self.water_seasonality_threshold},
+        )
+        water_season_mask = expr_eval(
+            "where((a==watersea_nodata), 255, a)",
+            {"a": water_season_mask},
+            name="mark_water_season",
+            dtype="uint8",
+            **{"watseas_trh": self.water_seasonality_threshold,
+               "watersea_nodata": water_frequency_nodata},
+        )
+        mapping = {100:1, 200:2}
+        water_season_mask = self.apply_mapping(water_season_mask, mapping)
+ 
+        return water_season_mask
         
     def level3_to_level4_mapping(self, xx: xr.Dataset):
         l3_data = xx.level3_class.data
@@ -131,9 +171,10 @@ class StatsL4(StatsPluginInterface):
         # Apply water persistence expcted classes
         water_persistence = self.apply_mapping(water_persistence, self.waterper_wat_mapping)
         
-        water_seasonality = xx.water_seasonality.data
+        water_seasonality = self.define_water_seasonality(xx) 
+        # xx.water_seasonality.data
 
-        l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(l4_ctv_ntv, level3, lifeform, veg_cover, water_seasonality)
+        l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(l4_ctv_ntv, lifeform, veg_cover, water_seasonality)
 
         l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(l4_ctv_ntv_nav, bare_gradation)
         
