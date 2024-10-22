@@ -1,14 +1,14 @@
  
 from odc.stats._algebra import expr_eval
 
-def lc_l4_natural_veg(l34, l3, lifeform, veg_cover):
+def lc_l4_natural_veg(l4, l3, lifeform, veg_cover):
 
     l4 = expr_eval(
         "where((d==110)&(a==112)&(c==10)&(b==1), 27, d)",
         {"a": l3,
          "b": lifeform,
          "c": veg_cover,
-         "d": l34.classes_l3_l4},
+         "d": l4},
         name="mark_cultivated",
         dtype="uint8"
     )

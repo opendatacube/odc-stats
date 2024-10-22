@@ -8,10 +8,9 @@ import pytest
 expected_l3_classes = [
     [111, 112, 215],
     [124, 112, 215],
-    [221, 215, 216],
-    [223, 255, 223],
+    [220, 215, 216],
+    [220, 255, 220],
 ]
-
 
 @pytest.fixture(scope="module")
 def image_groups():
@@ -76,8 +75,9 @@ def image_groups():
     return xx
 
 
-def test_urban_class(image_groups):
+def test_l3_classes(image_groups):
 
     lc_level3 = StatsLccsLevel3()
-    level3_classes = lc_level3.reduce(image_groups)
-    assert (level3_classes.level3_class.values == expected_l3_classes).all()
+    intertidal_mask, level3_classes = lc_level3.reduce(image_groups)
+
+    assert (level3_classes == expected_l3_classes).all()

@@ -121,7 +121,7 @@ def test_ctv_classes_woody():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
     veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
     
-    l4_ctv = l4_cultivated.lc_l4_cultivated(xx, level3, lifeform, veg_cover)
+    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
 
 def test_ctv_classes_herbaceous():
@@ -200,7 +200,7 @@ def test_ctv_classes_herbaceous():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
     veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
     
-    l4_ctv = l4_cultivated.lc_l4_cultivated(xx, level3, lifeform, veg_cover)
+    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
 
 
@@ -280,7 +280,7 @@ def test_ctv_classes_woody_herbaceous():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
     veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
     
-    l4_ctv = l4_cultivated.lc_l4_cultivated(xx, level3, lifeform, veg_cover)
+    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
 
 
@@ -360,5 +360,5 @@ def test_ctv_classes_no_vegcover():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
     veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
     
-    l4_ctv = l4_cultivated.lc_l4_cultivated(xx, level3, lifeform, veg_cover)
+    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
     assert (l4_ctv.compute() == expected_cultivated_classes).all()

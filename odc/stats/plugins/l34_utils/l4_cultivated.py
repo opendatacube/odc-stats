@@ -8,7 +8,7 @@ def lc_l4_cultivated(l34, level3, lifeform, veg_cover):
         {"a": level3,
          "b": veg_cover,
          "c": lifeform,
-         "d": l34.classes_l3_l4},
+         "d": l34},
         name="mark_cultivated",
         dtype="uint8"
     )

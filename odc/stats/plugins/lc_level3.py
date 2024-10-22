@@ -55,7 +55,7 @@ class StatsLccsLevel3(StatsPluginInterface):
         # coords = dict((dim, xx.coords[dim]) for dim in dims)
         # level3 = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
 
-        return intertidal_mask, dss
+        return intertidal_mask, dss.data
 
 
 register("lccs_level3", StatsLccsLevel3)
