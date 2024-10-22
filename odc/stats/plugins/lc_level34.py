@@ -14,7 +14,7 @@ from .l34_utils import l4_water_persistence, l4_veg_cover, lc_level3, l4_cultiva
 
 
 NODATA = 255
-water_frequency_nodata = -9999
+water_frequency_nodata = -999
 
 class StatsL4(StatsPluginInterface):
     NAME = "ga_ls_lccs_veg_bare_class_a3"
@@ -157,7 +157,7 @@ class StatsL4(StatsPluginInterface):
         l4_ctv = l4_cultivated.lc_l4_cultivated(level3, lifeform, veg_cover)
 
         # Apply terrestrial vegetation classes [19-36]
-        l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, lifeform, veg_cover)
+        l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(xx, l4_ctv, lifeform, veg_cover)
         # level_3 = self.level3_to_level4_mapping(xx)
 
         # Bare gradation
@@ -176,7 +176,7 @@ class StatsL4(StatsPluginInterface):
 
         l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(l4_ctv_ntv, lifeform, veg_cover, water_seasonality)
 
-        l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(l4_ctv_ntv_nav, bare_gradation)
+        l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(l4_ctv_ntv_nav, level3, bare_gradation)
         
         #TODO WATER (99-104)
         l4_ctv_ntv_nav_surface_water = l4_water.water_classification(l4_ctv_ntv_nav_surface, intertidal_mask, water_persistence)

@@ -25,7 +25,7 @@ class StatsLccsLevel3(StatsPluginInterface):
         l34_dss = xx.classes_l3_l4
         urban_dss = xx.urban_classes
         cultivated_dss = xx.cultivated_class
-
+ 
         # Cultivated pipeline applies a mask which feeds only terrestrial veg (110) to the model
         # Just exclude no data (255) and apply the cultivated results
         cultivated_mask = cultivated_dss != int(NODATA)
@@ -37,21 +37,25 @@ class StatsLccsLevel3(StatsPluginInterface):
             urban_mask, urban_dss, l34_cultivated_masked
         )
 
-        attrs = xx.attrs.copy()
-        attrs["nodata"] = NODATA
-        l34_urban_cultivated_masked = l34_urban_cultivated_masked.squeeze(dim=["spec"])
-        dims = l34_urban_cultivated_masked.dims
+        # Map intertidal areas to water
+        intertidal_mask = (l34_dss == 223) 
+        dss = xr.where(intertidal_mask | (l34_dss == 221), 220, l34_urban_cultivated_masked)
+  
+        # attrs = xx.attrs.copy()
+        # attrs["nodata"] = NODATA
+        # dss = dss.squeeze(dim=["spec"])
+        # dims = dss.dims
 
-        data_vars = {
-            "level3_class": xr.DataArray(
-                l34_urban_cultivated_masked.data, dims=dims, attrs=attrs
-            )
-        }
+        # data_vars = {
+        #     "level3_class": xr.DataArray(
+        #         dss.data, dims=dims, attrs=attrs
+        #     )
+        # }
 
-        coords = dict((dim, xx.coords[dim]) for dim in dims)
-        level3 = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
+        # coords = dict((dim, xx.coords[dim]) for dim in dims)
+        # level3 = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
 
-        return level3
+        return intertidal_mask, dss
 
 
 register("lccs_level3", StatsLccsLevel3)

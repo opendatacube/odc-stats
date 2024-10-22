@@ -5,18 +5,18 @@ from odc.stats._algebra import expr_eval
 
 def water_persistence(xx: xr.Dataset, watper_threshold, NODATA):
     # Now add water persistence
-    water_mask = expr_eval(
-        "where(a!=a, nodata, a)",
-        {"a": xx.water_frequency.data},
-        name="mark_water",
-        dtype="uint8",
-        **{"nodata": NODATA},
-    )
+    # water_mask = expr_eval(
+    #     "where(a!=a, nodata, a)",
+    #     {"a": xx.water_frequency.data},
+    #     name="mark_water",
+    #     dtype="uint8",
+    #     **{"nodata": NODATA},
+    # )
     
     #  10 <= water_frequency < 1 --> 1(0)
     water_mask = expr_eval(
         "where((a>=m)&(a!=nodata), 100, a)",
-        {"a": water_mask},
+        {"a": xx.water_frequency.data},
         name="mark_water",
         dtype="uint8",
         **{"m": watper_threshold[3], "nodata": NODATA},

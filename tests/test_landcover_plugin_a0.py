@@ -1,3 +1,7 @@
+"""
+Unit tests for Cultivate Terrestrial Vegetation
+"""
+
 from functools import partial
 import numpy as np
 import xarray as xr
@@ -10,7 +14,7 @@ import pandas as pd
 
 @pytest.fixture
 def dataset_md():
-    band_1 = np.array(
+    level3 = np.array(
         [
             [
                 [77.0, np.nan, 59.0, np.nan],

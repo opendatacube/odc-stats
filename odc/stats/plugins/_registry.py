@@ -40,7 +40,7 @@ def import_all():
     # TODO: make that more automatic
     modules = [
         "odc.stats.plugins.lc_treelite_cultivated",
-        # "odc.stats.plugins.lc_level3",
+        "odc.stats.plugins.lc_level3",
         "odc.stats.plugins.lc_treelite_woody",
         "odc.stats.plugins.lc_tf_urban",
         "odc.stats.plugins.lc_level34",
