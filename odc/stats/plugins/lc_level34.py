@@ -16,7 +16,7 @@ from .l34_utils import l4_water_persistence, l4_veg_cover, lc_level3, l4_cultiva
 NODATA = 255
 water_frequency_nodata = -999
 
-class StatsL4(StatsPluginInterface):
+class StatsLccsLevel4(StatsPluginInterface):
     NAME = "ga_ls_lccs_veg_bare_class_a3"
     SHORT_NAME = NAME
     VERSION = "0.0.1"
@@ -52,16 +52,7 @@ class StatsL4(StatsPluginInterface):
         self.bs_mapping = {100: 10, 120: 12, 150: 15}
         # Map values to the classes expected in water persistence in land cover Level-4 output
         self.waterper_wat_mapping = {100: 1, 70: 7, 80: 8, 90: 9}
-        # Level-3 to level-4 class map
-        self.l3_to_l4_mapping = {
-            111: 1,  # Cultivated Terrestrial Vegetated
-            112: 19, # Natural Terrestrial Vegetated
-            124: 55, # Natural Aquatic Vegetated
-            215: 93, # Artificial Surface:
-            216: 94, # Natural Surface
-            220: 98, # Water
-            223: 3,
-        }
+       
 
     @property
     def measurements(self) -> Tuple[str, ...]:
@@ -133,18 +124,11 @@ class StatsL4(StatsPluginInterface):
         water_season_mask = self.apply_mapping(water_season_mask, mapping)
  
         return water_season_mask
-        
-    def level3_to_level4_mapping(self, xx: xr.Dataset):
-        l3_data = xx.level3_class.data
-        l3_data = self.apply_mapping(l3_data, self.l3_to_l4_mapping)
-
-        return l3_data
 
     
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
-        intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
-        # l4 = np.zeros(xx.level3_class.data.shape)
-  
+        intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)  
+        
         # Vegetation cover
         fc_nodata = -9999
         veg_cover = l4_veg_cover.canopyco_veg_con(xx, self.veg_threshold, NODATA, fc_nodata)
@@ -154,11 +138,9 @@ class StatsL4(StatsPluginInterface):
         lifeform = self.define_life_form(xx)
 
         # Apply cultivated Level-4 classes (1-18)
-        l4_ctv = l4_cultivated.lc_l4_cultivated(level3, lifeform, veg_cover)
-
+        l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
         # Apply terrestrial vegetation classes [19-36]
-        l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(xx, l4_ctv, lifeform, veg_cover)
-        # level_3 = self.level3_to_level4_mapping(xx)
+        l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
         # Bare gradation
         bare_gradation = l4_bare_gradation.bare_gradation(xx, self.bare_threshold, veg_cover, NODATA)
@@ -172,15 +154,12 @@ class StatsL4(StatsPluginInterface):
         water_persistence = self.apply_mapping(water_persistence, self.waterper_wat_mapping)
         
         water_seasonality = self.define_water_seasonality(xx) 
-        # xx.water_seasonality.data
 
         l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(l4_ctv_ntv, lifeform, veg_cover, water_seasonality)
-
         l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(l4_ctv_ntv_nav, level3, bare_gradation)
-        
-        #TODO WATER (99-104)
-        l4_ctv_ntv_nav_surface_water = l4_water.water_classification(l4_ctv_ntv_nav_surface, intertidal_mask, water_persistence)
-        
+        # #TODO WATER (99-104)
+        l4_ctv_ntv_nav_surface_water = l4_water.water_classification(l4_ctv_ntv_nav_surface, level3, intertidal_mask, water_persistence, NODATA)
+
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
         l3 = level3.squeeze(dim=["spec"])
@@ -192,16 +171,15 @@ class StatsL4(StatsPluginInterface):
 
         data_vars = {
             "level3": xr.DataArray(
-                level3.data, dims=xx["pv_pc_50"].dims, attrs=attrs
+                level3, dims=xx["pv_pc_50"].dims, attrs=attrs
             ),
             "level4": xr.DataArray(
                 l4_ctv_ntv_nav_surface_water, dims=xx["pv_pc_50"].dims, attrs=attrs
             )
         }
-
+   
         coords = dict((dim, xx.coords[dim]) for dim in dims)
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)
 
 
-# register("lccs_level3", StatsLccsLevel3)
-register("lc_l3_l4", StatsL4)
+register("lc_l3_l4", StatsLccsLevel4)

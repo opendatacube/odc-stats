@@ -14,7 +14,7 @@ import pandas as pd
 
 @pytest.fixture
 def dataset_md():
-    level3 = np.array(
+    band_1 = np.array(
         [
             [
                 [77.0, np.nan, 59.0, np.nan],

@@ -1,8 +1,17 @@
- 
+NODATA = 255
+
 from odc.stats._algebra import expr_eval
 
 def lc_l4_natural_veg(l4, l3, lifeform, veg_cover):
-
+    
+    l4 = expr_eval(
+        "where((a==110)&(b==nodata), nodata, a)",
+        {"a": l4,
+         "b": l3},
+        name="mark_cultivated",
+        dtype="uint8",
+        **{"nodata": NODATA},
+    )
     l4 = expr_eval(
         "where((d==110)&(a==112)&(c==10)&(b==1), 27, d)",
         {"a": l3,
@@ -163,6 +172,5 @@ def lc_l4_natural_veg(l4, l3, lifeform, veg_cover):
         name="mark_cultivated",
         dtype="uint8"
     )
-
     
     return l4

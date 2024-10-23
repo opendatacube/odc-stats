@@ -1,8 +1,7 @@
 from odc.stats._algebra import expr_eval
 
 def lc_l4_surface(l4, level3, bare_gradation):
-    surface_mask = level3 == 216   
-    bare_mask = level3 == 215
+    
     l4 = expr_eval(
         "where((a==210)&(b==10)&(c==216), 95, a)",
         {"a": l4,

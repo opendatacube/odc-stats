@@ -5,7 +5,7 @@
 import numpy as np
 import xarray as xr
 import dask.array as da
-from odc.stats.plugins.lc_level34 import StatsL4
+from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import l4_cultivated, lc_level3, l4_veg_cover, l4_natural_veg
 
 import pytest
@@ -118,11 +118,11 @@ def test_ntv_classes_herbaceous():
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.classes_l3_l4, level3, lifeform, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
@@ -198,11 +198,11 @@ def test_ntv_classes_woody():
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.classes_l3_l4, level3, lifeform, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
@@ -277,11 +277,11 @@ def test_ntv_classes_no_veg():
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.classes_l3_l4, level3, lifeform, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
@@ -356,11 +356,11 @@ def test_ntv_classes_no_lifeform():
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.classes_l3_l4, level3, lifeform, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()

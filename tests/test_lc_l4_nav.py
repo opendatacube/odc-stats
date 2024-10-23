@@ -5,7 +5,7 @@
 import numpy as np
 import xarray as xr
 import dask.array as da
-from odc.stats.plugins.lc_level34 import StatsL4
+from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import l4_cultivated, lc_level3, l4_veg_cover, l4_natural_veg, l4_water_persistence, l4_natural_aquatic
 
 import pytest
@@ -134,11 +134,11 @@ def test_ntv_classes_woody_herbaceous():
     
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
@@ -231,11 +231,11 @@ def test_ntv_veg_cover():
     
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
@@ -326,11 +326,11 @@ def test_ntv_woody_veg_cover():
     
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
@@ -422,11 +422,11 @@ def test_ntv_woody_seasonal_water_veg_cover():
     
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
@@ -518,11 +518,11 @@ def test_ntv_woody_permanent_water_veg_cover():
     
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
@@ -613,11 +613,11 @@ def test_ntv_herbaceous_veg_cover():
     
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
@@ -709,11 +709,11 @@ def test_ntv_herbaceous_seasonal_water_veg_cover():
     
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
@@ -805,11 +805,11 @@ def test_ntv_herbaceous_permanent_water_veg_cover():
     
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
     
-    stats_l4 = StatsL4()
+    stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
-    veg_cover = StatsL4.apply_mapping(veg_cover, stats_l4.veg_mapping)
+    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
