@@ -54,11 +54,7 @@ class StatsLccsLevel3(StatsPluginInterface):
             "level3_class": xr.DataArray(res.squeeze(), dims=dims, attrs=attrs)
         }
 
-        data_vars = {
-            "level3_class": xr.DataArray(
-                dss.data, dims=dims, attrs=attrs
-            )
-        }
+        data_vars = {"level3_class": xr.DataArray(dss.data, dims=dims, attrs=attrs)}
 
         coords = dict((dim, xx.coords[dim]) for dim in dims)
         level3 = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
