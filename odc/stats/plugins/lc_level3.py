@@ -4,6 +4,7 @@ Land Cover Level3 classification
 
 from typing import Tuple
 import xarray as xr
+from odc.stats._algebra import expr_eval
 from ._registry import StatsPluginInterface, register
 
 NODATA = 255
@@ -22,30 +23,35 @@ class StatsLccsLevel3(StatsPluginInterface):
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
 
-        l34_dss = xx.classes_l3_l4
-        urban_dss = xx.urban_classes
-        cultivated_dss = xx.cultivated_class
-
         # Cultivated pipeline applies a mask which feeds only terrestrial veg (110) to the model
         # Just exclude no data (255) and apply the cultivated results
-        cultivated_mask = cultivated_dss != int(NODATA)
-        l34_cultivated_masked = xr.where(cultivated_mask, cultivated_dss, l34_dss)
+        res = expr_eval(
+            "where(a<nodata, a, b)",
+            {"a": xx.cultivated_class.data, "b": xx.classes_l3_l4.data},
+            name="mask_cultivated",
+            dtype="float32",
+            **{"nodata": NODATA},
+        )
 
-        # Urban is classified on l3/4 surface output (210)
-        urban_mask = l34_dss == 210
-        l34_urban_cultivated_masked = xr.where(
-            urban_mask, urban_dss, l34_cultivated_masked
+        # Mask urban results with bare sfc (210)
+
+        res = expr_eval(
+            "where(a==_u, b, a)",
+            {
+                "a": res,
+                "b": xx.urban_classes.data,
+            },
+            name="mark_urban",
+            dtype="uint8",
+            **{"_u": 210},
         )
 
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
-        l34_urban_cultivated_masked = l34_urban_cultivated_masked.squeeze(dim=["spec"])
-        dims = l34_urban_cultivated_masked.dims
+        dims = xx.classes_l3_l4.dims[1:]
 
         data_vars = {
-            "level3_class": xr.DataArray(
-                l34_urban_cultivated_masked.data, dims=dims, attrs=attrs
-            )
+            "level3_class": xr.DataArray(res.squeeze(), dims=dims, attrs=attrs)
         }
 
         coords = dict((dim, xx.coords[dim]) for dim in dims)
