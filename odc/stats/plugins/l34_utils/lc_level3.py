@@ -4,6 +4,7 @@ from odc.stats._algebra import expr_eval
 
 NODATA = 255
 
+
 def lc_level3(xx: xr.Dataset):
 
     # Cultivated pipeline applies a mask which feeds only terrestrial veg (110) to the model
@@ -41,14 +42,9 @@ def lc_level3(xx: xr.Dataset):
     # Add intertidal as water
     res = expr_eval(
         "where((a==223)|(a==221)|(c==1), 220, b)",
-        {
-            "a": xx.classes_l3_l4.data,
-            "b": res,
-            "c": intertidal_mask
-        },
+        {"a": xx.classes_l3_l4.data, "b": res, "c": intertidal_mask},
         name="mark_urban",
         dtype="uint8",
     )
 
     return intertidal_mask, res
-

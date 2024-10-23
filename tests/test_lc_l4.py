@@ -10,6 +10,7 @@ expected_l4_classes = [
 
 NODATA = 255
 
+
 @pytest.fixture(scope="module")
 def image_groups():
     l34 = np.array(

@@ -6,13 +6,14 @@ from odc.stats.plugins.l34_utils import lc_level3
 import pytest
 
 NODATA = 255
- 
+
 expected_l3_classes = [
     [111, 112, 215],
     [124, 112, 215],
     [220, 215, 216],
     [220, 255, 220],
 ]
+
 
 @pytest.fixture(scope="module")
 def image_groups():

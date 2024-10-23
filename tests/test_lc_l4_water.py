@@ -6,16 +6,27 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 from odc.stats.plugins.lc_level34 import StatsLccsLevel4
-from odc.stats.plugins.l34_utils import l4_cultivated, lc_level3, l4_veg_cover, l4_natural_veg, l4_natural_aquatic, l4_bare_gradation, l4_water_persistence, l4_surface, l4_water
+from odc.stats.plugins.l34_utils import (
+    l4_cultivated,
+    lc_level3,
+    l4_veg_cover,
+    l4_natural_veg,
+    l4_natural_aquatic,
+    l4_bare_gradation,
+    l4_water_persistence,
+    l4_surface,
+    l4_water,
+)
 
 import pytest
 import pandas as pd
 
 NODATA = 255
 
+
 # @pytest.fixture(scope="module")
 def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_frequency):
-   
+
     tuples = [
         (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
     ]
@@ -54,15 +65,15 @@ def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_freque
 
 
 def test_water_classes():
-     # [[[ 98  98  98]
-     #  [103  98  98]
-     #  [ 98  98  98]
-     #  [ 98  98  98]]]
+    # [[[ 98  98  98]
+    #  [103  98  98]
+    #  [ 98  98  98]
+    #  [ 98  98  98]]]
     expected_water_classes = [
         [104, 104, 104],
         [103, 103, 103],
         [102, 102, 101],
-        [101, 101, 101]
+        [101, 101, 101],
     ]
 
     l34 = np.array(
@@ -112,7 +123,7 @@ def test_water_classes():
         ],
         dtype="int",
     )
-    
+
     pv_pc_50 = np.array(
         [
             [
@@ -146,30 +157,39 @@ def test_water_classes():
         ],
         dtype="int",
     )
-    xx = image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_frequency)
-    
+    xx = image_groups(
+        l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_frequency
+    )
+
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx)
 
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
     veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
-    
+
     # Water persistence
-    water_persistence = l4_water_persistence.water_persistence(xx, stats_l4.watper_threshold)
+    water_persistence = l4_water_persistence.water_persistence(
+        xx, stats_l4.watper_threshold
+    )
     # Apply water persistence expcted classes
-    water_persistence = stats_l4.apply_mapping(water_persistence, stats_l4.waterper_wat_mapping)
-    l4_water_classes = l4_water.water_classification(xx.classes_l3_l4, level3, intertidal_mask, water_persistence)
-    
+    water_persistence = stats_l4.apply_mapping(
+        water_persistence, stats_l4.waterper_wat_mapping
+    )
+    l4_water_classes = l4_water.water_classification(
+        xx.classes_l3_l4, level3, intertidal_mask, water_persistence
+    )
+
     assert (l4_water_classes.compute() == expected_water_classes).all()
 
+
 def test_water_intertidal():
-    
+
     expected_water_classes = [
         [104, 104, 104],
         [103, 103, 103],
         [102, 102, 101],
-        [101, 99, 99]
+        [101, 99, 99],
     ]
 
     l34 = np.array(
@@ -219,7 +239,7 @@ def test_water_intertidal():
         ],
         dtype="int",
     )
-    
+
     pv_pc_50 = np.array(
         [
             [
@@ -253,18 +273,26 @@ def test_water_intertidal():
         ],
         dtype="int",
     )
-    xx = image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_frequency)
-    
+    xx = image_groups(
+        l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_frequency
+    )
+
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx)
     lifeform = stats_l4.define_life_form(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
     veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
-    
+
     # Water persistence
-    water_persistence = l4_water_persistence.water_persistence(xx, stats_l4.watper_threshold)
+    water_persistence = l4_water_persistence.water_persistence(
+        xx, stats_l4.watper_threshold
+    )
     # Apply water persistence expcted classes
-    water_persistence = stats_l4.apply_mapping(water_persistence, stats_l4.waterper_wat_mapping)
-    l4_water_classes = l4_water.water_classification(xx.classes_l3_l4, level3, intertidal_mask, water_persistence)
+    water_persistence = stats_l4.apply_mapping(
+        water_persistence, stats_l4.waterper_wat_mapping
+    )
+    l4_water_classes = l4_water.water_classification(
+        xx.classes_l3_l4, level3, intertidal_mask, water_persistence
+    )
 
     assert (l4_water_classes.compute() == expected_water_classes).all()
