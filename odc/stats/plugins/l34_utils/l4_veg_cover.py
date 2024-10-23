@@ -1,17 +1,19 @@
+
 # from typing import Tuple, Optional, Dict, List
 import xarray as xr
 from odc.stats._algebra import expr_eval
 
+NODATA = 255
 
-def canopyco_veg_con(xx: xr.Dataset, veg_threshold, NODATA, fcp_nodata):
+def canopyco_veg_con(xx: xr.Dataset, veg_threshold):
 
     # Mask NODATA
     veg_mask = expr_eval(
-        "where(a!=nodata, a, NODATA)",
+        "where(a!=nodata, a, nodata)",
         {"a": xx.pv_pc_50.data},
         name="mark_nodata",
         dtype="uint8",
-        **{"nodata": fcp_nodata, "NODATA": NODATA},
+        **{"nodata": NODATA},
     )
 
     # ## data < 1 ---> 0
@@ -77,4 +79,6 @@ def canopyco_veg_con(xx: xr.Dataset, veg_threshold, NODATA, fcp_nodata):
         **{"m": veg_threshold[4], "n": veg_threshold[5]},
     )
 
+
     return veg_mask
+

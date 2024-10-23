@@ -1,18 +1,18 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
-import dask.array as da
 
-from odc.stats.plugins.lc_level3 import StatsLccsLevel3
+from odc.stats.plugins.l34_utils import lc_level3
 import pytest
 
+NODATA = 255
+ 
 expected_l3_classes = [
     [111, 112, 215],
     [124, 112, 215],
     [220, 215, 216],
     [220, 255, 220],
 ]
-
 
 @pytest.fixture(scope="module")
 def image_groups():
@@ -25,7 +25,7 @@ def image_groups():
                 [223, 255, 223],
             ]
         ],
-        dtype="uint8",
+        dtype="int",
     )
 
     urban = np.array(
@@ -37,7 +37,7 @@ def image_groups():
                 [216, 216, 216],
             ]
         ],
-        dtype="uint8",
+        dtype="int",
     )
 
     cultivated = np.array(
@@ -49,7 +49,7 @@ def image_groups():
                 [255, 255, 255],
             ]
         ],
-        dtype="uint8",
+        dtype="int",
     )
 
     tuples = [
@@ -64,19 +64,13 @@ def image_groups():
 
     data_vars = {
         "classes_l3_l4": xr.DataArray(
-            da.from_array(l34, chunks=(1, -1, -1)),
-            dims=("spec", "y", "x"),
-            attrs={"nodata": 255},
+            l34, dims=("spec", "y", "x"), attrs={"nodata": 255}
         ),
         "urban_classes": xr.DataArray(
-            da.from_array(urban, chunks=(1, -1, -1)),
-            dims=("spec", "y", "x"),
-            attrs={"nodata": 255},
+            urban, dims=("spec", "y", "x"), attrs={"nodata": 255}
         ),
         "cultivated_class": xr.DataArray(
-            da.from_array(cultivated, chunks=(1, -1, -1)),
-            dims=("spec", "y", "x"),
-            attrs={"nodata": 255},
+            cultivated, dims=("spec", "y", "x"), attrs={"nodata": 255}
         ),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
@@ -85,7 +79,7 @@ def image_groups():
 
 def test_l3_classes(image_groups):
 
-    lc_level3 = StatsLccsLevel3()
-    intertidal_mask, level3_classes = lc_level3.reduce(image_groups)
-
-    assert (level3_classes == expected_l3_classes).all()
+    intertidal_mask, level3_classes = lc_level3.lc_level3(image_groups)
+    print(level3_classes.compute())
+    print("*********")
+    assert (level3_classes.compute() == expected_l3_classes).all()

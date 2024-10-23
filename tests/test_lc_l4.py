@@ -1,4 +1,4 @@
-from odc.stats.plugins.lc_level4 import StatsLccsLevel3
+from odc.stats.plugins.lc_level3 import StatsLccsLevel4
 import pytest
 
 expected_l4_classes = [
@@ -8,6 +8,7 @@ expected_l4_classes = [
     [220, 255, 220],
 ]
 
+NODATA = 255
 
 @pytest.fixture(scope="module")
 def image_groups():
@@ -72,9 +73,10 @@ def image_groups():
     return xx
 
 
-def test_l3_classes(image_groups):
+def test_l4_classes(image_groups):
 
-    lc_level3 = StatsLccsLevel3()
-    intertidal_mask, level3_classes = lc_level3.reduce(image_groups)
+    stats_l4 = StatsLccsLevel4()
+    intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
+    # intertidal_mask, level3_classes = lc_level3.reduce(image_groups)
 
     assert (level3_classes == expected_l3_classes).all()
