@@ -1,4 +1,3 @@
-
 # from typing import Tuple, Optional, Dict, List
 import xarray as xr
 from odc.stats._algebra import expr_eval
@@ -78,6 +77,4 @@ def canopyco_veg_con(xx: xr.Dataset, veg_threshold, NODATA, fcp_nodata):
         **{"m": veg_threshold[4], "n": veg_threshold[5]},
     )
 
-
     return veg_mask
-

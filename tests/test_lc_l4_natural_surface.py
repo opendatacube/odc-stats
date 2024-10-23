@@ -6,7 +6,15 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 from odc.stats.plugins.lc_level34 import StatsLccsLevel4
-from odc.stats.plugins.l34_utils import l4_cultivated, lc_level3, l4_veg_cover, l4_natural_veg, l4_natural_aquatic, l4_surface, l4_bare_gradation
+from odc.stats.plugins.l34_utils import (
+    l4_cultivated,
+    lc_level3,
+    l4_veg_cover,
+    l4_natural_veg,
+    l4_natural_aquatic,
+    l4_surface,
+    l4_bare_gradation,
+)
 
 import pytest
 import pandas as pd
@@ -17,7 +25,7 @@ WAT_FREQ_NODATA = -999
 
 
 def image_groups(l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency):
-   
+
     tuples = [
         (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
     ]
@@ -61,8 +69,8 @@ def test_ns():
         [97, 96, 96],
         [95, 95, 95],
         [94, 95, 96],
-            ]
-    
+    ]
+
     l34 = np.array(
         [
             [
@@ -86,7 +94,7 @@ def test_ns():
         ],
         dtype="int",
     )
-    
+
     woody = np.array(
         [
             [
@@ -98,7 +106,7 @@ def test_ns():
         ],
         dtype="int",
     )
-    
+
     pv_pc_50 = np.array(
         [
             [
@@ -122,7 +130,7 @@ def test_ns():
         ],
         dtype="int",
     )
-     # 112 --> natural veg
+    # 112 --> natural veg
     cultivated = np.array(
         [
             [
@@ -146,27 +154,39 @@ def test_ns():
         ],
         dtype="int",
     )
-    
-    xx = image_groups(l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency)
-    
+
+    xx = image_groups(
+        l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency
+    )
+
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
+    veg_cover = l4_veg_cover.canopyco_veg_con(
+        xx, stats_l4.veg_threshold, NODATA, FC_NODATA
+    )
     veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     # Apply cultivated to match the code in Level4 processing
-    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
+    l4_ctv = l4_cultivated.lc_l4_cultivated(
+        xx.classes_l3_l4, level3, lifeform, veg_cover
+    )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
-    
-    water_seasonality = stats_l4.define_water_seasonality(xx) 
-    l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(l4_ctv_ntv, lifeform, veg_cover, water_seasonality)
 
-   # Bare gradation
-    bare_gradation = l4_bare_gradation.bare_gradation(xx, stats_l4.bare_threshold, veg_cover, NODATA)
+    water_seasonality = stats_l4.define_water_seasonality(xx)
+    l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
+        l4_ctv_ntv, lifeform, veg_cover, water_seasonality
+    )
+
+    # Bare gradation
+    bare_gradation = l4_bare_gradation.bare_gradation(
+        xx, stats_l4.bare_threshold, veg_cover, NODATA
+    )
     # Apply bare gradation expected output classes
     bare_gradation = stats_l4.apply_mapping(bare_gradation, stats_l4.bs_mapping)
-    
-    l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(l4_ctv_ntv_nav, level3, bare_gradation)
-   
+
+    l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(
+        l4_ctv_ntv_nav, level3, bare_gradation
+    )
+
     assert (l4_ctv_ntv_nav_surface.compute() == expected_l4_srf_classes).all()

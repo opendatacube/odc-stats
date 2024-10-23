@@ -13,7 +13,7 @@ FC_NODATA = -9999
 
 # @pytest.fixture(scope="module")
 def image_groups(l34, urban, cultivated, woody, pv_pc_50):
-   
+
     tuples = [
         (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
     ]
@@ -101,7 +101,7 @@ def test_ctv_classes_woody():
         ],
         dtype="int",
     )
-    
+
     pv_pc_50 = np.array(
         [
             [
@@ -114,15 +114,20 @@ def test_ctv_classes_woody():
         dtype="int",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
-    
+
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
+    veg_cover = l4_veg_cover.canopyco_veg_con(
+        xx, stats_l4.veg_threshold, NODATA, FC_NODATA
+    )
     veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
-    
-    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
+
+    l4_ctv = l4_cultivated.lc_l4_cultivated(
+        xx.classes_l3_l4, level3, lifeform, veg_cover
+    )
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
+
 
 def test_ctv_classes_herbaceous():
 
@@ -180,7 +185,7 @@ def test_ctv_classes_herbaceous():
         ],
         dtype="int",
     )
-    
+
     pv_pc_50 = np.array(
         [
             [
@@ -193,14 +198,18 @@ def test_ctv_classes_herbaceous():
         dtype="int",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
-    
+
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
+    veg_cover = l4_veg_cover.canopyco_veg_con(
+        xx, stats_l4.veg_threshold, NODATA, FC_NODATA
+    )
     veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
-    
-    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
+
+    l4_ctv = l4_cultivated.lc_l4_cultivated(
+        xx.classes_l3_l4, level3, lifeform, veg_cover
+    )
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
 
 
@@ -212,7 +221,7 @@ def test_ctv_classes_woody_herbaceous():
         [13, 11, 11],
         [17, 18, 15],
     ]
-    
+
     l34 = np.array(
         [
             [
@@ -260,7 +269,7 @@ def test_ctv_classes_woody_herbaceous():
         ],
         dtype="int",
     )
-    
+
     pv_pc_50 = np.array(
         [
             [
@@ -273,14 +282,18 @@ def test_ctv_classes_woody_herbaceous():
         dtype="int",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
-    
+
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
+    veg_cover = l4_veg_cover.canopyco_veg_con(
+        xx, stats_l4.veg_threshold, NODATA, FC_NODATA
+    )
     veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
-    
-    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
+
+    l4_ctv = l4_cultivated.lc_l4_cultivated(
+        xx.classes_l3_l4, level3, lifeform, veg_cover
+    )
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
 
 
@@ -292,7 +305,7 @@ def test_ctv_classes_no_vegcover():
         [2, 2, 2],
         [3, 3, 3],
     ]
-    
+
     l34 = np.array(
         [
             [
@@ -340,7 +353,7 @@ def test_ctv_classes_no_vegcover():
         ],
         dtype="int",
     )
-    
+
     pv_pc_50 = np.array(
         [
             [
@@ -353,12 +366,16 @@ def test_ctv_classes_no_vegcover():
         dtype="int",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
-    
+
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
     lifeform = stats_l4.define_life_form(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold, NODATA, FC_NODATA)
+    veg_cover = l4_veg_cover.canopyco_veg_con(
+        xx, stats_l4.veg_threshold, NODATA, FC_NODATA
+    )
     veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
-    
-    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
+
+    l4_ctv = l4_cultivated.lc_l4_cultivated(
+        xx.classes_l3_l4, level3, lifeform, veg_cover
+    )
     assert (l4_ctv.compute() == expected_cultivated_classes).all()

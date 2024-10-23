@@ -10,11 +10,22 @@ import xarray as xr
 from odc.stats._algebra import expr_eval
 from ._registry import StatsPluginInterface, register
 
-from .l34_utils import l4_water_persistence, l4_veg_cover, lc_level3, l4_cultivated, l4_natural_veg, l4_natural_aquatic, l4_surface, l4_bare_gradation, l4_water
+from .l34_utils import (
+    l4_water_persistence,
+    l4_veg_cover,
+    lc_level3,
+    l4_cultivated,
+    l4_natural_veg,
+    l4_natural_aquatic,
+    l4_surface,
+    l4_bare_gradation,
+    l4_water,
+)
 
 
 NODATA = 255
 water_frequency_nodata = -999
+
 
 class StatsLccsLevel4(StatsPluginInterface):
     NAME = "ga_ls_lccs_veg_bare_class_a3"
@@ -43,8 +54,10 @@ class StatsLccsLevel4(StatsPluginInterface):
         self.watper_threshold = (
             watper_threshold if watper_threshold is not None else [1, 4, 7, 10]
         )
-        self.water_seasonality_threshold = water_seasonality_threshold if water_seasonality_threshold else 3
-        
+        self.water_seasonality_threshold = (
+            water_seasonality_threshold if water_seasonality_threshold else 3
+        )
+
         # The mapping below are from the LC KH page
         # Map vegetation cover classes
         self.veg_mapping = {160: 16, 150: 15, 130: 13, 120: 12, 100: 10}
@@ -52,14 +65,10 @@ class StatsLccsLevel4(StatsPluginInterface):
         self.bs_mapping = {100: 10, 120: 12, 150: 15}
         # Map values to the classes expected in water persistence in land cover Level-4 output
         self.waterper_wat_mapping = {100: 1, 70: 7, 80: 8, 90: 9}
-       
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        _measurements = [
-            "level3",
-            "level4"
-        ]
+        _measurements = ["level3", "level4"]
         return _measurements
 
     def native_transform(self, xx):
@@ -76,24 +85,24 @@ class StatsLccsLevel4(StatsPluginInterface):
 
     def define_life_form(self, xx: xr.Dataset):
         lifeform = xx.woody_cover.data
-        
+
         # 113 ----> 1 woody
         # 114 ----> 2 herbaceous
         lifeform_mask = expr_eval(
             "where(a==113, 1, a)",
             {"a": xx.woody_cover.data},
             name="mark_lifeform",
-            dtype="uint8"
+            dtype="uint8",
         )
         lifeform_mask = expr_eval(
             "where(a==114, 2, a)",
             {"a": lifeform_mask},
             name="mark_lifeform",
-            dtype="uint8"
+            dtype="uint8",
         )
- 
+
         return lifeform_mask
-        
+
     def define_water_seasonality(self, xx: xr.Dataset):
         # >= 3 months ----> 1  Semi-permanent or permanent
         # < 3 months  ----> 2 Temporary or seasonal
@@ -117,67 +126,82 @@ class StatsLccsLevel4(StatsPluginInterface):
             {"a": water_season_mask},
             name="mark_water_season",
             dtype="uint8",
-            **{"watseas_trh": self.water_seasonality_threshold,
-               "watersea_nodata": water_frequency_nodata},
+            **{
+                "watseas_trh": self.water_seasonality_threshold,
+                "watersea_nodata": water_frequency_nodata,
+            },
         )
-        mapping = {100:1, 200:2}
+        mapping = {100: 1, 200: 2}
         water_season_mask = self.apply_mapping(water_season_mask, mapping)
- 
+
         return water_season_mask
 
-    
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
-        intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)  
-        
+        intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
+
         # Vegetation cover
         fc_nodata = -9999
-        veg_cover = l4_veg_cover.canopyco_veg_con(xx, self.veg_threshold, NODATA, fc_nodata)
+        veg_cover = l4_veg_cover.canopyco_veg_con(
+            xx, self.veg_threshold, NODATA, fc_nodata
+        )
         # Define mapping from current output to expected a3 output
         veg_cover = self.apply_mapping(veg_cover, self.veg_mapping)
         # Define life form
         lifeform = self.define_life_form(xx)
 
         # Apply cultivated Level-4 classes (1-18)
-        l4_ctv = l4_cultivated.lc_l4_cultivated(xx.classes_l3_l4, level3, lifeform, veg_cover)
+        l4_ctv = l4_cultivated.lc_l4_cultivated(
+            xx.classes_l3_l4, level3, lifeform, veg_cover
+        )
         # Apply terrestrial vegetation classes [19-36]
-        l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
+        l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(
+            l4_ctv, level3, lifeform, veg_cover
+        )
 
         # Bare gradation
-        bare_gradation = l4_bare_gradation.bare_gradation(xx, self.bare_threshold, veg_cover, NODATA)
+        bare_gradation = l4_bare_gradation.bare_gradation(
+            xx, self.bare_threshold, veg_cover, NODATA
+        )
         # Apply bare gradation expected output classes
         bare_gradation = self.apply_mapping(bare_gradation, self.bs_mapping)
 
-       
         # Water persistence
-        water_persistence = l4_water_persistence.water_persistence(xx, self.watper_threshold, NODATA)
+        water_persistence = l4_water_persistence.water_persistence(
+            xx, self.watper_threshold, NODATA
+        )
         # Apply water persistence expcted classes
-        water_persistence = self.apply_mapping(water_persistence, self.waterper_wat_mapping)
-        
-        water_seasonality = self.define_water_seasonality(xx) 
+        water_persistence = self.apply_mapping(
+            water_persistence, self.waterper_wat_mapping
+        )
 
-        l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(l4_ctv_ntv, lifeform, veg_cover, water_seasonality)
-        l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(l4_ctv_ntv_nav, level3, bare_gradation)
+        water_seasonality = self.define_water_seasonality(xx)
+
+        l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
+            l4_ctv_ntv, lifeform, veg_cover, water_seasonality
+        )
+        l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(
+            l4_ctv_ntv_nav, level3, bare_gradation
+        )
         # #TODO WATER (99-104)
-        l4_ctv_ntv_nav_surface_water = l4_water.water_classification(l4_ctv_ntv_nav_surface, level3, intertidal_mask, water_persistence, NODATA)
+        l4_ctv_ntv_nav_surface_water = l4_water.water_classification(
+            l4_ctv_ntv_nav_surface, level3, intertidal_mask, water_persistence, NODATA
+        )
 
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
         l3 = level3.squeeze(dim=["spec"])
         dims = level3.dims
 
-        
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
 
         data_vars = {
-            "level3": xr.DataArray(
-                level3, dims=xx["pv_pc_50"].dims, attrs=attrs
-            ),
+            "level3": xr.DataArray(level3, dims=xx["pv_pc_50"].dims, attrs=attrs),
             "level4": xr.DataArray(
                 l4_ctv_ntv_nav_surface_water, dims=xx["pv_pc_50"].dims, attrs=attrs
-            )
+            ),
         }
-   
+
         coords = dict((dim, xx.coords[dim]) for dim in dims)
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)
 

@@ -12,6 +12,7 @@ expected_l3_classes = [
     [220, 255, 220],
 ]
 
+
 @pytest.fixture(scope="module")
 def image_groups():
     l34 = np.array(

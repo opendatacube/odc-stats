@@ -18,11 +18,13 @@ def lc_level3(xx: xr.Dataset, NODATA):
 
     # Urban is classified on l3/4 surface output (210)
     urban_mask = l34_dss == 210
-    l34_urban_cultivated_masked = xr.where(
-        urban_mask, urban_dss, l34_cultivated_masked
-    )
+    l34_urban_cultivated_masked = xr.where(urban_mask, urban_dss, l34_cultivated_masked)
 
     # Replace nan with NODATA
-    l34_urban_cultivated_masked = xr.where(l34_urban_cultivated_masked==l34_urban_cultivated_masked, l34_urban_cultivated_masked, NODATA)
+    l34_urban_cultivated_masked = xr.where(
+        l34_urban_cultivated_masked == l34_urban_cultivated_masked,
+        l34_urban_cultivated_masked,
+        NODATA,
+    )
 
     return intertidal_mask, l34_urban_cultivated_masked
