@@ -94,9 +94,6 @@ class StatsVegClassL1(StatsPluginInterface):
         _measurements = ["classes_l3_l4", "water_seasonality"]
         return _measurements
 
-    def native_transform(self, xx):
-        return xx
-
     def fuser(self, xx):
         return xx
 
@@ -175,12 +172,16 @@ class StatsVegClassL1(StatsPluginInterface):
                     )
                 elif b == "canopy_cover_class":
                     # aquatic_veg: (mangroves > 0) & (mangroves != nodata)
+                    # mangroves.nodata = 255 or nan
                     l3_mask = expr_eval(
-                        "where((a>0)&(a<nodata), m, b)",
+                        "where(((a>0)&(a<nodata)&(nodata==nodata))|((a>0)&(nodata!=nodata)), m, b)",
                         {"a": xx[b].data, "b": l3_mask},
                         name="mark_mangroves",
                         dtype="uint8",
-                        **{"nodata": NODATA, "m": self.output_classes["aquatic_veg"]},
+                        **{
+                            "nodata": xx[b].attrs["nodata"],
+                            "m": self.output_classes["aquatic_veg"],
+                        },
                     )
 
         # all unmarked values (0) is terretrial veg
@@ -199,7 +200,7 @@ class StatsVegClassL1(StatsPluginInterface):
 
         # Mask nans with NODATA
         l3_mask = expr_eval(
-            "where((a!=a)|(b>=nodata), nodata, e)",
+            "where((a!=a)|((b>=_n)&(_n==_n))|(b!=b), nodata, e)",
             {
                 "a": si5,
                 "b": xx.veg_frequency.data,
@@ -207,7 +208,7 @@ class StatsVegClassL1(StatsPluginInterface):
             },
             name="mark_nodata",
             dtype="uint8",
-            **{"nodata": NODATA},
+            **{"_n": xx.veg_frequency.attrs["nodata"], "nodata": NODATA},
         )
 
         # Now add the water frequency
