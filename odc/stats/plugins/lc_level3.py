@@ -32,7 +32,7 @@ class StatsLccsLevel3(StatsPluginInterface):
         # hence accormmodate both
 
         res = expr_eval(
-            "where(((a==a)&(nodata!=nodata))|((a<nodata)&(nodata==nodata)), a, b)",
+            "where((a!=a)|(a>=nodata), b, a)",
             {"a": xx.cultivated_class.data, "b": xx.classes_l3_l4.data},
             name="mask_cultivated",
             dtype="float32",
