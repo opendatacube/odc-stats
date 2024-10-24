@@ -174,7 +174,7 @@ class StatsVegClassL1(StatsPluginInterface):
                     # aquatic_veg: (mangroves > 0) & (mangroves != nodata)
                     # mangroves.nodata = 255 or nan
                     l3_mask = expr_eval(
-                        "where(((a>0)&(a<nodata)&(nodata==nodata))|((a>0)&(nodata!=nodata)), m, b)",
+                        "where((a>0)&((a<nodata)|(nodata!=nodata)), m, b)",
                         {"a": xx[b].data, "b": l3_mask},
                         name="mark_mangroves",
                         dtype="uint8",
