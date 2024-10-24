@@ -207,7 +207,7 @@ class StatsVegClassL1(StatsPluginInterface):
             },
             name="mark_nodata",
             dtype="uint8",
-            **{"_n": xx.veg_frequency.attrs["nodata"], "nodata": NODATA},
+            **{"nodata": NODATA},
         )
 
         # Now add the water frequency
