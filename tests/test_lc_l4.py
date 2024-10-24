@@ -1,18 +1,14 @@
-import numpy as np
-import pandas as pd
-import xarray as xr
-
-from odc.stats.plugins.l34_utils import lc_level3
+from odc.stats.plugins.lc_level3 import StatsLccsLevel4
 import pytest
 
-NODATA = 255
-
-expected_l3_classes = [
+expected_l4_classes = [
     [111, 112, 215],
     [124, 112, 215],
     [220, 215, 216],
     [220, 255, 220],
 ]
+
+NODATA = 255
 
 
 @pytest.fixture(scope="module")
@@ -78,9 +74,10 @@ def image_groups():
     return xx
 
 
-def test_l3_classes(image_groups):
+def test_l4_classes(image_groups):
 
-    intertidal_mask, level3_classes = lc_level3.lc_level3(image_groups)
-    print(level3_classes.compute())
-    print("*********")
-    assert (level3_classes.compute() == expected_l3_classes).all()
+    stats_l4 = StatsLccsLevel4()
+    intertidal_mask, level3 = lc_level3.lc_level3(xx, NODATA)
+    # intertidal_mask, level3_classes = lc_level3.reduce(image_groups)
+
+    assert (level3_classes == expected_l3_classes).all()
