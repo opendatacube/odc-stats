@@ -2,7 +2,7 @@
 Plugin of Module A3 in LandCover PipeLine
 """
 
-from typing import Tuple, Optional, Dict, List
+from typing import Tuple, Optional, List
 
 import numpy as np
 import xarray as xr
@@ -20,11 +20,12 @@ from .l34_utils import (
     l4_surface,
     l4_bare_gradation,
     l4_water,
+    utils,
 )
 
 
 NODATA = 255
-water_frequency_nodata = -999
+WATER_FREQ_NODATA = -999
 
 
 class StatsLccsLevel4(StatsPluginInterface):
@@ -38,10 +39,6 @@ class StatsLccsLevel4(StatsPluginInterface):
         veg_threshold: Optional[List] = None,
         bare_threshold: Optional[List] = None,
         watper_threshold: Optional[List] = None,
-        veg_mapping: Optional[Dict[int, int]] = None,
-        bs_mapping: Optional[Dict[int, int]] = None,
-        waterper_wat_mapping: Optional[Dict[int, int]] = None,
-        l3_to_l4_mapping: Optional[Dict[int, int]] = None,
         water_seasonality_threshold: int = None,
         **kwargs,
     ):
@@ -58,14 +55,6 @@ class StatsLccsLevel4(StatsPluginInterface):
             water_seasonality_threshold if water_seasonality_threshold else 3
         )
 
-        # The mapping below are from the LC KH page
-        # Map vegetation cover classes
-        self.veg_mapping = {160: 16, 150: 15, 130: 13, 120: 12, 100: 10}
-        # Map bare gradation classes
-        self.bs_mapping = {100: 10, 120: 12, 150: 15}
-        # Map values to the classes expected in water persistence in land cover Level-4 output
-        self.waterper_wat_mapping = {100: 1, 70: 7, 80: 8, 90: 9}
-
     @property
     def measurements(self) -> Tuple[str, ...]:
         _measurements = ["level3", "level4"]
@@ -77,14 +66,13 @@ class StatsLccsLevel4(StatsPluginInterface):
     def fuser(self, xx):
         return xx
 
-    @staticmethod
-    def apply_mapping(data, class_mapping):
-        for o_val, n_val in class_mapping.items():
-            data = xr.where(data == o_val, n_val, data)
-        return data
+    # @staticmethod
+    # def apply_mapping(data, class_mapping):
+    #     for o_val, n_val in class_mapping.items():
+    #         data = xr.where(data == o_val, n_val, data)
+    #     return data
 
     def define_life_form(self, xx: xr.Dataset):
-        lifeform = xx.woody_cover.data
 
         # 113 ----> 1 woody
         # 114 ----> 2 herbaceous
@@ -128,11 +116,11 @@ class StatsLccsLevel4(StatsPluginInterface):
             dtype="uint8",
             **{
                 "watseas_trh": self.water_seasonality_threshold,
-                "watersea_nodata": water_frequency_nodata,
+                "watersea_nodata": WATER_FREQ_NODATA,
             },
         )
         mapping = {100: 1, 200: 2}
-        water_season_mask = self.apply_mapping(water_season_mask, mapping)
+        water_season_mask = utils.apply_mapping(water_season_mask, mapping)
 
         return water_season_mask
 
@@ -142,53 +130,48 @@ class StatsLccsLevel4(StatsPluginInterface):
 
         # Vegetation cover
         veg_cover = l4_veg_cover.canopyco_veg_con(xx, self.veg_threshold)
-        # Define mapping from current output to expected a3 output
-        veg_cover = self.apply_mapping(veg_cover, self.veg_mapping)
+        # # Define mapping from current output to expected a3 output
+        # veg_cover = utils.apply_mapping(veg_cover, self.veg_mapping)
         # Define life form
         lifeform = self.define_life_form(xx)
 
         # Apply cultivated Level-4 classes (1-18)
-        l4_ctv = l4_cultivated.lc_l4_cultivated(
+        l4 = l4_cultivated.lc_l4_cultivated(
             xx.classes_l3_l4, level3, lifeform, veg_cover
         )
-        print("***** CULATIVATED: ", np.unique(l4_ctv.compute()))
+
         # Apply terrestrial vegetation classes [19-36]
-        l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(
-            l4_ctv, level3, lifeform, veg_cover
-        )
-        print("***** CULATIVATED NTV : ", np.unique(l4_ctv_ntv.compute()))
+        l4 = l4_natural_veg.lc_l4_natural_veg(l4, level3, lifeform, veg_cover)
 
         # Bare gradation
         bare_gradation = l4_bare_gradation.bare_gradation(
             xx, self.bare_threshold, veg_cover
         )
-        # Apply bare gradation expected output classes
-        bare_gradation = self.apply_mapping(bare_gradation, self.bs_mapping)
+        # # Apply bare gradation expected output classes
+        # bare_gradation = utils.apply_mapping(bare_gradation, self.bs_mapping)
 
         # Water persistence
         water_persistence = l4_water_persistence.water_persistence(
             xx, self.watper_threshold
         )
-        # Apply water persistence expcted classes
-        water_persistence = self.apply_mapping(
-            water_persistence, self.waterper_wat_mapping
-        )
+        # # Apply water persistence expcted classes
+        # water_persistence = utils.apply_mapping(
+        #     water_persistence, self.waterper_wat_mapping
+        # )
 
         water_seasonality = self.define_water_seasonality(xx)
 
-        l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-            l4_ctv_ntv, lifeform, veg_cover, water_seasonality
+        l4 = l4_natural_aquatic.natural_auquatic_veg(
+            l4, lifeform, veg_cover, water_seasonality
         )
-        print("***** NAV : ", np.unique(l4_ctv_ntv_nav.compute()))
-        l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(
-            l4_ctv_ntv_nav, level3, bare_gradation
-        )
-        print("***** SURFACE : ", np.unique(l4_ctv_ntv_nav_surface.compute()))
+
+        l4 = l4_surface.lc_l4_surface(l4, level3, bare_gradation)
+
         # #TODO WATER (99-104)
         level4 = l4_water.water_classification(
-            l4_ctv_ntv_nav_surface, level3, intertidal_mask, water_persistence
+            l4, level3, intertidal_mask, water_persistence
         )
-        print("***** LEVEL3:", np.unique(level3.compute()))
+
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
         # l3 = level3.squeeze(dim=["spec"])
@@ -206,7 +189,6 @@ class StatsLccsLevel4(StatsPluginInterface):
 
         coords = dict((dim, xx.coords[dim]) for dim in dims)
 
-        print(xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs))
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)
 
 

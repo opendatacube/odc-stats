@@ -4,21 +4,14 @@
 
 import numpy as np
 import xarray as xr
-import dask.array as da
+
 from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
-    l4_cultivated,
     lc_level3,
-    l4_veg_cover,
-    l4_natural_veg,
-    l4_natural_aquatic,
-    l4_bare_gradation,
     l4_water_persistence,
-    l4_surface,
     l4_water,
 )
 
-import pytest
 import pandas as pd
 
 NODATA = 255
@@ -164,18 +157,11 @@ def test_water_classes():
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx)
 
-    lifeform = stats_l4.define_life_form(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
-
     # Water persistence
     water_persistence = l4_water_persistence.water_persistence(
         xx, stats_l4.watper_threshold
     )
-    # Apply water persistence expcted classes
-    water_persistence = stats_l4.apply_mapping(
-        water_persistence, stats_l4.waterper_wat_mapping
-    )
+
     l4_water_classes = l4_water.water_classification(
         xx.classes_l3_l4, level3, intertidal_mask, water_persistence
     )
@@ -279,18 +265,12 @@ def test_water_intertidal():
 
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx)
-    lifeform = stats_l4.define_life_form(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     # Water persistence
     water_persistence = l4_water_persistence.water_persistence(
         xx, stats_l4.watper_threshold
     )
-    # Apply water persistence expcted classes
-    water_persistence = stats_l4.apply_mapping(
-        water_persistence, stats_l4.waterper_wat_mapping
-    )
+
     l4_water_classes = l4_water.water_classification(
         xx.classes_l3_l4, level3, intertidal_mask, water_persistence
     )

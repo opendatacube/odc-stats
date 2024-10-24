@@ -1,6 +1,6 @@
-NODATA = 255
-
 from odc.stats._algebra import expr_eval
+
+NODATA = 255
 
 
 def lc_l4_natural_veg(l4, l3, lifeform, veg_cover):

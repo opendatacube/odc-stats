@@ -1,6 +1,7 @@
 # from typing import Tuple, Optional, Dict, List
 import xarray as xr
 from odc.stats._algebra import expr_eval
+from . import utils
 
 NODATA = 255
 
@@ -78,5 +79,10 @@ def canopyco_veg_con(xx: xr.Dataset, veg_threshold):
         dtype="uint8",
         **{"m": veg_threshold[4], "n": veg_threshold[5]},
     )
+
+    # Define mapping from current output to expected a3 output
+    # Map vegetation cover classes
+    veg_mapping = {160: 16, 150: 15, 130: 13, 120: 12, 100: 10}
+    veg_mask = utils.apply_mapping(veg_mask, veg_mapping)
 
     return veg_mask

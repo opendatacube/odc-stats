@@ -1,5 +1,7 @@
 import xarray as xr
 from odc.stats._algebra import expr_eval
+from . import utils
+
 
 NODATA = 255
 
@@ -51,5 +53,8 @@ def bare_gradation(xx: xr.Dataset, bare_threshold, veg_cover):
         dtype="uint8",
         **{"m": bare_threshold[0]},
     )
-
+    # Apply bare gradation expected output classes
+    # Map bare gradation classes
+    bs_mapping = {100: 10, 120: 12, 150: 15}
+    bs_mask = utils.apply_mapping(bs_mask, bs_mapping)
     return bs_mask
