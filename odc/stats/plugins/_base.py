@@ -53,7 +53,7 @@ class StatsPluginInterface(ABC):
                 xx[var].attrs.get("nodata") is None
                 and np.dtype(xx[var].dtype).kind == "f"
             ):
-                xx[var].attrs["nodata"] = np.nan
+                xx[var].attrs["nodata"] = xx[var].dtype.type(None)
         return xx
 
     def fuser(self, xx: xr.Dataset) -> xr.Dataset:

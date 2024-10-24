@@ -200,15 +200,14 @@ class StatsVegClassL1(StatsPluginInterface):
 
         # Mask nans with NODATA
         l3_mask = expr_eval(
-            "where((a!=a)|((b>=_n)&(_n==_n))|(b!=b), nodata, e)",
+            "where((a!=a), nodata, e)",
             {
                 "a": si5,
-                "b": xx.veg_frequency.data,
                 "e": l3_mask,
             },
             name="mark_nodata",
             dtype="uint8",
-            **{"_n": xx.veg_frequency.attrs["nodata"], "nodata": NODATA},
+            **{"nodata": NODATA},
         )
 
         # Now add the water frequency
