@@ -4,6 +4,7 @@
 
 import numpy as np
 import xarray as xr
+import dask.array as da
 
 from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
@@ -32,25 +33,39 @@ def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_freque
 
     data_vars = {
         "classes_l3_l4": xr.DataArray(
-            l34, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(l34, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "urban_classes": xr.DataArray(
-            urban, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(urban, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "cultivated_class": xr.DataArray(
-            cultivated, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(cultivated, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "woody_cover": xr.DataArray(
-            woody, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(woody, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "pv_pc_50": xr.DataArray(
-            pv_pc_50, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(pv_pc_50, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "bs_pc_50": xr.DataArray(
-            bs_pc_50, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(bs_pc_50, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "water_frequency": xr.DataArray(
-            water_frequency, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(water_frequency, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
@@ -58,10 +73,6 @@ def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_freque
 
 
 def test_water_classes():
-    # [[[ 98  98  98]
-    #  [103  98  98]
-    #  [ 98  98  98]
-    #  [ 98  98  98]]]
     expected_water_classes = [
         [104, 104, 104],
         [103, 103, 103],
@@ -78,7 +89,7 @@ def test_water_classes():
                 [221, 221, 221],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     urban = np.array(
@@ -90,7 +101,7 @@ def test_water_classes():
                 [216, 216, 216],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     # 112 --> natural veg
     cultivated = np.array(
@@ -102,7 +113,7 @@ def test_water_classes():
                 [112, 112, 112],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     woody = np.array(
@@ -114,7 +125,7 @@ def test_water_classes():
                 [114, 114, 114],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     pv_pc_50 = np.array(
@@ -126,7 +137,7 @@ def test_water_classes():
                 [4, 1, 42],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     bs_pc_50 = np.array(
         [
@@ -137,7 +148,7 @@ def test_water_classes():
                 [NODATA, 1, 42],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     water_frequency = np.array(
         [
@@ -148,14 +159,14 @@ def test_water_classes():
                 [10, 11, 12],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     xx = image_groups(
         l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_frequency
     )
 
     stats_l4 = StatsLccsLevel4()
-    intertidal_mask, level3 = lc_level3.lc_level3(xx)
+    uint8ertidal_mask, level3 = lc_level3.lc_level3(xx)
 
     # Water persistence
     water_persistence = l4_water_persistence.water_persistence(
@@ -163,13 +174,13 @@ def test_water_classes():
     )
 
     l4_water_classes = l4_water.water_classification(
-        xx.classes_l3_l4, level3, intertidal_mask, water_persistence
+        xx.classes_l3_l4, level3, uint8ertidal_mask, water_persistence
     )
 
     assert (l4_water_classes.compute() == expected_water_classes).all()
 
 
-def test_water_intertidal():
+def test_water_uint8ertidal():
 
     expected_water_classes = [
         [104, 104, 104],
@@ -187,7 +198,7 @@ def test_water_intertidal():
                 [221, 221, 221],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     urban = np.array(
@@ -199,7 +210,7 @@ def test_water_intertidal():
                 [216, 216, 216],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     # 112 --> natural veg
     cultivated = np.array(
@@ -211,7 +222,7 @@ def test_water_intertidal():
                 [112, 112, 112],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     woody = np.array(
@@ -223,7 +234,7 @@ def test_water_intertidal():
                 [114, 114, 114],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     pv_pc_50 = np.array(
@@ -235,7 +246,7 @@ def test_water_intertidal():
                 [4, 1, 42],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     bs_pc_50 = np.array(
         [
@@ -246,7 +257,7 @@ def test_water_intertidal():
                 [NODATA, 1, 42],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     water_frequency = np.array(
         [
@@ -257,14 +268,14 @@ def test_water_intertidal():
                 [10, 255, 255],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     xx = image_groups(
         l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_frequency
     )
 
     stats_l4 = StatsLccsLevel4()
-    intertidal_mask, level3 = lc_level3.lc_level3(xx)
+    uint8ertidal_mask, level3 = lc_level3.lc_level3(xx)
 
     # Water persistence
     water_persistence = l4_water_persistence.water_persistence(
@@ -272,7 +283,7 @@ def test_water_intertidal():
     )
 
     l4_water_classes = l4_water.water_classification(
-        xx.classes_l3_l4, level3, intertidal_mask, water_persistence
+        xx.classes_l3_l4, level3, uint8ertidal_mask, water_persistence
     )
 
     assert (l4_water_classes.compute() == expected_water_classes).all()

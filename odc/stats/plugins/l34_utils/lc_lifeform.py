@@ -2,7 +2,7 @@ from odc.stats._algebra import expr_eval
 import xarray as xr
 
 
-def lifeform(self, xx: xr.Dataset):
+def lifeform(xx: xr.Dataset):
 
     # 113 ----> 1 woody
     # 114 ----> 2 herbaceous

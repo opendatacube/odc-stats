@@ -5,12 +5,15 @@
 import numpy as np
 import xarray as xr
 import dask.array as da
+
 from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
     l4_cultivated,
     lc_level3,
     l4_veg_cover,
     l4_natural_veg,
+    lc_lifeform,
+    lc_water_seasonality,
 )
 
 import pytest
@@ -19,7 +22,6 @@ import pandas as pd
 NODATA = 255
 
 
-# @pytest.fixture(scope="module")
 def image_groups(l34, urban, cultivated, woody, pv_pc_50):
 
     tuples = [
@@ -34,19 +36,29 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50):
 
     data_vars = {
         "classes_l3_l4": xr.DataArray(
-            l34, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(l34, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "urban_classes": xr.DataArray(
-            urban, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(urban, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "cultivated_class": xr.DataArray(
-            cultivated, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(cultivated, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "woody_cover": xr.DataArray(
-            woody, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(woody, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "pv_pc_50": xr.DataArray(
-            pv_pc_50, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(pv_pc_50, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
@@ -71,7 +83,7 @@ def test_ntv_classes_herbaceous():
                 [110, 110, 110],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     urban = np.array(
@@ -83,7 +95,7 @@ def test_ntv_classes_herbaceous():
                 [216, 216, 216],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     # 112 --> natural veg
     cultivated = np.array(
@@ -95,7 +107,7 @@ def test_ntv_classes_herbaceous():
                 [112, 112, 112],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     woody = np.array(
@@ -107,7 +119,7 @@ def test_ntv_classes_herbaceous():
                 [114, 114, 114],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     pv_pc_50 = np.array(
@@ -119,16 +131,14 @@ def test_ntv_classes_herbaceous():
                 [4, 1, 42],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
 
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx)
-    lifeform = stats_l4.define_life_form(xx)
+    lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
-
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(
         xx.classes_l3_l4, level3, lifeform, veg_cover
     )
@@ -153,7 +163,7 @@ def test_ntv_classes_woody():
                 [110, 110, 110],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     urban = np.array(
@@ -165,7 +175,7 @@ def test_ntv_classes_woody():
                 [216, 216, 216],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     # 112 --> natural veg
     cultivated = np.array(
@@ -177,7 +187,7 @@ def test_ntv_classes_woody():
                 [112, 112, 112],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     woody = np.array(
@@ -189,7 +199,7 @@ def test_ntv_classes_woody():
                 [113, 255, 113],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     pv_pc_50 = np.array(
@@ -201,15 +211,14 @@ def test_ntv_classes_woody():
                 [4, 1, 42],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
 
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx)
-    lifeform = stats_l4.define_life_form(xx)
+    lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
 
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(
         xx.classes_l3_l4, level3, lifeform, veg_cover
@@ -235,7 +244,7 @@ def test_ntv_classes_no_veg():
                 [110, 110, 110],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     urban = np.array(
@@ -247,7 +256,7 @@ def test_ntv_classes_no_veg():
                 [216, 216, 216],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     # 112 --> natural veg
     cultivated = np.array(
@@ -259,7 +268,7 @@ def test_ntv_classes_no_veg():
                 [112, 112, 112],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     woody = np.array(
@@ -271,7 +280,7 @@ def test_ntv_classes_no_veg():
                 [114, 114, 114],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     pv_pc_50 = np.array(
@@ -283,16 +292,14 @@ def test_ntv_classes_no_veg():
                 [255, 255, 255],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
 
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx)
-    lifeform = stats_l4.define_life_form(xx)
+    lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
-
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(
         xx.classes_l3_l4, level3, lifeform, veg_cover
     )
@@ -317,7 +324,7 @@ def test_ntv_classes_no_lifeform():
                 [110, 110, 110],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     urban = np.array(
@@ -329,7 +336,7 @@ def test_ntv_classes_no_lifeform():
                 [216, 216, 216],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     # 112 --> natural veg
     cultivated = np.array(
@@ -341,7 +348,7 @@ def test_ntv_classes_no_lifeform():
                 [112, 112, 112],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     woody = np.array(
@@ -353,7 +360,7 @@ def test_ntv_classes_no_lifeform():
                 [255, 255, 255],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     pv_pc_50 = np.array(
@@ -365,16 +372,14 @@ def test_ntv_classes_no_lifeform():
                 [4, 1, 42],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
 
     stats_l4 = StatsLccsLevel4()
     intertidal_mask, level3 = lc_level3.lc_level3(xx)
-    lifeform = stats_l4.define_life_form(xx)
+    lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-    veg_cover = stats_l4.apply_mapping(veg_cover, stats_l4.veg_mapping)
-
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(
         xx.classes_l3_l4, level3, lifeform, veg_cover
     )

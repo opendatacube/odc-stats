@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
+import dask.array as da
 
 from odc.stats.plugins.l34_utils import lc_level3
 import pytest
@@ -26,7 +27,7 @@ def image_groups():
                 [223, 255, 223],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     urban = np.array(
@@ -38,7 +39,7 @@ def image_groups():
                 [216, 216, 216],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     cultivated = np.array(
@@ -50,7 +51,7 @@ def image_groups():
                 [255, 255, 255],
             ]
         ],
-        dtype="int",
+        dtype="uint8",
     )
 
     tuples = [
@@ -65,13 +66,19 @@ def image_groups():
 
     data_vars = {
         "classes_l3_l4": xr.DataArray(
-            l34, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(l34, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"), 
+            attrs={"nodata": 255}
         ),
         "urban_classes": xr.DataArray(
-            urban, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(urban, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"), 
+            attrs={"nodata": 255}
         ),
         "cultivated_class": xr.DataArray(
-            cultivated, dims=("spec", "y", "x"), attrs={"nodata": 255}
+            da.from_array(cultivated, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"), 
+            attrs={"nodata": 255}
         ),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
@@ -81,6 +88,4 @@ def image_groups():
 def test_l3_classes(image_groups):
 
     intertidal_mask, level3_classes = lc_level3.lc_level3(image_groups)
-    print(level3_classes.compute())
-    print("*********")
-    assert (level3_classes.compute() == expected_l3_classes).all()
+    assert (level3_classes == expected_l3_classes).all()
