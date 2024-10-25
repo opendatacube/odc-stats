@@ -9,6 +9,7 @@ import pytest
 
 NODATA = 255
 
+
 @pytest.fixture(scope="module")
 def image_groups():
     l34 = np.array(
@@ -94,7 +95,7 @@ def image_groups():
         ],
         dtype="uint8",
     )
-    
+
     tuples = [
         (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
     ]
@@ -136,33 +137,23 @@ def image_groups():
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-         "water_frequency": xr.DataArray(
+        "water_frequency": xr.DataArray(
             da.from_array(water_frequency, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
     }
 
-  
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
     return xx
 
 
 def test_l4_classes(image_groups):
-    expected_l3 = [
-       [216, 216, 215],
-       [216, 216, 216],
-       [215, 215, 215],
-       [215, 215, 215]]
+    expected_l3 = [[216, 216, 215], [216, 216, 216], [215, 215, 215], [215, 215, 215]]
 
-    expected_l4 = [
-       [95, 97, 93],
-       [97, 96, 96],
-       [93, 93, 93],
-       [93, 93, 93]]
+    expected_l4 = [[95, 97, 93], [97, 96, 96], [93, 93, 93], [93, 93, 93]]
     stats_l4 = StatsLccsLevel4()
     ds = stats_l4.reduce(image_groups)
-    
+
     assert (ds.level3.compute() == expected_l3).all()
     assert (ds.level4.compute() == expected_l4).all()
-

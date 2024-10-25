@@ -39,7 +39,6 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency):
             da.from_array(l34, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
-
         ),
         "urban_classes": xr.DataArray(
             da.from_array(urban, chunks=(1, -1, -1)),
@@ -159,7 +158,9 @@ def test_ntv_classes_woody_herbaceous():
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
-    water_seasonality = lc_water_seasonality.water_seasonality(xx, stats_l4.water_seasonality_threshold)
+    water_seasonality = lc_water_seasonality.water_seasonality(
+        xx, stats_l4.water_seasonality_threshold
+    )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
         l4_ctv_ntv, lifeform, veg_cover, water_seasonality
     )
@@ -259,7 +260,9 @@ def test_ntv_veg_cover():
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
-    water_seasonality = lc_water_seasonality.water_seasonality(xx, stats_l4.water_seasonality_threshold)
+    water_seasonality = lc_water_seasonality.water_seasonality(
+        xx, stats_l4.water_seasonality_threshold
+    )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
         l4_ctv_ntv, lifeform, veg_cover, water_seasonality
     )
@@ -358,7 +361,9 @@ def test_ntv_woody_veg_cover():
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
-    water_seasonality = lc_water_seasonality.water_seasonality(xx, stats_l4.water_seasonality_threshold)
+    water_seasonality = lc_water_seasonality.water_seasonality(
+        xx, stats_l4.water_seasonality_threshold
+    )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
         l4_ctv_ntv, lifeform, veg_cover, water_seasonality
     )
@@ -457,7 +462,9 @@ def test_ntv_woody_seasonal_water_veg_cover():
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
-    water_seasonality = lc_water_seasonality.water_seasonality(xx, stats_l4.water_seasonality_threshold)
+    water_seasonality = lc_water_seasonality.water_seasonality(
+        xx, stats_l4.water_seasonality_threshold
+    )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
         l4_ctv_ntv, lifeform, veg_cover, water_seasonality
     )
@@ -557,7 +564,9 @@ def test_ntv_woody_permanent_water_veg_cover():
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
-    water_seasonality = lc_water_seasonality.water_seasonality(xx, stats_l4.water_seasonality_threshold)
+    water_seasonality = lc_water_seasonality.water_seasonality(
+        xx, stats_l4.water_seasonality_threshold
+    )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
         l4_ctv_ntv, lifeform, veg_cover, water_seasonality
     )
@@ -651,7 +660,9 @@ def test_ntv_herbaceous_veg_cover():
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
-    water_seasonality = lc_water_seasonality.water_seasonality(xx, stats_l4.water_seasonality_threshold)
+    water_seasonality = lc_water_seasonality.water_seasonality(
+        xx, stats_l4.water_seasonality_threshold
+    )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
         l4_ctv_ntv, lifeform, veg_cover, water_seasonality
     )
@@ -750,7 +761,9 @@ def test_ntv_herbaceous_seasonal_water_veg_cover():
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
-    water_seasonality = lc_water_seasonality.water_seasonality(xx, stats_l4.water_seasonality_threshold)
+    water_seasonality = lc_water_seasonality.water_seasonality(
+        xx, stats_l4.water_seasonality_threshold
+    )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
         l4_ctv_ntv, lifeform, veg_cover, water_seasonality
     )
@@ -850,7 +863,9 @@ def test_ntv_herbaceous_permanent_water_veg_cover():
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
-    water_seasonality = lc_water_seasonality.water_seasonality(xx, stats_l4.water_seasonality_threshold)
+    water_seasonality = lc_water_seasonality.water_seasonality(
+        xx, stats_l4.water_seasonality_threshold
+    )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
         l4_ctv_ntv, lifeform, veg_cover, water_seasonality
     )

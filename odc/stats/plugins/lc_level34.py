@@ -93,7 +93,9 @@ class StatsLccsLevel4(StatsPluginInterface):
             xx, self.watper_threshold
         )
 
-        water_seasonality = lc_water_seasonality.water_seasonality(xx, self.water_seasonality_threshold)
+        water_seasonality = lc_water_seasonality.water_seasonality(
+            xx, self.water_seasonality_threshold
+        )
 
         l4 = l4_natural_aquatic.natural_auquatic_veg(
             l4, lifeform, veg_cover, water_seasonality
@@ -108,14 +110,14 @@ class StatsLccsLevel4(StatsPluginInterface):
 
         level3 = level3.astype(np.uint8)
         level4 = level4.astype(np.uint8)
-        
+
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
         dims = xx.classes_l3_l4.dims[1:]
 
         data_vars = {
             "level3": xr.DataArray(level3.squeeze(), dims=dims, attrs=attrs),
-            "level4": xr.DataArray(level4.squeeze(), dims=dims, attrs=attrs)
+            "level4": xr.DataArray(level4.squeeze(), dims=dims, attrs=attrs),
         }
 
         coords = dict((dim, xx.coords[dim]) for dim in dims)

@@ -184,7 +184,9 @@ def test_ns():
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
-    water_seasonality = lc_water_seasonality.water_seasonality(xx, stats_l4.water_seasonality_threshold)
+    water_seasonality = lc_water_seasonality.water_seasonality(
+        xx, stats_l4.water_seasonality_threshold
+    )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
         l4_ctv_ntv, lifeform, veg_cover, water_seasonality
     )

@@ -67,18 +67,18 @@ def image_groups():
     data_vars = {
         "classes_l3_l4": xr.DataArray(
             da.from_array(l34, chunks=(1, -1, -1)),
-            dims=("spec", "y", "x"), 
-            attrs={"nodata": 255}
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "urban_classes": xr.DataArray(
             da.from_array(urban, chunks=(1, -1, -1)),
-            dims=("spec", "y", "x"), 
-            attrs={"nodata": 255}
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
         "cultivated_class": xr.DataArray(
             da.from_array(cultivated, chunks=(1, -1, -1)),
-            dims=("spec", "y", "x"), 
-            attrs={"nodata": 255}
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
         ),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
