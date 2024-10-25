@@ -8,15 +8,12 @@ import dask.array as da
 
 from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
-    l4_cultivated,
     lc_level3,
     l4_veg_cover,
     l4_natural_veg,
     lc_lifeform,
-    lc_water_seasonality,
 )
 
-import pytest
 import pandas as pd
 
 NODATA = 255
