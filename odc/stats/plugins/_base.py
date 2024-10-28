@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Mapping, Optional, Sequence, Tuple
 
 import xarray as xr
+import numpy as np
 from datacube.model import Dataset
 from datacube.utils.geometry import GeoBox
 from odc.algo import to_rgba
@@ -47,6 +48,12 @@ class StatsPluginInterface(ABC):
         pass
 
     def native_transform(self, xx: xr.Dataset) -> xr.Dataset:
+        for var in xx.data_vars:
+            if (
+                xx[var].attrs.get("nodata") is None
+                and np.dtype(xx[var].dtype).kind == "f"
+            ):
+                xx[var].attrs["nodata"] = xx[var].dtype.type(None)
         return xx
 
     def fuser(self, xx: xr.Dataset) -> xr.Dataset:
