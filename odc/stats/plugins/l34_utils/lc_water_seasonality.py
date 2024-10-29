@@ -38,8 +38,5 @@ def water_seasonality(xx: xr.Dataset, water_seasonality_threshold):
         dtype="uint8",
         **{"watseas_trh": water_seasonality_threshold},
     )
-   
-    # mapping = {100: 1, 200: 2}
-    # water_season_mask = utils.apply_mapping(water_season_mask, mapping)
 
     return water_season_mask
