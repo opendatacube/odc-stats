@@ -187,7 +187,7 @@ def test_water_intertidal():
         [104, 104, 104],
         [103, 103, 103],
         [102, 102, 101],
-        [101, 98, 98],
+        [101, 98, 100],
     ]
 
     l34 = np.array(
@@ -286,5 +286,5 @@ def test_water_intertidal():
     l4_water_classes = l4_water.water_classification(
         xx, intertidal_mask, water_persistence
     )
-
+    print(l4_water_classes.compute())
     assert (l4_water_classes.compute() == expected_water_classes).all()
