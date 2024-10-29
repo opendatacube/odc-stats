@@ -6,6 +6,7 @@ from . import utils
 NODATA = 255
 WATRE_FREQ_NODATA = -999
 
+
 def water_persistence(xx: xr.Dataset, watper_threshold):
 
     # Apply nodata
@@ -14,9 +15,13 @@ def water_persistence(xx: xr.Dataset, watper_threshold):
         {"a": xx.water_frequency.data},
         name="mark_water",
         dtype="uint8",
-        **{"m": watper_threshold[3], "nodata": NODATA, "water_freq_nodata": WATRE_FREQ_NODATA},
+        **{
+            "m": watper_threshold[3],
+            "nodata": NODATA,
+            "water_freq_nodata": WATRE_FREQ_NODATA,
+        },
     )
-    
+
     #  10 <= water_frequency < 1 --> 1
     water_mask = expr_eval(
         "where((a>=m)&(a!=nodata), 1, a)",
@@ -29,8 +34,7 @@ def water_persistence(xx: xr.Dataset, watper_threshold):
     #  7 <= water_frequency < 10 --> 7
     water_mask = expr_eval(
         "where((a>=m)&(a<n), 7, b)",
-        {"a": water_frequency,
-         "b": water_mask},
+        {"a": water_frequency, "b": water_mask},
         name="mark_water",
         dtype="uint8",
         **{"m": watper_threshold[2], "n": watper_threshold[3]},
@@ -39,8 +43,7 @@ def water_persistence(xx: xr.Dataset, watper_threshold):
     #  4 <= water_frequency < 7 --> 8
     water_mask = expr_eval(
         "where((a>=m)&(a<n), 8, b)",
-        {"a": water_frequency,
-         "b": water_mask},
+        {"a": water_frequency, "b": water_mask},
         name="mark_water",
         dtype="uint8",
         **{"m": watper_threshold[1], "n": watper_threshold[2]},
@@ -49,8 +52,7 @@ def water_persistence(xx: xr.Dataset, watper_threshold):
     #  1 <= water_frequency < 4 --> 9
     water_mask = expr_eval(
         "where((a>=m)&(a<n), 9, b)",
-        {"a": water_frequency,
-         "b": water_mask},
+        {"a": water_frequency, "b": water_mask},
         name="mark_water",
         dtype="uint8",
         **{"m": watper_threshold[0], "n": watper_threshold[1]},

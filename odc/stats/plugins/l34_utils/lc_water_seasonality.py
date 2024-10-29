@@ -16,10 +16,7 @@ def water_seasonality(xx: xr.Dataset, water_seasonality_threshold):
         {"a": xx.water_frequency.data},
         name="mark_water_season",
         dtype="uint8",
-        **{
-            "watersea_nodata": WATER_FREQ_NODATA,
-             "nodata": NODATA
-        },
+        **{"watersea_nodata": WATER_FREQ_NODATA, "nodata": NODATA},
     )
 
     water_season_mask = expr_eval(
@@ -27,13 +24,11 @@ def water_seasonality(xx: xr.Dataset, water_seasonality_threshold):
         {"a": water_frequency},
         name="mark_water_season",
         dtype="uint8",
-        **{"watseas_trh": water_seasonality_threshold,
-           "nodata": NODATA},
+        **{"watseas_trh": water_seasonality_threshold, "nodata": NODATA},
     )
     water_season_mask = expr_eval(
         "where((a<=watseas_trh)&(a<=12), 2, b)",
-        {"a": water_frequency,
-         "b": water_season_mask},
+        {"a": water_frequency, "b": water_season_mask},
         name="mark_water_season",
         dtype="uint8",
         **{"watseas_trh": water_seasonality_threshold},

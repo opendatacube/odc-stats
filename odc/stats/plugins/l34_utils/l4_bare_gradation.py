@@ -4,6 +4,7 @@ from odc.stats._algebra import expr_eval
 
 NODATA = 255
 
+
 def bare_gradation(xx: xr.Dataset, bare_threshold, veg_cover):
 
     # Map any data > 100 ---> 100
@@ -27,8 +28,7 @@ def bare_gradation(xx: xr.Dataset, bare_threshold, veg_cover):
     # 20% <= data < 60% --> 12
     bs_mask = expr_eval(
         "where((a>=m)&(a<n), 12, b)",
-        {"a": bs_pc_50,
-         "b": bs_mask},
+        {"a": bs_pc_50, "b": bs_mask},
         name="mark_veg",
         dtype="uint8",
         **{"m": bare_threshold[0], "n": bare_threshold[1]},
@@ -37,8 +37,7 @@ def bare_gradation(xx: xr.Dataset, bare_threshold, veg_cover):
     # data < 20% --> 10
     bs_mask = expr_eval(
         "where(a<m, 10, b)",
-        {"a": bs_pc_50,
-         "b": bs_mask},
+        {"a": bs_pc_50, "b": bs_mask},
         name="mark_veg",
         dtype="uint8",
         **{"m": bare_threshold[0]},
