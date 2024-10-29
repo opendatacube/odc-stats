@@ -133,7 +133,7 @@ def test_ntv_classes_herbaceous():
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
 
     stats_l4 = StatsLccsLevel4()
-    intertidal_mask, level3 = lc_level3.lc_level3(xx)
+    level3 = lc_level3.lc_level3(xx)
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(
@@ -213,7 +213,7 @@ def test_ntv_classes_woody():
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
 
     stats_l4 = StatsLccsLevel4()
-    intertidal_mask, level3 = lc_level3.lc_level3(xx)
+    level3 = lc_level3.lc_level3(xx)
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 
@@ -294,7 +294,7 @@ def test_ntv_classes_no_veg():
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
 
     stats_l4 = StatsLccsLevel4()
-    intertidal_mask, level3 = lc_level3.lc_level3(xx)
+    level3 = lc_level3.lc_level3(xx)
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(
@@ -374,7 +374,7 @@ def test_ntv_classes_no_lifeform():
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
 
     stats_l4 = StatsLccsLevel4()
-    intertidal_mask, level3 = lc_level3.lc_level3(xx)
+    level3 = lc_level3.lc_level3(xx)
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(

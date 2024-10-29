@@ -1,10 +1,9 @@
 import xarray as xr
 
 from odc.stats._algebra import expr_eval
-from . import utils
 
 NODATA = 255
-WATRE_FREQ_NODATA = -999
+WATER_FREQ_NODATA = -999
 
 
 def water_persistence(xx: xr.Dataset, watper_threshold):
@@ -15,11 +14,7 @@ def water_persistence(xx: xr.Dataset, watper_threshold):
         {"a": xx.water_frequency.data},
         name="mark_water",
         dtype="uint8",
-        **{
-            "m": watper_threshold[3],
-            "nodata": NODATA,
-            "water_freq_nodata": WATRE_FREQ_NODATA,
-        },
+        **{"m": watper_threshold[3], "nodata": NODATA, "water_freq_nodata": WATER_FREQ_NODATA},
     )
 
     #  10 <= water_frequency < 1 --> 1

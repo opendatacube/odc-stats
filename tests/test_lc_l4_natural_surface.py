@@ -174,7 +174,7 @@ def test_ns():
     )
 
     stats_l4 = StatsLccsLevel4()
-    intertidal_mask, level3 = lc_level3.lc_level3(xx)
+    level3 = lc_level3.lc_level3(xx)
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 

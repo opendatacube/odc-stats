@@ -87,5 +87,5 @@ def image_groups():
 
 def test_l3_classes(image_groups):
 
-    intertidal_mask, level3_classes = lc_level3.lc_level3(image_groups)
+    level3_classes = lc_level3.lc_level3(image_groups)
     assert (level3_classes == expected_l3_classes).all()

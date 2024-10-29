@@ -29,22 +29,23 @@ def lc_level3(xx: xr.Dataset):
         **{"_u": 210},
     )
 
-    intertidal_mask = expr_eval(
-        "where(a==_u, 1, 0)",
-        {
-            "a": res,
-            "b": xx.urban_classes.data,
-        },
-        name="mark_urban",
-        dtype="uint8",
-        **{"_u": 223},
-    )
     # Add intertidal as water
     res = expr_eval(
-        "where((a==223)|(a==221)|(c==1), 220, b)",
-        {"a": xx.classes_l3_l4.data, "b": res, "c": intertidal_mask},
+        "where((a==223)|(a==221), 220, b)",
+        {"a": xx.classes_l3_l4.data, "b": res},
         name="mark_urban",
         dtype="uint8",
     )
 
-    return intertidal_mask, res
+    # Mark nodata to 255 in case any nan
+    res = expr_eval(
+        "where(a==a, a, nodata)",
+        {
+            "a": res,
+        },
+        name="mark_nodata",
+        dtype="uint8",
+        **{"nodata": NODATA},
+    )
+
+    return res

@@ -8,15 +8,15 @@ import dask.array as da
 
 from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
-    lc_level3,
     l4_water_persistence,
     l4_water,
+    lc_intertidal_mask,
 )
 
 import pandas as pd
 
 NODATA = 255
-WATRE_FREQ_NODATA = -999
+WATER_FREQ_NODATA = -999
 
 
 # @pytest.fixture(scope="module")
@@ -78,7 +78,7 @@ def test_water_classes():
         [104, 104, 104],
         [103, 103, 103],
         [102, 102, 101],
-        [101, 101, 101],
+        [98, 101, 101],
     ]
 
     l34 = np.array(
@@ -157,17 +157,17 @@ def test_water_classes():
                 [1, 3, 2],
                 [4, 5, 6],
                 [9, 7, 11],
-                [WATRE_FREQ_NODATA, 11, 12],
+                [WATER_FREQ_NODATA, 11, 12],
             ]
         ],
-        dtype="uint8",
+        dtype="float",
     )
     xx = image_groups(
         l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_frequency
     )
 
     stats_l4 = StatsLccsLevel4()
-    uint8ertidal_mask, level3 = lc_level3.lc_level3(xx)
+    intertidal_mask = lc_intertidal_mask.intertidal_mask(xx)
 
     # Water persistence
     water_persistence = l4_water_persistence.water_persistence(
@@ -175,19 +175,19 @@ def test_water_classes():
     )
 
     l4_water_classes = l4_water.water_classification(
-        xx.classes_l3_l4, level3, uint8ertidal_mask, water_persistence
+        xx, intertidal_mask, water_persistence
     )
 
     assert (l4_water_classes.compute() == expected_water_classes).all()
 
 
-def test_water_uint8ertidal():
+def test_water_intertidal():
 
     expected_water_classes = [
         [104, 104, 104],
         [103, 103, 103],
         [102, 102, 101],
-        [101, 99, 99],
+        [101, 98, 98],
     ]
 
     l34 = np.array(
@@ -196,7 +196,7 @@ def test_water_uint8ertidal():
                 [221, 221, 221],
                 [221, 221, 221],
                 [221, 221, 221],
-                [221, 221, 221],
+                [221, 221, 223],
             ]
         ],
         dtype="uint8",
@@ -276,7 +276,7 @@ def test_water_uint8ertidal():
     )
 
     stats_l4 = StatsLccsLevel4()
-    uint8ertidal_mask, level3 = lc_level3.lc_level3(xx)
+    intertidal_mask = lc_intertidal_mask.intertidal_mask(xx)
 
     # Water persistence
     water_persistence = l4_water_persistence.water_persistence(
@@ -284,7 +284,7 @@ def test_water_uint8ertidal():
     )
 
     l4_water_classes = l4_water.water_classification(
-        xx.classes_l3_l4, level3, uint8ertidal_mask, water_persistence
+        xx, intertidal_mask, water_persistence
     )
 
     assert (l4_water_classes.compute() == expected_water_classes).all()
