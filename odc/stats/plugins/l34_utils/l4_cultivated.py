@@ -5,20 +5,13 @@ NODATA = 255
 
 def lc_l4_cultivated(l34, level3, lifeform, veg_cover):
 
-    # l4 = expr_eval(
-    #     "where((a==110)&(b==nodata), nodata, a)",
-    #     {"a": l34,
-    #      "b": level3},
-    #     name="mark_cultivated",
-    #     dtype="uint8",
-    #     **{"nodata": NODATA},
-    # )
     l4 = expr_eval(
         "where((d==110)&(a==111)&(b==10)&(c==1), 9, d)",
         {"a": level3, "b": veg_cover, "c": lifeform, "d": l34},
         name="mark_cultivated",
         dtype="uint8",
     )
+
     l4 = expr_eval(
         "where((d==110)&(a==111)&(b==12)&(c==1), 10, d)",
         {"a": level3, "b": veg_cover, "c": lifeform, "d": l4},

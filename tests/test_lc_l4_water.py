@@ -16,6 +16,7 @@ from odc.stats.plugins.l34_utils import (
 import pandas as pd
 
 NODATA = 255
+WATRE_FREQ_NODATA = -999
 
 
 # @pytest.fixture(scope="module")
@@ -156,7 +157,7 @@ def test_water_classes():
                 [1, 3, 2],
                 [4, 5, 6],
                 [9, 7, 11],
-                [10, 11, 12],
+                [WATRE_FREQ_NODATA, 11, 12],
             ]
         ],
         dtype="uint8",
