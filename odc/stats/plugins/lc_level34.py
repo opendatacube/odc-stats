@@ -111,7 +111,7 @@ class StatsLccsLevel4(StatsPluginInterface):
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
         dims = xx.classes_l3_l4.dims[1:]
-   
+
         data_vars = {
             "level3": xr.DataArray(level3.squeeze(), dims=dims, attrs=attrs),
             "level4": xr.DataArray(level4.squeeze(), dims=dims, attrs=attrs),
