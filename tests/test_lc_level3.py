@@ -24,10 +24,10 @@ def image_groups():
                 [110, 110, 210],
                 [124, 110, 210],
                 [221, 210, 210],
-                [223, 255, 223],
+                [223, np.nan, 223],
             ]
         ],
-        dtype="uint8",
+        dtype="float32",
     )
 
     urban = np.array(
@@ -48,10 +48,10 @@ def image_groups():
                 [111, 112, 255],
                 [255, 112, 255],
                 [255, 255, 255],
-                [255, 255, 255],
+                [255, np.nan, np.nan],
             ]
         ],
-        dtype="uint8",
+        dtype="float32",
     )
 
     tuples = [
