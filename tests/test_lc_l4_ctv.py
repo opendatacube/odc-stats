@@ -139,7 +139,7 @@ def test_ctv_classes_woody():
     )
 
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
- 
+
 
 def test_ctv_classes_herbaceous():
 
