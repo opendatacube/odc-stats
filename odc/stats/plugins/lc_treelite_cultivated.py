@@ -259,7 +259,7 @@ class StatsCultivatedClass(StatsMLTree):
 
     def aggregate_results_from_group(self, predict_output):
         # if there are >= 2 images
-        # any is cultivated -> final class is cultivated
+        # any is natural -> final class is natrual
         # any is valid -> final class is valid
         # for each pixel
         m_size = len(predict_output)
@@ -268,13 +268,13 @@ class StatsCultivatedClass(StatsMLTree):
         else:
             predict_output = predict_output[0]
 
-        predict_output = expr_eval(
-            "where(a<nodata, 1-a, a)",
-            {"a": predict_output},
-            name="invert_output",
-            dtype="float32",
-            **{"nodata": NODATA},
-        )
+        # predict_output = expr_eval(
+        #     "where(a<nodata, 1-a, a)",
+        #     {"a": predict_output},
+        #     name="invert_output",
+        #     dtype="float32",
+        #     **{"nodata": NODATA},
+        # )
 
         if m_size > 1:
             predict_output = predict_output.sum(axis=0)
@@ -290,17 +290,17 @@ class StatsCultivatedClass(StatsMLTree):
         predict_output = expr_eval(
             "where((a>0)&(a<nodata), _u, a)",
             {"a": predict_output},
-            name="output_classes_cultivated",
+            name="output_classes_natural",
             dtype="float32",
-            **{"_u": self.output_classes["cultivated"], "nodata": NODATA},
+            **{"_u": self.output_classes["natural"], "nodata": NODATA},
         )
 
         predict_output = expr_eval(
             "where(a<=0, _nu, a)",
             {"a": predict_output},
-            name="output_classes_natural",
+            name="output_classes_cultivated",
             dtype="uint8",
-            **{"_nu": self.output_classes["natural"]},
+            **{"_nu": self.output_classes["cultivated"]},
         )
 
         return predict_output.rechunk(-1, -1)
