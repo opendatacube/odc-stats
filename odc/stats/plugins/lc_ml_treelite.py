@@ -119,7 +119,6 @@ class StatsMLTree(StatsPluginInterface):
                         (self.chunks["x"], self.chunks["y"], -1),
                         name=ds.type.name + "_yxt",
                     ).squeeze("spec")
-                    )
 
         coords = dict((dim, input_array.coords[dim]) for dim in input_array.dims)
         return xr.Dataset(data_vars=data_vars, coords=coords)
