@@ -228,7 +228,7 @@ class StatsCultivatedClass(StatsMLTree):
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["cultivated_class"]
+        _measurements = ["cultivated"]
         return _measurements
 
     def predict(self, input_array):
@@ -304,7 +304,7 @@ class StatsCultivatedClass(StatsMLTree):
             attrs = res[var].attrs.copy()
             attrs["nodata"] = int(NODATA)
             res[var].attrs = attrs
-            var_rename = {var: "cultivated_class"}
+        var_rename = dict(zip(res.data_vars, self.measurements))
         return res.rename(var_rename)
 
 

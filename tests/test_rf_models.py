@@ -485,10 +485,10 @@ def test_cultivated_reduce(
     )
     dask_client.register_plugin(cultivated.dask_worker_plugin)
     res = cultivated.reduce(input_datasets)
-    assert res["cultivated_class"].attrs["nodata"] == 255
-    assert res["cultivated_class"].data.dtype == "uint8"
+    assert res["cultivated"].attrs["nodata"] == 255
+    assert res["cultivated"].data.dtype == "uint8"
     assert (
-        res["cultivated_class"].data.compute()
+        res["cultivated"].data.compute()
         == np.array([[112, 255], [112, 112]], dtype="uint8")
     ).all()
 
