@@ -466,7 +466,7 @@ def test_cultivated_aggregate_results(
     res = cultivated.aggregate_results_from_group([cultivated_results[0]])
     assert (res.compute() == np.array([[112, 255], [111, 112]], dtype="uint8")).all()
     res = cultivated.aggregate_results_from_group(cultivated_results)
-    assert (res.compute() == np.array([[111, 112], [111, 112]], dtype="uint8")).all()
+    assert (res.compute() == np.array([[112, 112], [111, 112]], dtype="uint8")).all()
 
 
 def test_cultivated_reduce(
@@ -528,9 +528,8 @@ def test_woody_reduce(
     )
     dask_client.register_plugin(woody_cover.dask_worker_plugin)
     res = woody_cover.reduce(woody_inputs)
-    assert res["woody_cover"].attrs["nodata"] == 255
-    assert res["woody_cover"].data.dtype == "uint8"
+    assert res["woody"].attrs["nodata"] == 255
+    assert res["woody"].data.dtype == "uint8"
     assert (
-        res["woody_cover"].data.compute()
-        == np.array([[114, 255], [114, 114]], dtype="uint8")
+        res["woody"].data.compute() == np.array([[114, 255], [114, 114]], dtype="uint8")
     ).all()

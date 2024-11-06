@@ -268,14 +268,6 @@ class StatsCultivatedClass(StatsMLTree):
         else:
             predict_output = predict_output[0]
 
-        # predict_output = expr_eval(
-        #     "where(a<nodata, 1-a, a)",
-        #     {"a": predict_output},
-        #     name="invert_output",
-        #     dtype="float32",
-        #     **{"nodata": NODATA},
-        # )
-
         if m_size > 1:
             predict_output = predict_output.sum(axis=0)
 
