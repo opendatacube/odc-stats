@@ -21,7 +21,7 @@ class StatsWoodyCover(StatsMLTree):
 
     @property
     def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["woody_cover"]
+        _measurements = ["woody"]
         return _measurements
 
     def predict(self, input_array):
@@ -101,7 +101,7 @@ class StatsWoodyCover(StatsMLTree):
             attrs = res[var].attrs.copy()
             attrs["nodata"] = int(NODATA)
             res[var].attrs = attrs
-            var_rename = {var: "woody_cover"}
+        var_rename = dict(zip(res.data_vars, self.measurements))
         return res.rename(var_rename)
 
 
