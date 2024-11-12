@@ -319,7 +319,7 @@ def fc_wo_dataset():
 def test_native_transform(fc_wo_dataset, bits):
     xx = fc_wo_dataset.copy()
     xx["water"] = da.bitwise_or(xx["water"], bits)
-    stats_veg = StatsVegCount()
+    stats_veg = StatsVegCount(measurements=["veg_frequency", "water_frequency"])
     out_xx = stats_veg.native_transform(xx).compute()
 
     expected_valid = (
@@ -349,7 +349,7 @@ def test_native_transform(fc_wo_dataset, bits):
 
 
 def test_fusing(fc_wo_dataset):
-    stats_veg = StatsVegCount()
+    stats_veg = StatsVegCount(measurements=["veg_frequency", "water_frequency"])
     xx = stats_veg.native_transform(fc_wo_dataset)
     xx = xx.groupby("solar_day").map(partial(StatsVegCount.fuser, None)).compute()
     valid_index = (
@@ -369,7 +369,7 @@ def test_fusing(fc_wo_dataset):
 
 
 def test_veg_or_not(fc_wo_dataset):
-    stats_veg = StatsVegCount()
+    stats_veg = StatsVegCount(measurements=["veg_frequency", "water_frequency"])
     xx = stats_veg.native_transform(fc_wo_dataset)
     xx = xx.groupby("solar_day").map(partial(StatsVegCount.fuser, None))
     yy = stats_veg._veg_or_not(xx).compute()
@@ -386,7 +386,7 @@ def test_veg_or_not(fc_wo_dataset):
 
 
 def test_water_or_not(fc_wo_dataset):
-    stats_veg = StatsVegCount()
+    stats_veg = StatsVegCount(measurements=["veg_frequency", "water_frequency"])
     xx = stats_veg.native_transform(fc_wo_dataset)
     xx = xx.groupby("solar_day").map(partial(StatsVegCount.fuser, None))
     yy = stats_veg._water_or_not(xx).compute()
@@ -403,7 +403,7 @@ def test_water_or_not(fc_wo_dataset):
 
 
 def test_reduce(fc_wo_dataset):
-    stats_veg = StatsVegCount()
+    stats_veg = StatsVegCount(measurements=["veg_frequency", "water_frequency"])
     xx = stats_veg.native_transform(fc_wo_dataset)
     xx = xx.groupby("solar_day").map(partial(StatsVegCount.fuser, None))
     xx = stats_veg.reduce(xx).compute()
@@ -437,7 +437,7 @@ def test_reduce(fc_wo_dataset):
 
 
 def test_consecutive_month(consecutive_count):
-    stats_veg = StatsVegCount()
+    stats_veg = StatsVegCount(measurements=["veg_frequency", "water_frequency"])
     xx = stats_veg._max_consecutive_months(consecutive_count, 255).compute()
     expected_value = np.array(
         [

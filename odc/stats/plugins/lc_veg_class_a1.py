@@ -25,13 +25,6 @@ class StatsDem(StatsPluginInterface):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._measurements = (
-            measurements if measurements is not None else self.input_bands
-        )
-
-    @property
-    def measurements(self) -> Tuple[str, ...]:
-        return self._measurements
 
     def native_transform(self, xx):
         # reproject cannot work with nodata being int for float
@@ -88,11 +81,6 @@ class StatsVegClassL1(StatsPluginInterface):
             water_seasonality_threshold if water_seasonality_threshold else 0.25
         )
         self.output_classes = output_classes
-
-    @property
-    def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["classes_l3_l4", "water_seasonality"]
-        return _measurements
 
     def fuser(self, xx):
         return xx
@@ -249,12 +237,10 @@ class StatsVegClassL1(StatsPluginInterface):
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
         data_vars = {
-            "classes_l3_l4": xr.DataArray(
-                l3_mask[0], dims=xx["veg_frequency"].dims[1:], attrs=attrs
-            ),
-            "water_seasonality": xr.DataArray(
-                water_seasonality[0], dims=xx["veg_frequency"].dims[1:], attrs=attrs
-            ),
+            k: xr.DataArray(v, dims=xx["veg_frequency"].dims[1:], attrs=attrs)
+            for k, v in zip(
+                self.measurements, [l3_mask.squeeze(0), water_seasonality.squeeze(0)]
+            )
         }
         coords = dict((dim, xx.coords[dim]) for dim in xx["veg_frequency"].dims[1:])
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)

@@ -2,7 +2,7 @@
 Plugin of TF urban model in LandCover PipeLine
 """
 
-from typing import Tuple, Dict, Sequence
+from typing import Dict, Sequence
 
 import os
 import numpy as np
@@ -90,11 +90,6 @@ class StatsUrbanClass(StatsPluginInterface):
             self.crop_size = (256, 256)
         else:
             self.crop_size = crop_size
-
-    @property
-    def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["urban_classes"]
-        return _measurements
 
     def input_data(
         self, datasets: Sequence[Dataset], geobox: GeoBox, **kwargs
@@ -219,7 +214,7 @@ class StatsUrbanClass(StatsPluginInterface):
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
         dims = list(xx.dims.keys())[:2]
-        data_vars = {"urban_classes": xr.DataArray(um, dims=dims, attrs=attrs)}
+        data_vars = {self.measurements[0]: xr.DataArray(um, dims=dims, attrs=attrs)}
         coords = {dim: xx.coords[dim] for dim in dims}
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
 
