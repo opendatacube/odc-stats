@@ -98,7 +98,6 @@ def dataset():
     coords = {
         "x": np.linspace(10, 20, wo_fq.shape[2]),
         "y": np.linspace(0, 5, wo_fq.shape[1]),
-        "spec": index,
     }
     data_vars = {
         "frequency": xr.DataArray(
@@ -122,6 +121,7 @@ def dataset():
         ),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
+    xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
     return xx
 
 

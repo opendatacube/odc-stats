@@ -36,7 +36,6 @@ def dataset(usgs_ls8_sr_definition):
     coords = {
         "x": np.linspace(10, 20, band_red.shape[2]),
         "y": np.linspace(0, 5, band_pq.shape[1]),
-        "spec": index,
     }
     pq_flags_definition = {}
     for measurement in usgs_ls8_sr_definition["measurements"]:
@@ -55,6 +54,7 @@ def dataset(usgs_ls8_sr_definition):
         "QA_PIXEL": (("spec", "y", "x"), band_pq, attrs),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
+    xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
     xx["band_red"].attrs["nodata"] = 0
     return xx
 

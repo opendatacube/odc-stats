@@ -497,7 +497,7 @@ def test_cultivated_reduce(
     ).all()
 
     with pytest.raises(SystemExit) as excinfo:
-        cultivated.reduce(input_datasets.drop("classes_l3_l4"))
+        cultivated.reduce(input_datasets.drop_vars("classes_l3_l4"))
     assert excinfo.value.code == 0
 
 

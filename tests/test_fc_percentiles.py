@@ -46,7 +46,6 @@ def dataset():
     coords = {
         "x": np.linspace(10, 20, band_1.shape[2]),
         "y": np.linspace(0, 5, band_1.shape[1]),
-        "spec": index,
     }
 
     data_vars = {
@@ -57,6 +56,7 @@ def dataset():
         "ue": xr.DataArray(band_3, dims=("spec", "y", "x")),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
+    xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
 
     return xx
 
@@ -110,10 +110,6 @@ def test_native_transform(dataset, bits):
 def test_fusing(dataset):
     stats_fcp = StatsFCP()
     xx = stats_fcp.native_transform(dataset)
-    for dim in xx.dims:
-        if isinstance(xx.get_index(dim), pd.MultiIndex):
-            xx = xx.reset_index(dim)
-    xx = xx.set_xindex("solar_day")
     xx = xx.groupby("solar_day").map(partial(StatsFCP.fuser, None))
     assert xx["band_1"].attrs["test_attr"] == 57
 
@@ -142,11 +138,6 @@ def test_fusing(dataset):
     # Test fusing with UE filter and sum 120 limit
     stats_fcp_ue30_sum120 = StatsFCP(ue_threshold=30, max_sum_limit=120)
     xx_ue30_sum120 = stats_fcp_ue30_sum120.native_transform(dataset)
-    for dim in xx_ue30_sum120.dims:
-        if isinstance(xx_ue30_sum120.get_index(dim), pd.MultiIndex):
-            xx_ue30_sum120 = xx_ue30_sum120.reset_index(dim)
-    xx_ue30_sum120 = xx_ue30_sum120.set_xindex("solar_day")
-
     xx_ue30_sum120 = xx_ue30_sum120.groupby("solar_day").map(
         partial(StatsFCP.fuser, None)
     )
@@ -164,10 +155,6 @@ def test_fusing(dataset):
 def test_reduce(dataset):
     stats_fcp = StatsFCP(count_valid=True)
     xx = stats_fcp.native_transform(dataset)
-    for dim in xx.dims:
-        if isinstance(xx.get_index(dim), pd.MultiIndex):
-            xx = xx.reset_index(dim)
-    xx = xx.set_xindex("solar_day")
     xx = xx.groupby("solar_day").map(partial(StatsFCP.fuser, None))
     xx = xx.compute()
     xx = stats_fcp.reduce(xx)

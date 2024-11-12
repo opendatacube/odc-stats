@@ -47,7 +47,6 @@ def dataset_md():
     coords = {
         "x": np.linspace(10, 20, band_1.shape[2]),
         "y": np.linspace(0, 5, band_1.shape[1]),
-        "spec": index,
     }
     data_vars = {
         "band_1": xr.DataArray(
@@ -55,6 +54,7 @@ def dataset_md():
         ),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
+    xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
     return xx
 
 
@@ -301,7 +301,6 @@ def fc_wo_dataset():
     coords = {
         "x": np.linspace(10, 20, water.shape[2]),
         "y": np.linspace(0, 5, water.shape[1]),
-        "spec": index,
     }
     data_vars = {
         "water": xr.DataArray(water, dims=("spec", "y", "x"), attrs={"nodata": 1}),
@@ -311,6 +310,7 @@ def fc_wo_dataset():
         "bs": xr.DataArray(bs, dims=("spec", "y", "x"), attrs={"nodata": 255}),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
+    xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
 
     return xx
 

@@ -31,7 +31,6 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency):
     coords = {
         "x": np.linspace(10, 20, l34.shape[2]),
         "y": np.linspace(0, 5, l34.shape[1]),
-        "spec": index,
     }
 
     data_vars = {
@@ -67,6 +66,7 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency):
         ),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
+    xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
     return xx
 
 
@@ -238,10 +238,10 @@ def test_ntv_veg_cover():
     water_frequency = np.array(
         [
             [
-                [-999, -999, -999],
-                [-999, -999, -999],
-                [-999, -999, -999],
-                [-999, -999, -999],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
             ]
         ],
         dtype="uint8",
@@ -339,10 +339,10 @@ def test_ntv_woody_veg_cover():
     water_frequency = np.array(
         [
             [
-                [-9999, -9999, -9999],
-                [-9999, -9999, -9999],
-                [-9999, -9999, -9999],
-                [-9999, -9999, -9999],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
             ]
         ],
         dtype="uint8",
@@ -638,10 +638,10 @@ def test_ntv_herbaceous_veg_cover():
     water_frequency = np.array(
         [
             [
-                [-9999, -9999, -9999],
-                [-9999, -9999, -9999],
-                [-9999, -9999, -9999],
-                [-9999, -9999, -9999],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
             ]
         ],
         dtype="uint8",
