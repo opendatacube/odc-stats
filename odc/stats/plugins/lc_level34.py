@@ -60,9 +60,6 @@ class StatsLccsLevel4(StatsPluginInterface):
         _measurements = ["level3", "level4"]
         return _measurements
 
-    def native_transform(self, xx):
-        return xx
-
     def fuser(self, xx):
         return xx
 
