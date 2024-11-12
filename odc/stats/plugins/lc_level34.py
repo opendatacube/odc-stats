@@ -2,7 +2,7 @@
 Plugin of Module A3 in LandCover PipeLine
 """
 
-from typing import Tuple, Optional, List
+from typing import Optional, List
 
 import numpy as np
 import xarray as xr
@@ -55,11 +55,6 @@ class StatsLccsLevel4(StatsPluginInterface):
             water_seasonality_threshold if water_seasonality_threshold else 3
         )
 
-    @property
-    def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["level3", "level4"]
-        return _measurements
-
     def fuser(self, xx):
         return xx
 
@@ -111,10 +106,9 @@ class StatsLccsLevel4(StatsPluginInterface):
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
         dims = xx.classes_l3_l4.dims[1:]
-
         data_vars = {
-            "level3": xr.DataArray(level3.squeeze(), dims=dims, attrs=attrs),
-            "level4": xr.DataArray(level4.squeeze(), dims=dims, attrs=attrs),
+            k: xr.DataArray(v, dims=dims, attrs=attrs)
+            for k, v in zip(self.measurements, [level3.squeeze(), level4.squeeze()])
         }
 
         coords = dict((dim, xx.coords[dim]) for dim in dims)

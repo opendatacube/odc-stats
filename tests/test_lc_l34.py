@@ -152,7 +152,7 @@ def test_l4_classes(image_groups):
     expected_l3 = [[216, 216, 215], [216, 216, 216], [215, 215, 215], [215, 215, 215]]
 
     expected_l4 = [[95, 97, 93], [97, 96, 96], [93, 93, 93], [93, 93, 93]]
-    stats_l4 = StatsLccsLevel4()
+    stats_l4 = StatsLccsLevel4(measurements=["level3", "level4"])
     ds = stats_l4.reduce(image_groups)
 
     assert (ds.level3.compute() == expected_l3).all()
