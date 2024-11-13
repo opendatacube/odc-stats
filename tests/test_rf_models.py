@@ -421,6 +421,7 @@ def test_preprocess_predict_intput(
         cultivated_model_path,
         mask_bands,
         input_bands=cultivated_input_bands,
+        measurements=["cultivated"],
     )
     res = cultivated.preprocess_predict_input(input_datasets)
     for r in res:
@@ -440,6 +441,7 @@ def test_cultivated_predict(
         cultivated_model_path,
         mask_bands,
         input_bands=cultivated_input_bands,
+        measurements=["cultivated"],
     )
     dask_client.register_plugin(cultivated.dask_worker_plugin)
     imgs = cultivated.preprocess_predict_input(input_datasets)
@@ -462,6 +464,7 @@ def test_cultivated_aggregate_results(
         cultivated_model_path,
         mask_bands,
         input_bands=cultivated_input_bands,
+        measurements=["cultivated"],
     )
     res = cultivated.aggregate_results_from_group([cultivated_results[0]])
     assert (res.compute() == np.array([[112, 255], [111, 112]], dtype="uint8")).all()
@@ -482,6 +485,7 @@ def test_cultivated_reduce(
         cultivated_model_path,
         mask_bands,
         input_bands=cultivated_input_bands,
+        measurements=["cultivated"],
     )
     dask_client.register_plugin(cultivated.dask_worker_plugin)
     res = cultivated.reduce(input_datasets)
@@ -493,7 +497,7 @@ def test_cultivated_reduce(
     ).all()
 
     with pytest.raises(SystemExit) as excinfo:
-        cultivated.reduce(input_datasets.drop("classes_l3_l4"))
+        cultivated.reduce(input_datasets.drop_vars("classes_l3_l4"))
     assert excinfo.value.code == 0
 
 
@@ -506,7 +510,11 @@ def test_woody_aggregate_results(
 ):
 
     woody_cover = StatsWoodyCover(
-        woody_classes, woody_model_path, mask_bands, input_bands=woody_input_bands
+        woody_classes,
+        woody_model_path,
+        mask_bands,
+        input_bands=woody_input_bands,
+        measurements=["woody"],
     )
     res = woody_cover.aggregate_results_from_group([woody_results[0]])
     assert (res.compute() == np.array([[113, 255], [114, 113]], dtype="uint8")).all()
@@ -524,7 +532,11 @@ def test_woody_reduce(
 ):
     woody_inputs = input_datasets.sel(bands=woody_input_bands[:-1])
     woody_cover = StatsWoodyCover(
-        woody_classes, woody_model_path, mask_bands, input_bands=woody_input_bands
+        woody_classes,
+        woody_model_path,
+        mask_bands,
+        input_bands=woody_input_bands,
+        measurements=["woody"],
     )
     dask_client.register_plugin(woody_cover.dask_worker_plugin)
     res = woody_cover.reduce(woody_inputs)

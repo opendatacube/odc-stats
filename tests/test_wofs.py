@@ -32,13 +32,13 @@ def dataset():
     coords = {
         "x": np.linspace(10, 20, band_1.shape[2]),
         "y": np.linspace(0, 5, band_1.shape[1]),
-        "spec": index,
     }
 
     data_vars = {
         "water": xr.DataArray(band_1, dims=("spec", "y", "x"), attrs={"nodata": 0}),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
+    xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
 
     return xx
 
@@ -78,10 +78,6 @@ def test_native_transform(dataset):
 def test_fusing(dataset):
     stats_wofs = StatsWofs()
     out_xx = stats_wofs.native_transform(dataset)
-    for dim in out_xx.dims:
-        if isinstance(out_xx.get_index(dim), pd.MultiIndex):
-            out_xx = out_xx.reset_index(dim)
-    out_xx = out_xx.set_xindex("solar_day")
 
     out_xx = out_xx.groupby("solar_day").map(partial(stats_wofs.fuser))
     out_xx.load()
@@ -113,11 +109,6 @@ def test_fusing(dataset):
 def test_reduce(dataset):
     stats_wofs = StatsWofs()
     out_xx = stats_wofs.native_transform(dataset)
-    for dim in out_xx.dims:
-        if isinstance(out_xx.get_index(dim), pd.MultiIndex):
-            out_xx = out_xx.reset_index(dim)
-    out_xx = out_xx.set_xindex("solar_day")
-
     out_xx = out_xx.groupby("solar_day").map(partial(stats_wofs.fuser))
     out_xx = stats_wofs.reduce(out_xx)
     assert out_xx.count_wet.attrs.get("nodata", 0) == -999

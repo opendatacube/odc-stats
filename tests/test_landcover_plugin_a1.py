@@ -98,7 +98,6 @@ def dataset():
     coords = {
         "x": np.linspace(10, 20, wo_fq.shape[2]),
         "y": np.linspace(0, 5, wo_fq.shape[1]),
-        "spec": index,
     }
     data_vars = {
         "frequency": xr.DataArray(
@@ -122,6 +121,7 @@ def dataset():
         ),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
+    xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
     return xx
 
 
@@ -135,6 +135,7 @@ def test_l3_classes(dataset):
             "surface": 210,
         },
         optional_bands=["canopy_cover_class", "elevation"],
+        measurements=["level_3_4", "water_season"],
     )
 
     expected_res = np.array(
@@ -163,6 +164,7 @@ def test_l4_water_seasonality(dataset):
             "surface": 210,
         },
         optional_bands=["canopy_cover_class", "elevation"],
+        measurements=["level_3_4", "water_season"],
     )
 
     wo_fq = np.array(
@@ -208,6 +210,7 @@ def test_reduce(dataset):
             "surface": 210,
         },
         optional_bands=["canopy_cover_class", "elevation"],
+        measurements=["level_3_4", "water_season"],
     )
     res = stats_l3.reduce(dataset)
 

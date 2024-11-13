@@ -42,11 +42,6 @@ class StatsVegCount(StatsPluginInterface):
         self.ue_threshold = ue_threshold if ue_threshold is not None else 30
         self.cloud_filters = cloud_filters if cloud_filters is not None else {}
 
-    @property
-    def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["veg_frequency", "water_frequency"]
-        return _measurements
-
     def native_transform(self, xx):
         """
         Loads data in its native projection. It performs the following:
@@ -217,12 +212,8 @@ class StatsVegCount(StatsPluginInterface):
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
         data_vars = {
-            "veg_frequency": xr.DataArray(
-                max_count_veg, dims=xx["wet"].dims[1:], attrs=attrs
-            ),
-            "water_frequency": xr.DataArray(
-                max_count_water, dims=xx["wet"].dims[1:], attrs=attrs
-            ),
+            k: xr.DataArray(v, dims=xx["wet"].dims[1:], attrs=attrs)
+            for k, v in zip(self.measurements, [max_count_veg, max_count_water])
         }
         coords = dict((dim, xx.coords[dim]) for dim in xx["wet"].dims[1:])
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)

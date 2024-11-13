@@ -2,7 +2,6 @@
 Plugin of RFclassfication cultivated  model in LandCover PipeLine
 """
 
-from typing import Tuple
 import numpy as np
 import xarray as xr
 import dask.array as da
@@ -225,11 +224,6 @@ class StatsCultivatedClass(StatsMLTree):
     SHORT_NAME = NAME
     VERSION = "0.0.1"
     PRODUCT_FAMILY = "lccs"
-
-    @property
-    def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["cultivated"]
-        return _measurements
 
     def predict(self, input_array):
         bands_indices = dict(zip(self.input_bands, np.arange(len(self.input_bands))))

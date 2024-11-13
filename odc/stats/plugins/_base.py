@@ -29,6 +29,7 @@ class StatsPluginInterface(ABC):
         rgb_clamp: Tuple[float, float] = (1.0, 3_000.0),
         transform_code: Optional[str] = None,
         area_of_interest: Optional[Sequence[float]] = None,
+        measurements: Optional[Sequence[str]] = None,
     ):
         self.resampling = resampling
         self.input_bands = input_bands if input_bands is not None else []
@@ -40,12 +41,14 @@ class StatsPluginInterface(ABC):
         self.rgb_clamp = rgb_clamp
         self.transform_code = transform_code
         self.area_of_interest = area_of_interest
+        self._measurements = measurements
         self.dask_worker_plugin = None
 
     @property
-    @abstractmethod
     def measurements(self) -> Tuple[str, ...]:
-        pass
+        if self._measurements is None:
+            raise NotImplementedError("Plugins must provide 'measurements'")
+        return self._measurements
 
     def native_transform(self, xx: xr.Dataset) -> xr.Dataset:
         for var in xx.data_vars:

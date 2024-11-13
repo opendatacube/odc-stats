@@ -219,7 +219,7 @@ class StatsMLTree(StatsPluginInterface):
 
         res = self.aggregate_results_from_group(res)
         attrs = xx.attrs.copy()
-        dims = list(xx.dims.keys())[:2]
+        dims = list(xx.sizes.keys())[:2]
         data_vars = {"predict_output": xr.DataArray(res, dims=dims, attrs=attrs)}
         coords = {dim: xx.coords[dim] for dim in dims}
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)

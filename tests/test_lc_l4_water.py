@@ -29,7 +29,6 @@ def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_freque
     coords = {
         "x": np.linspace(10, 20, l34.shape[2]),
         "y": np.linspace(0, 5, l34.shape[1]),
-        "spec": index,
     }
 
     data_vars = {
@@ -70,6 +69,7 @@ def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_freque
         ),
     }
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
+    xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
     return xx
 
 

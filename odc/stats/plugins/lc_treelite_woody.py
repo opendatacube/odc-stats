@@ -2,7 +2,6 @@
 Plugin of RFregressor woody cover model in LandCover PipeLine
 """
 
-from typing import Tuple
 import xarray as xr
 import dask.array as da
 
@@ -18,11 +17,6 @@ class StatsWoodyCover(StatsMLTree):
     SHORT_NAME = NAME
     VERSION = "0.0.1"
     PRODUCT_FAMILY = "lccs"
-
-    @property
-    def measurements(self) -> Tuple[str, ...]:
-        _measurements = ["woody"]
-        return _measurements
 
     def predict(self, input_array):
         wc = da.map_blocks(
