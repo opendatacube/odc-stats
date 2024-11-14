@@ -2,7 +2,7 @@
 Plugin of Module A1 in LandCover PipeLine
 """
 
-from typing import Tuple, Optional, Dict
+from typing import Optional, Dict
 
 import numpy as np
 import xarray as xr
@@ -18,13 +18,6 @@ class StatsDem(StatsPluginInterface):
     SHORT_NAME = NAME
     VERSION = "0.0.1"
     PRODUCT_FAMILY = "lccs"
-
-    def __init__(
-        self,
-        measurements: Optional[Tuple[str, ...]] = None,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
 
     def native_transform(self, xx):
         # reproject cannot work with nodata being int for float
