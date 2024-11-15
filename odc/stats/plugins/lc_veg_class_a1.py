@@ -149,7 +149,7 @@ class StatsVegClassL1(StatsPluginInterface):
                         {"a": data, "b": l3_mask},
                         name="intertidal_veg",
                         dtype="uint8",
-                        **{"m": self.output_classes["aquatic_veg"]},
+                        **{"m": self.output_classes["aquatic_veg_herb"]},
                     )
                 elif b == "canopy_cover_class":
                     # aquatic_veg: (mangroves > 0) & (mangroves != nodata)
@@ -161,7 +161,7 @@ class StatsVegClassL1(StatsPluginInterface):
                         dtype="uint8",
                         **{
                             "nodata": xx[b].attrs["nodata"],
-                            "m": self.output_classes["aquatic_veg"],
+                            "m": self.output_classes["aquatic_veg_wood"],
                         },
                     )
 

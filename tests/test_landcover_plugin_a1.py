@@ -128,7 +128,8 @@ def dataset():
 def test_l3_classes(dataset):
     stats_l3 = StatsVegClassL1(
         output_classes={
-            "aquatic_veg": 124,
+            "aquatic_veg_wood": 124,
+            "aquatic_veg_herb": 125,
             "terrestrial_veg": 110,
             "water": 221,
             "intertidal": 223,
@@ -141,7 +142,7 @@ def test_l3_classes(dataset):
     expected_res = np.array(
         [
             [
-                [223, 221, 210, 124],
+                [223, 221, 210, 125],
                 [223, 223, 223, 210],
                 [223, 221, 223, 223],
                 [221, 223, 223, 223],
@@ -157,7 +158,8 @@ def test_l3_classes(dataset):
 def test_l4_water_seasonality(dataset):
     stats_l3 = StatsVegClassL1(
         output_classes={
-            "aquatic_veg": 124,
+            "aquatic_veg_wood": 124,
+            "aquatic_veg_herb": 125,
             "terrestrial_veg": 110,
             "water": 221,
             "intertidal": 223,
@@ -203,7 +205,8 @@ def test_l4_water_seasonality(dataset):
 def test_reduce(dataset):
     stats_l3 = StatsVegClassL1(
         output_classes={
-            "aquatic_veg": 124,
+            "aquatic_veg_wood": 124,
+            "aquatic_veg_herb": 125,
             "terrestrial_veg": 110,
             "water": 221,
             "intertidal": 223,
