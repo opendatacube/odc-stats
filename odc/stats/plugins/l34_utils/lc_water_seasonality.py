@@ -12,11 +12,11 @@ def water_seasonality(xx: xr.Dataset, water_seasonality_threshold):
 
     # Apply nodata
     water_frequency = expr_eval(
-        "where((a==watersea_nodata), nodata, a)",
+        "where((a!=a)|(a==watersea_nodata), nodata, a)",
         {"a": xx.water_frequency.data},
-        name="mark_water_season",
-        dtype="uint8",
-        **{"watersea_nodata": WATER_FREQ_NODATA, "nodata": NODATA},
+        name="mark_lifeform",
+        dtype="float32",
+        **{"nodata": NODATA, "watersea_nodata": WATER_FREQ_NODATA},
     )
 
     water_season_mask = expr_eval(

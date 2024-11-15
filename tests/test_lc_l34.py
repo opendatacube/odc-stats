@@ -116,12 +116,12 @@ def image_groups():
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "cultivated_class": xr.DataArray(
+        "cultivated": xr.DataArray(
             da.from_array(cultivated, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "woody_cover": xr.DataArray(
+        "woody": xr.DataArray(
             da.from_array(woody, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
