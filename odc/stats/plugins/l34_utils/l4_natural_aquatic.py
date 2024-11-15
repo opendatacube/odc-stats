@@ -28,14 +28,14 @@ def natural_auquatic_veg(l4, veg_cover, water_seasonality):
         dtype="uint8",
     )
 
-    res = expr_eval(
-        "where((a!=124)|(a!=125), 255, a)",
-        {
-            "a": res,
-        },
-        name="mark_nodata",
-        dtype="uint8",
-    )
+    # res = expr_eval(
+    #     "where((a!=124)|(a!=125), 255, a)",
+    #     {
+    #         "a": res,
+    #     },
+    #     name="mark_nodata",
+    #     dtype="uint8",
+    # )
 
     # mark water season
     # use some value not used in final class
@@ -120,7 +120,6 @@ def natural_auquatic_veg(l4, veg_cover, water_seasonality):
         name="mark_final",
         dtype="uint8",
     )
-
     #########################################
     res = expr_eval(
         "where((a==254)&(b==12), 67, a)",

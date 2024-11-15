@@ -71,15 +71,15 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency):
 
 
 def test_ntv_classes_woody_herbaceous():
-    expected_l4_ntv_classes = [[56, 56, 56], [56, 56, 55], [57, 57, 57], [57, 57, 55]]
+    expected_l4_ntv_classes = [[56, 56, 56], [57, 57, 57], [56, 56, 56], [57, 57, 57]]
 
     l34 = np.array(
         [
             [
                 [124, 124, 124],
+                [125, 125, 125],
                 [124, 124, 124],
-                [124, 124, 124],
-                [124, 124, 124],
+                [125, 125, 125],
             ]
         ],
         dtype="uint8",
@@ -136,10 +136,10 @@ def test_ntv_classes_woody_herbaceous():
     water_frequency = np.array(
         [
             [
-                [1, 3, 2],
-                [4, 5, 6],
-                [9, 2, 11],
-                [10, 11, 12],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
             ]
         ],
         dtype="uint8",
@@ -162,27 +162,27 @@ def test_ntv_classes_woody_herbaceous():
         xx, stats_l4.water_seasonality_threshold
     )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, lifeform, veg_cover, water_seasonality
+        l4_ctv_ntv, veg_cover, water_seasonality
     )
 
     assert (l4_ctv_ntv_nav.compute() == expected_l4_ntv_classes).all()
 
 
-def test_ntv_veg_cover():
+def test_ntv_herbaceous_seasonal_water_veg_cover():
     expected_l4_ntv_classes = [
-        [62, 59, 58],
-        [58, 59, 59],
-        [62, 60, 60],
-        [61, 62, 59],
+        [92, 83, 81],
+        [80, 82, 82],
+        [92, 86, 86],
+        [88, 91, 82],
     ]
 
     l34 = np.array(
         [
             [
-                [124, 124, 124],
-                [124, 124, 124],
-                [124, 124, 124],
-                [124, 124, 124],
+                [125, 125, 125],
+                [125, 125, 125],
+                [125, 125, 125],
+                [125, 125, 125],
             ]
         ],
         dtype="uint8",
@@ -199,7 +199,7 @@ def test_ntv_veg_cover():
         ],
         dtype="uint8",
     )
-    # 112 --> natural veg
+
     cultivated = np.array(
         [
             [
@@ -215,10 +215,10 @@ def test_ntv_veg_cover():
     woody = np.array(
         [
             [
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
+                [114, 114, 114],
+                [114, 114, 114],
+                [114, 114, 114],
+                [114, 114, 114],
             ]
         ],
         dtype="uint8",
@@ -238,10 +238,10 @@ def test_ntv_veg_cover():
     water_frequency = np.array(
         [
             [
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
+                [1, 2, 3],
+                [6, 8, 10],
+                [1, 2, 3],
+                [11, 12, 12],
             ]
         ],
         dtype="uint8",
@@ -264,109 +264,9 @@ def test_ntv_veg_cover():
         xx, stats_l4.water_seasonality_threshold
     )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, lifeform, veg_cover, water_seasonality
-    )
-    assert (l4_ctv_ntv_nav.compute() == expected_l4_ntv_classes).all()
-
-
-def test_ntv_woody_veg_cover():
-    expected_l4_ntv_classes = [
-        [75, 66, 63],
-        [63, 66, 66],
-        [75, 69, 69],
-        [72, 75, 66],
-    ]
-
-    l34 = np.array(
-        [
-            [
-                [124, 124, 124],
-                [124, 124, 124],
-                [124, 124, 124],
-                [124, 124, 124],
-            ]
-        ],
-        dtype="uint8",
+        l4_ctv_ntv, veg_cover, water_seasonality
     )
 
-    urban = np.array(
-        [
-            [
-                [216, 216, 216],
-                [216, 216, 216],
-                [216, 216, 216],
-                [216, 216, 216],
-            ]
-        ],
-        dtype="uint8",
-    )
-    # 112 --> natural veg
-    cultivated = np.array(
-        [
-            [
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    woody = np.array(
-        [
-            [
-                [113, 113, 113],
-                [113, 113, 113],
-                [113, 113, 113],
-                [113, 113, 113],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    pv_pc_50 = np.array(
-        [
-            [
-                [1, 64, 65],
-                [66, 40, 41],
-                [3, 16, 15],
-                [4, 1, 42],
-            ]
-        ],
-        dtype="uint8",
-    )
-    water_frequency = np.array(
-        [
-            [
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
-
-    stats_l4 = StatsLccsLevel4()
-    level3 = lc_level3.lc_level3(xx)
-    lifeform = lc_lifeform.lifeform(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-
-    # Apply cultivated to match the code in Level4 processing
-    l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
-    )
-    l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
-
-    water_seasonality = lc_water_seasonality.water_seasonality(
-        xx, stats_l4.water_seasonality_threshold
-    )
-    l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, lifeform, veg_cover, water_seasonality
-    )
     assert (l4_ctv_ntv_nav.compute() == expected_l4_ntv_classes).all()
 
 
@@ -401,305 +301,6 @@ def test_ntv_woody_seasonal_water_veg_cover():
         ],
         dtype="uint8",
     )
-    # 112 --> natural veg
-    cultivated = np.array(
-        [
-            [
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    woody = np.array(
-        [
-            [
-                [113, 113, 113],
-                [113, 113, 113],
-                [113, 113, 113],
-                [113, 113, 113],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    pv_pc_50 = np.array(
-        [
-            [
-                [1, 64, 65],
-                [66, 40, 41],
-                [3, 16, 15],
-                [4, 1, 42],
-            ]
-        ],
-        dtype="uint8",
-    )
-    water_frequency = np.array(
-        [
-            [
-                [1, 2, 3],
-                [1, 2, 3],
-                [1, 2, 3],
-                [1, 2, 3],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
-
-    stats_l4 = StatsLccsLevel4()
-    level3 = lc_level3.lc_level3(xx)
-    lifeform = lc_lifeform.lifeform(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-
-    # Apply cultivated to match the code in Level4 processing
-    l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
-    )
-    l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
-
-    water_seasonality = lc_water_seasonality.water_seasonality(
-        xx, stats_l4.water_seasonality_threshold
-    )
-    l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, lifeform, veg_cover, water_seasonality
-    )
-
-    assert (l4_ctv_ntv_nav.compute() == expected_l4_ntv_classes).all()
-
-
-def test_ntv_woody_permanent_water_veg_cover():
-    expected_l4_ntv_classes = [
-        [76, 67, 64],
-        [64, 67, 67],
-        [76, 70, 70],
-        [73, 76, 67],
-    ]
-
-    l34 = np.array(
-        [
-            [
-                [124, 124, 124],
-                [124, 124, 124],
-                [124, 124, 124],
-                [124, 124, 124],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    urban = np.array(
-        [
-            [
-                [216, 216, 216],
-                [216, 216, 216],
-                [216, 216, 216],
-                [216, 216, 216],
-            ]
-        ],
-        dtype="uint8",
-    )
-    # 112 --> natural veg
-    cultivated = np.array(
-        [
-            [
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    woody = np.array(
-        [
-            [
-                [113, 113, 113],
-                [113, 113, 113],
-                [113, 113, 113],
-                [113, 113, 113],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    pv_pc_50 = np.array(
-        [
-            [
-                [1, 64, 65],
-                [66, 40, 41],
-                [3, 16, 15],
-                [4, 1, 42],
-            ]
-        ],
-        dtype="uint8",
-    )
-    water_frequency = np.array(
-        [
-            [
-                [4, 5, 6],
-                [7, 8, 9],
-                [10, 11, 12],
-                [11, 10, 8],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
-
-    stats_l4 = StatsLccsLevel4()
-    level3 = lc_level3.lc_level3(xx)
-    lifeform = lc_lifeform.lifeform(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-
-    # Apply cultivated to match the code in Level4 processing
-    l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
-    )
-    l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
-
-    water_seasonality = lc_water_seasonality.water_seasonality(
-        xx, stats_l4.water_seasonality_threshold
-    )
-    l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, lifeform, veg_cover, water_seasonality
-    )
-    assert (l4_ctv_ntv_nav.compute() == expected_l4_ntv_classes).all()
-
-
-def test_ntv_herbaceous_veg_cover():
-    expected_l4_ntv_classes = [[90, 81, 78], [78, 81, 81], [90, 84, 84], [87, 90, 81]]
-
-    l34 = np.array(
-        [
-            [
-                [124, 124, 124],
-                [124, 124, 124],
-                [124, 124, 124],
-                [124, 124, 124],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    urban = np.array(
-        [
-            [
-                [216, 216, 216],
-                [216, 216, 216],
-                [216, 216, 216],
-                [216, 216, 216],
-            ]
-        ],
-        dtype="uint8",
-    )
-    # 112 --> natural veg
-    cultivated = np.array(
-        [
-            [
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    woody = np.array(
-        [
-            [
-                [114, 114, 114],
-                [114, 114, 114],
-                [114, 114, 114],
-                [114, 114, 114],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    pv_pc_50 = np.array(
-        [
-            [
-                [1, 64, 65],
-                [66, 40, 41],
-                [3, 16, 15],
-                [4, 1, 42],
-            ]
-        ],
-        dtype="uint8",
-    )
-    water_frequency = np.array(
-        [
-            [
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-                [255, 255, 255],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency)
-
-    stats_l4 = StatsLccsLevel4()
-    level3 = lc_level3.lc_level3(xx)
-    lifeform = lc_lifeform.lifeform(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-
-    # Apply cultivated to match the code in Level4 processing
-    l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
-    )
-    l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
-
-    water_seasonality = lc_water_seasonality.water_seasonality(
-        xx, stats_l4.water_seasonality_threshold
-    )
-    l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, lifeform, veg_cover, water_seasonality
-    )
-    assert (l4_ctv_ntv_nav.compute() == expected_l4_ntv_classes).all()
-
-
-def test_ntv_herbaceous_seasonal_water_veg_cover():
-    expected_l4_ntv_classes = [
-        [92, 83, 80],
-        [80, 83, 83],
-        [92, 86, 86],
-        [89, 92, 83],
-    ]
-
-    l34 = np.array(
-        [
-            [
-                [124, 124, 124],
-                [124, 124, 124],
-                [124, 124, 124],
-                [124, 124, 124],
-            ]
-        ],
-        dtype="uint8",
-    )
-
-    urban = np.array(
-        [
-            [
-                [216, 216, 216],
-                [216, 216, 216],
-                [216, 216, 216],
-                [216, 216, 216],
-            ]
-        ],
-        dtype="uint8",
-    )
 
     cultivated = np.array(
         [
@@ -765,19 +366,14 @@ def test_ntv_herbaceous_seasonal_water_veg_cover():
         xx, stats_l4.water_seasonality_threshold
     )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, lifeform, veg_cover, water_seasonality
+        l4_ctv_ntv, veg_cover, water_seasonality
     )
 
     assert (l4_ctv_ntv_nav.compute() == expected_l4_ntv_classes).all()
 
 
 def test_ntv_herbaceous_permanent_water_veg_cover():
-    expected_l4_ntv_classes = [
-        [91, 82, 79],
-        [79, 82, 82],
-        [91, 85, 85],
-        [88, 91, 82],
-    ]
+    expected_l4_ntv_classes = [[76, 67, 64], [64, 67, 67], [76, 70, 70], [73, 76, 67]]
 
     l34 = np.array(
         [
@@ -867,6 +463,6 @@ def test_ntv_herbaceous_permanent_water_veg_cover():
         xx, stats_l4.water_seasonality_threshold
     )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, lifeform, veg_cover, water_seasonality
+        l4_ctv_ntv, veg_cover, water_seasonality
     )
     assert (l4_ctv_ntv_nav.compute() == expected_l4_ntv_classes).all()

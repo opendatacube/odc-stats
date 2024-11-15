@@ -188,7 +188,7 @@ def test_ns():
         xx, stats_l4.water_seasonality_threshold
     )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, lifeform, veg_cover, water_seasonality
+        l4_ctv_ntv, veg_cover, water_seasonality
     )
 
     # Bare gradation
