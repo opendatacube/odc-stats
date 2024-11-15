@@ -25,7 +25,7 @@ def dask_client():
 @pytest.fixture(scope="module")
 def tflite_model_path():
     s3_bucket = "dea-public-data-dev"
-    s3_key = "lccs_models/urban_models/tflite/urban_model_tf_2_16_2.tflite"
+    s3_key = "lccs_models/urban_models/0-0-5/tflite/urban_model_tf_2_16_2.tflite"
     local_path = "/tmp/model.tflite"
 
     # Download the model from S3
