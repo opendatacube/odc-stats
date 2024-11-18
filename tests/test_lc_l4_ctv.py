@@ -37,12 +37,12 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50):
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "cultivated_class": xr.DataArray(
+        "cultivated": xr.DataArray(
             da.from_array(cultivated, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "woody_cover": xr.DataArray(
+        "woody": xr.DataArray(
             da.from_array(woody, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -300,6 +300,7 @@ def test_ctv_classes_woody_herbaceous():
     l4_ctv = l4_cultivated.lc_l4_cultivated(
         xx.classes_l3_l4, level3, lifeform, veg_cover
     )
+
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
 
 

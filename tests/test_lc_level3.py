@@ -74,7 +74,7 @@ def image_groups():
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "cultivated_class": xr.DataArray(
+        "cultivated": xr.DataArray(
             da.from_array(cultivated, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},

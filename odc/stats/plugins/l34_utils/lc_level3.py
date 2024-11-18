@@ -14,10 +14,10 @@ def lc_level3(xx: xr.Dataset):
 
     res = expr_eval(
         "where((a!=a)|(a>=nodata), b, a)",
-        {"a": xx.cultivated_class.data, "b": xx.classes_l3_l4.data},
+        {"a": xx.cultivated.data, "b": xx.classes_l3_l4.data},
         name="mask_cultivated",
         dtype="float32",
-        **{"nodata": xx.cultivated_class.attrs.get("nodata")},
+        **{"nodata": xx.cultivated.attrs.get("nodata")},
     )
 
     # Mask urban results with bare sfc (210)

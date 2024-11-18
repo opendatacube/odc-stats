@@ -46,12 +46,12 @@ def image_groups(l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_freque
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "cultivated_class": xr.DataArray(
+        "cultivated": xr.DataArray(
             da.from_array(cultivated, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "woody_cover": xr.DataArray(
+        "woody": xr.DataArray(
             da.from_array(woody, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -188,7 +188,7 @@ def test_ns():
         xx, stats_l4.water_seasonality_threshold
     )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, lifeform, veg_cover, water_seasonality
+        l4_ctv_ntv, veg_cover, water_seasonality
     )
 
     # Bare gradation

@@ -94,9 +94,7 @@ class StatsLccsLevel4(StatsPluginInterface):
             xx, self.bare_threshold, veg_cover
         )
 
-        l4 = l4_natural_aquatic.natural_auquatic_veg(
-            l4, lifeform, veg_cover, water_seasonality
-        )
+        l4 = l4_natural_aquatic.natural_auquatic_veg(l4, veg_cover, water_seasonality)
 
         level4 = l4_surface.lc_l4_surface(l4, level3, bare_gradation)
 
