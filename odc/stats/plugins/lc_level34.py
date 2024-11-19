@@ -6,8 +6,10 @@ from typing import Optional, List
 
 import numpy as np
 import xarray as xr
+import os
 
 from ._registry import StatsPluginInterface, register
+from ._utils import rasterize_vector_mask
 
 from .l34_utils import (
     l4_water_persistence,
@@ -33,12 +35,20 @@ class StatsLccsLevel4(StatsPluginInterface):
 
     def __init__(
         self,
+        urban_mask: str = None,
+        mask_threshold: Optional[float] = None,
         veg_threshold: Optional[List] = None,
         bare_threshold: Optional[List] = None,
         watper_threshold: Optional[List] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
+        if urban_mask is None:
+            raise ValueError("Missing urban mask shapefile")
+        if not os.path.exists(urban_mask):
+            raise FileNotFoundError(f"{urban_mask} not found")
+        self.urban_mask = urban_mask
+        self.mask_threshold = mask_threshold
 
         self.veg_threshold = (
             veg_threshold if veg_threshold is not None else [1, 4, 15, 40, 65, 100]
@@ -51,6 +61,7 @@ class StatsLccsLevel4(StatsPluginInterface):
     def fuser(self, xx):
         return xx
 
+    # pylint: disable=too-many-locals
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
 
         # Water persistence
@@ -62,7 +73,13 @@ class StatsLccsLevel4(StatsPluginInterface):
         l4 = l4_water.water_classification(xx, water_persistence)
 
         # Generate Level3 classes
-        level3 = lc_level3.lc_level3(xx)
+        urban_mask = rasterize_vector_mask(
+            self.urban_mask,
+            xx.geobox.transform,
+            xx.artificial_surface.shape,
+            threshold=self.mask_threshold,
+        )
+        level3 = lc_level3.lc_level3(xx, urban_mask)
 
         # Vegetation cover
         veg_cover = l4_veg_cover.canopyco_veg_con(xx, self.veg_threshold)

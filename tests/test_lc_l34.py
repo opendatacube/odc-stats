@@ -3,11 +3,74 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import dask.array as da
+import json
+import tempfile
+import os
+import fiona
+from fiona.crs import CRS
+from datacube.utils.geometry import GeoBox
+from affine import Affine
+
 
 import pytest
 
 
 NODATA = 255
+
+
+@pytest.fixture(scope="module")
+def urban_shape():
+    data = """
+    {
+   "type":"FeatureCollection",
+   "features":[
+      {
+         "geometry":{
+            "type":"Polygon",
+            "coordinates":[
+               [
+                  [
+                     0,
+                     0
+                  ],
+                  [
+                     0,
+                     100
+                  ],
+                  [
+                     100,
+                     100
+                  ],
+                  [
+                     100,
+                     0
+                  ],
+                  [
+                     0,
+                     0
+                  ]
+               ]
+            ]
+         },
+         "type":"Feature"
+      }
+   ]
+}
+    """
+    data = json.loads(data)["features"][0]
+    tmpdir = tempfile.mkdtemp()
+    filename = os.path.join(tmpdir, "test.json")
+    with fiona.open(
+        filename,
+        "w",
+        driver="GeoJSON",
+        crs=CRS.from_epsg(3577),
+        schema={
+            "geometry": "Polygon",
+        },
+    ) as dst:
+        dst.write(data)
+    return filename
 
 
 @pytest.fixture(scope="module")
@@ -112,10 +175,14 @@ def image_groups():
         (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
     ]
     index = pd.MultiIndex.from_tuples(tuples, names=["time", "solar_day"])
-    coords = {
-        "x": np.linspace(10, 20, l34.shape[2]),
-        "y": np.linspace(0, 5, l34.shape[1]),
-    }
+
+    affine = Affine.translation(10, 0) * Affine.scale(
+        (20 - 10) / l34.shape[2], (5 - 0) / l34.shape[1]
+    )
+    geobox = GeoBox(
+        crs="epsg:3577", affine=affine, width=l34.shape[2], height=l34.shape[1]
+    )
+    coords = geobox.xr_coords()
 
     data_vars = {
         "level_3_4": xr.DataArray(
@@ -123,7 +190,7 @@ def image_groups():
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "urban_classes": xr.DataArray(
+        "artificial_surface": xr.DataArray(
             da.from_array(urban, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -169,7 +236,9 @@ def test_l4_classes(image_groups):
     expected_l3 = [[216, 216, 215], [216, 216, 216], [220, 215, 215], [220, 220, 220]]
 
     expected_l4 = [[95, 97, 93], [97, 96, 96], [100, 93, 93], [101, 101, 101]]
-    stats_l4 = StatsLccsLevel4(measurements=["level3", "level4"])
+    stats_l4 = StatsLccsLevel4(
+        measurements=["level3", "level4"], urban_mask=urban_shape, mask_threshold=0.3
+    )
     ds = stats_l4.reduce(image_groups)
 
     assert (ds.level3.compute() == expected_l3).all()

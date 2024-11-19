@@ -5,7 +5,7 @@ from odc.stats._algebra import expr_eval
 NODATA = 255
 
 
-def lc_level3(xx: xr.Dataset):
+def lc_level3(xx: xr.Dataset, urban_mask):
 
     # Cultivated pipeline applies a mask which feeds only terrestrial veg (110) to the model
     # Just exclude no data (255 or nan) and apply the cultivated results
@@ -23,10 +23,11 @@ def lc_level3(xx: xr.Dataset):
     # Mask urban results with bare sfc (210)
 
     res = expr_eval(
-        "where(a==_u, b, a)",
+        "where((a==_u)&(c>0), b, a)",
         {
             "a": res,
-            "b": xx.urban_classes.data,
+            "b": xx.artificial_surface.data,
+            "c": urban_mask,
         },
         name="mark_urban",
         dtype="float32",

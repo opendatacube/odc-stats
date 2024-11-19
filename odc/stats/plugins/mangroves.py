@@ -9,10 +9,9 @@ import xarray as xr
 import dask
 import os
 from odc.algo import keep_good_only, erase_bad
-import fiona
-from rasterio import features
 
 from ._registry import StatsPluginInterface, register
+from ._utils import rasterize_vector_mask
 
 NODATA = 255
 
@@ -45,22 +44,6 @@ class Mangroves(StatsPluginInterface):
         _measurements = ["canopy_cover_class"]
         return _measurements
 
-    def rasterize_mangroves_extent(self, shape_file, transform, dst_shape):
-        with fiona.open(shape_file) as source_ds:
-            geoms = [s["geometry"] for s in source_ds]
-
-        mangrove_extent = features.rasterize(
-            geoms,
-            transform=transform,
-            out_shape=dst_shape[1:],
-            all_touched=False,
-            fill=0,
-            default_value=1,
-            dtype="uint8",
-        )
-
-        return dask.array.from_array(mangrove_extent.reshape(dst_shape), name=False)
-
     def fuser(self, xx):
         """
         no fuse required for mangroves since group by none
@@ -73,7 +56,7 @@ class Mangroves(StatsPluginInterface):
         mangroves computation here
         it is not a 'reduce' though
         """
-        extent_mask = self.rasterize_mangroves_extent(
+        extent_mask = rasterize_vector_mask(
             self.mangroves_extent, xx.geobox.transform, xx.pv_pc_10.shape
         )
         good_data = extent_mask == 1
