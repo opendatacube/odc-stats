@@ -15,7 +15,7 @@ def canopyco_veg_con(xx: xr.Dataset, veg_threshold):
         dtype="float32",
         **{"nodata": NODATA},
     )
-    
+
     # Map any data > 100 ---> 100
     pv_pc_50 = expr_eval(
         "where((a>100) & (a!=nodata), 100, a)",

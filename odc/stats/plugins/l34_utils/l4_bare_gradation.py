@@ -23,7 +23,7 @@ def bare_gradation(xx: xr.Dataset, bare_threshold, veg_cover):
         dtype="uint8",
         **{"nodata": NODATA},
     )
-    
+
     # 60% <= data  --> 15
     bs_mask = expr_eval(
         "where((a>=m)&(a!=nodata), 15, a)",

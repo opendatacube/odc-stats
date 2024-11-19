@@ -136,9 +136,7 @@ def test_ntv_classes_herbaceous():
     level3 = lc_level3.lc_level3(xx)
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-    l4_ntv = l4_natural_veg.lc_l4_natural_veg(
-        xx.level_3_4, level3, lifeform, veg_cover
-    )
+    l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.level_3_4, level3, lifeform, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
 
 
@@ -217,9 +215,7 @@ def test_ntv_classes_woody():
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 
-    l4_ntv = l4_natural_veg.lc_l4_natural_veg(
-        xx.level_3_4, level3, lifeform, veg_cover
-    )
+    l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.level_3_4, level3, lifeform, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
 
 
@@ -297,9 +293,7 @@ def test_ntv_classes_no_veg():
     level3 = lc_level3.lc_level3(xx)
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-    l4_ntv = l4_natural_veg.lc_l4_natural_veg(
-        xx.level_3_4, level3, lifeform, veg_cover
-    )
+    l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.level_3_4, level3, lifeform, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
 
 
@@ -377,7 +371,5 @@ def test_ntv_classes_no_lifeform():
     level3 = lc_level3.lc_level3(xx)
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
-    l4_ntv = l4_natural_veg.lc_l4_natural_veg(
-        xx.level_3_4, level3, lifeform, veg_cover
-    )
+    l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.level_3_4, level3, lifeform, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()

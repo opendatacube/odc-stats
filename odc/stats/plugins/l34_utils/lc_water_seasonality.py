@@ -8,7 +8,7 @@ NODATA = 255
 def water_seasonality(xx: xr.Dataset, water_seasonality_threshold):
     # >= 3 months ----> 1  Semi-permanent or permanent
     # < 3 months  ----> 2 Temporary or seasonal
-    
+
     # Apply nodata
     water_frequency = expr_eval(
         "where((a!=a), nodata, a)",

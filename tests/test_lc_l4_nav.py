@@ -153,9 +153,7 @@ def test_ntv_classes_woody_herbaceous():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 
     # Apply cultivated to match the code in Level4 processing
-    l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.level_3_4, level3, lifeform, veg_cover
-    )
+    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, lifeform, veg_cover)
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
     water_seasonality = lc_water_seasonality.water_seasonality(
@@ -255,9 +253,7 @@ def test_ntv_herbaceous_seasonal_water_veg_cover():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 
     # Apply cultivated to match the code in Level4 processing
-    l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.level_3_4, level3, lifeform, veg_cover
-    )
+    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, lifeform, veg_cover)
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
     water_seasonality = lc_water_seasonality.water_seasonality(
@@ -357,9 +353,7 @@ def test_ntv_woody_seasonal_water_veg_cover():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 
     # Apply cultivated to match the code in Level4 processing
-    l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.level_3_4, level3, lifeform, veg_cover
-    )
+    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, lifeform, veg_cover)
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
     water_seasonality = lc_water_seasonality.water_seasonality(
@@ -454,9 +448,7 @@ def test_ntv_herbaceous_permanent_water_veg_cover():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 
     # Apply cultivated to match the code in Level4 processing
-    l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.level_3_4, level3, lifeform, veg_cover
-    )
+    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, lifeform, veg_cover)
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
     water_seasonality = lc_water_seasonality.water_seasonality(
