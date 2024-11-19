@@ -68,7 +68,7 @@ class StatsLccsLevel4(StatsPluginInterface):
         water_seasonality = lc_water_seasonality.water_seasonality(
             xx, self.water_seasonality_threshold
         )
-   
+
         intertidal_mask = lc_intertidal_mask.intertidal_mask(xx)
 
         # #TODO WATER (99-104)
