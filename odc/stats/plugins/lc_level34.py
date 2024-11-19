@@ -64,16 +64,16 @@ class StatsLccsLevel4(StatsPluginInterface):
         water_persistence = l4_water_persistence.water_persistence(
             xx, self.watper_threshold
         )
-        # print("### Water Persistence", np.unique(water_persistence.compute()))
+
         water_seasonality = lc_water_seasonality.water_seasonality(
             xx, self.water_seasonality_threshold
         )
-        # print("### Water Seasonality", np.unique(water_persistence.compute()))
+   
         intertidal_mask = lc_intertidal_mask.intertidal_mask(xx)
 
         # #TODO WATER (99-104)
         l4 = l4_water.water_classification(xx, intertidal_mask, water_persistence)
-        # print("### Water classification", np.unique(water_persistence.compute()))
+
         # Generate Level3 classes
         level3 = lc_level3.lc_level3(xx)
 
