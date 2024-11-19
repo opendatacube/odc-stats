@@ -34,7 +34,7 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency):
     }
 
     data_vars = {
-        "classes_l3_l4": xr.DataArray(
+        "level_3_4": xr.DataArray(
             da.from_array(l34, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -154,7 +154,7 @@ def test_ntv_classes_woody_herbaceous():
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
@@ -256,7 +256,7 @@ def test_ntv_herbaceous_seasonal_water_veg_cover():
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
@@ -358,7 +358,7 @@ def test_ntv_woody_seasonal_water_veg_cover():
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
@@ -455,7 +455,7 @@ def test_ntv_herbaceous_permanent_water_veg_cover():
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 

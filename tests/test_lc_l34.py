@@ -106,7 +106,7 @@ def image_groups():
     }
 
     data_vars = {
-        "classes_l3_l4": xr.DataArray(
+        "level_3_4": xr.DataArray(
             da.from_array(l34, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},

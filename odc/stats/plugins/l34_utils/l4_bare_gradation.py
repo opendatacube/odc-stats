@@ -7,15 +7,23 @@ NODATA = 255
 
 def bare_gradation(xx: xr.Dataset, bare_threshold, veg_cover):
 
+    bs_pc_50 = expr_eval(
+        "where((a!=a), nodata, a)",
+        {"a": xx.bs_pc_50.data},
+        name="mark_veg",
+        dtype="float32",
+        **{"nodata": NODATA},
+    )
+
     # Map any data > 100 ---> 100
     bs_pc_50 = expr_eval(
         "where((a>100)&(a!=nodata), 100, a)",
-        {"a": xx.bs_pc_50.data},
+        {"a": bs_pc_50},
         name="mark_veg",
         dtype="uint8",
         **{"nodata": NODATA},
     )
-
+    
     # 60% <= data  --> 15
     bs_mask = expr_eval(
         "where((a>=m)&(a!=nodata), 15, a)",

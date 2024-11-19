@@ -64,16 +64,16 @@ class StatsLccsLevel4(StatsPluginInterface):
         water_persistence = l4_water_persistence.water_persistence(
             xx, self.watper_threshold
         )
-
+        # print("### Water Persistence", np.unique(water_persistence.compute()))
         water_seasonality = lc_water_seasonality.water_seasonality(
             xx, self.water_seasonality_threshold
         )
-
+        # print("### Water Seasonality", np.unique(water_persistence.compute()))
         intertidal_mask = lc_intertidal_mask.intertidal_mask(xx)
 
         # #TODO WATER (99-104)
         l4 = l4_water.water_classification(xx, intertidal_mask, water_persistence)
-
+        # print("### Water classification", np.unique(water_persistence.compute()))
         # Generate Level3 classes
         level3 = lc_level3.lc_level3(xx)
 
@@ -93,7 +93,6 @@ class StatsLccsLevel4(StatsPluginInterface):
         bare_gradation = l4_bare_gradation.bare_gradation(
             xx, self.bare_threshold, veg_cover
         )
-
         l4 = l4_natural_aquatic.natural_auquatic_veg(l4, veg_cover, water_seasonality)
 
         level4 = l4_surface.lc_l4_surface(l4, level3, bare_gradation)
@@ -103,7 +102,7 @@ class StatsLccsLevel4(StatsPluginInterface):
 
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
-        dims = xx.classes_l3_l4.dims[1:]
+        dims = xx.level_3_4.dims[1:]
         data_vars = {
             k: xr.DataArray(v, dims=dims, attrs=attrs)
             for k, v in zip(self.measurements, [level3.squeeze(), level4.squeeze()])

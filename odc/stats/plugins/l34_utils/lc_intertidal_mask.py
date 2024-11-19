@@ -9,7 +9,7 @@ def intertidal_mask(xx: xr.Dataset):
 
     res = expr_eval(
         "where(a==_u, 1, 0)",
-        {"a": xx.classes_l3_l4.data},
+        {"a": xx.level_3_4.data},
         name="mask_intertidal",
         dtype="uint8",
         **{"_u": 223},

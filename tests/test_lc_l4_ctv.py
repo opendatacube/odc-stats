@@ -27,7 +27,7 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50):
     }
 
     data_vars = {
-        "classes_l3_l4": xr.DataArray(
+        "level_3_4": xr.DataArray(
             da.from_array(l34, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -135,7 +135,7 @@ def test_ctv_classes_woody():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 
     l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
 
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
@@ -217,7 +217,7 @@ def test_ctv_classes_herbaceous():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 
     l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
 
@@ -298,7 +298,7 @@ def test_ctv_classes_woody_herbaceous():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 
     l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
 
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
@@ -380,6 +380,6 @@ def test_ctv_classes_no_vegcover():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 
     l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
     assert (l4_ctv.compute() == expected_cultivated_classes).all()

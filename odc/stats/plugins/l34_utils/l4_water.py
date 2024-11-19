@@ -7,7 +7,7 @@ def water_classification(xx, intertidal_mask, water_persistence):
 
     l4 = expr_eval(
         "where(((a==223)|(a==221))&(b==1), 101, a)",
-        {"a": xx.classes_l3_l4.data, "b": water_persistence},
+        {"a": xx.level_3_4.data, "b": water_persistence},
         name="mark_water",
         dtype="uint8",
     )

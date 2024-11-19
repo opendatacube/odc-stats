@@ -31,7 +31,7 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50):
     }
 
     data_vars = {
-        "classes_l3_l4": xr.DataArray(
+        "level_3_4": xr.DataArray(
             da.from_array(l34, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -137,7 +137,7 @@ def test_ntv_classes_herbaceous():
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
 
@@ -218,7 +218,7 @@ def test_ntv_classes_woody():
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
 
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
 
@@ -298,7 +298,7 @@ def test_ntv_classes_no_veg():
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
 
@@ -378,6 +378,6 @@ def test_ntv_classes_no_lifeform():
     lifeform = lc_lifeform.lifeform(xx)
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
+        xx.level_3_4, level3, lifeform, veg_cover
     )
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
