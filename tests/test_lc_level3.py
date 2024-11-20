@@ -4,6 +4,10 @@ import xarray as xr
 import dask.array as da
 
 from odc.stats.plugins.l34_utils import lc_level3
+from odc.stats.plugins._utils import rasterize_vector_mask
+from datacube.utils.geometry import GeoBox
+from affine import Affine
+
 import pytest
 
 NODATA = 255
@@ -58,10 +62,14 @@ def image_groups():
         (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
     ]
     index = pd.MultiIndex.from_tuples(tuples, names=["time", "solar_day"])
-    coords = {
-        "x": np.linspace(10, 20, l34.shape[2]),
-        "y": np.linspace(0, 5, l34.shape[1]),
-    }
+
+    affine = Affine.translation(10, 0) * Affine.scale(
+        (20 - 10) / l34.shape[2], (5 - 0) / l34.shape[1]
+    )
+    geobox = GeoBox(
+        crs="epsg:3577", affine=affine, width=l34.shape[2], height=l34.shape[1]
+    )
+    coords = geobox.xr_coords()
 
     data_vars = {
         "level_3_4": xr.DataArray(
@@ -69,7 +77,7 @@ def image_groups():
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "urban_classes": xr.DataArray(
+        "artificial_surface": xr.DataArray(
             da.from_array(urban, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -85,7 +93,15 @@ def image_groups():
     return xx
 
 
-def test_l3_classes(image_groups):
+def test_l3_classes(image_groups, urban_shape):
+    filter_expression = "mock > 9"
+    urban_mask = rasterize_vector_mask(
+        urban_shape,
+        image_groups.geobox.transform,
+        image_groups.artificial_surface.shape,
+        filter_expression=filter_expression,
+        threshold=0.3,
+    )
 
-    level3_classes = lc_level3.lc_level3(image_groups)
+    level3_classes = lc_level3.lc_level3(image_groups, urban_mask)
     assert (level3_classes == expected_l3_classes).all()

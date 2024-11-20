@@ -3,11 +3,6 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import dask.array as da
-import json
-import tempfile
-import os
-import fiona
-from fiona.crs import CRS
 from datacube.utils.geometry import GeoBox
 from affine import Affine
 
@@ -16,61 +11,6 @@ import pytest
 
 
 NODATA = 255
-
-
-@pytest.fixture(scope="module")
-def urban_shape():
-    data = """
-    {
-   "type":"FeatureCollection",
-   "features":[
-      {
-         "geometry":{
-            "type":"Polygon",
-            "coordinates":[
-               [
-                  [
-                     0,
-                     0
-                  ],
-                  [
-                     0,
-                     100
-                  ],
-                  [
-                     100,
-                     100
-                  ],
-                  [
-                     100,
-                     0
-                  ],
-                  [
-                     0,
-                     0
-                  ]
-               ]
-            ]
-         },
-         "type":"Feature"
-      }
-   ]
-}
-    """
-    data = json.loads(data)["features"][0]
-    tmpdir = tempfile.mkdtemp()
-    filename = os.path.join(tmpdir, "test.json")
-    with fiona.open(
-        filename,
-        "w",
-        driver="GeoJSON",
-        crs=CRS.from_epsg(3577),
-        schema={
-            "geometry": "Polygon",
-        },
-    ) as dst:
-        dst.write(data)
-    return filename
 
 
 @pytest.fixture(scope="module")
@@ -237,7 +177,10 @@ def test_l4_classes(image_groups):
 
     expected_l4 = [[95, 97, 93], [97, 96, 96], [100, 93, 93], [101, 101, 101]]
     stats_l4 = StatsLccsLevel4(
-        measurements=["level3", "level4"], urban_mask=urban_shape, mask_threshold=0.3
+        measurements=["level3", "level4"],
+        urban_mask=urban_shape,
+        filter_expression="mock > 9",
+        mask_threshold=0.3,
     )
     ds = stats_l4.reduce(image_groups)
 

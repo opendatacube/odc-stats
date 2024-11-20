@@ -36,6 +36,7 @@ class StatsLccsLevel4(StatsPluginInterface):
     def __init__(
         self,
         urban_mask: str = None,
+        filter_expression: str = None,
         mask_threshold: Optional[float] = None,
         veg_threshold: Optional[List] = None,
         bare_threshold: Optional[List] = None,
@@ -47,7 +48,12 @@ class StatsLccsLevel4(StatsPluginInterface):
             raise ValueError("Missing urban mask shapefile")
         if not os.path.exists(urban_mask):
             raise FileNotFoundError(f"{urban_mask} not found")
+
+        if filter_expression is None:
+            raise ValueError("Missing urban mask filter")
+
         self.urban_mask = urban_mask
+        self.filter_expression = filter_expression
         self.mask_threshold = mask_threshold
 
         self.veg_threshold = (
@@ -77,8 +83,10 @@ class StatsLccsLevel4(StatsPluginInterface):
             self.urban_mask,
             xx.geobox.transform,
             xx.artificial_surface.shape,
+            filter_expression=self.filter_expression,
             threshold=self.mask_threshold,
         )
+
         level3 = lc_level3.lc_level3(xx, urban_mask)
 
         # Vegetation cover
