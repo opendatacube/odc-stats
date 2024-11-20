@@ -6,10 +6,10 @@ from typing import Optional, List
 
 import numpy as np
 import xarray as xr
-import os
 
 from ._registry import StatsPluginInterface, register
 from ._utils import rasterize_vector_mask
+from osgeo import gdal
 
 from .l34_utils import (
     l4_water_persistence,
@@ -46,7 +46,9 @@ class StatsLccsLevel4(StatsPluginInterface):
         super().__init__(**kwargs)
         if urban_mask is None:
             raise ValueError("Missing urban mask shapefile")
-        if not os.path.exists(urban_mask):
+
+        file_metadata = gdal.VSIStatL(urban_mask)
+        if file_metadata is None:
             raise FileNotFoundError(f"{urban_mask} not found")
 
         if filter_expression is None:
