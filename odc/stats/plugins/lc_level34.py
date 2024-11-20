@@ -123,4 +123,4 @@ class StatsLccsLevel4(StatsPluginInterface):
         return leve34
 
 
-register("lc_l3_l4", StatsLccsLevel4)
+register("lccs_level34", StatsLccsLevel4)
