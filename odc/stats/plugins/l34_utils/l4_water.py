@@ -7,27 +7,24 @@ def water_classification(xx, intertidal_mask, water_persistence):
 
     # Replace nan with nodata
     l4 = expr_eval(
-        "where((a==a), a, nodata)", 
-         {"a": xx.level_3_4.data}, 
-         name="mark_water", 
-         dtype="uint8",
-         **{"nodata": NODATA},
+        "where((a==a), a, nodata)",
+        {"a": xx.level_3_4.data},
+        name="mark_water",
+        dtype="uint8",
+        **{"nodata": NODATA},
     )
 
     l4 = expr_eval(
-        "where((a==223)|(a==221), 98, a)", 
-         {"a": l4}, 
-         name="mark_water", 
-         dtype="uint8"
+        "where((a==223)|(a==221), 98, a)", {"a": l4}, name="mark_water", dtype="uint8"
     )
-    
+
     l4 = expr_eval(
         "where((a==98)&(b!=1), 99, a)",
         {"a": l4, "b": intertidal_mask},
         name="mark_water",
         dtype="uint8",
     )
-    
+
     l4 = expr_eval(
         "where((a==98)&(b==1), 100, a)",
         {"a": l4, "b": intertidal_mask},

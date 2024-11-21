@@ -23,7 +23,9 @@ import pandas as pd
 NODATA = 255
 
 
-def image_groups(l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency, water_season):
+def image_groups(
+    l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency, water_season
+):
 
     tuples = [
         (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
@@ -70,7 +72,7 @@ def image_groups(l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_freque
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-         "water_season": xr.DataArray(
+        "water_season": xr.DataArray(
             da.from_array(water_season, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},

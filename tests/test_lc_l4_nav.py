@@ -21,7 +21,9 @@ import pandas as pd
 NODATA = 255
 
 
-def image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency, water_season):
+def image_groups(
+    l34, urban, cultivated, woody, pv_pc_50, water_frequency, water_season
+):
 
     tuples = [
         (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
@@ -63,7 +65,7 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency, water
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "water_season":xr.DataArray(
+        "water_season": xr.DataArray(
             da.from_array(water_season, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -148,7 +150,7 @@ def test_ntv_classes_woody_herbaceous():
         ],
         dtype="uint8",
     )
- 
+
     water_season = np.array(
         [
             [
@@ -161,7 +163,9 @@ def test_ntv_classes_woody_herbaceous():
         dtype="uint8",
     )
 
-    xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency, water_season)
+    xx = image_groups(
+        l34, urban, cultivated, woody, pv_pc_50, water_frequency, water_season
+    )
 
     stats_l4 = StatsLccsLevel4()
     level3 = lc_level3.lc_level3(xx)
@@ -245,7 +249,6 @@ def test_ntv_herbaceous_seasonal_water_veg_cover():
             ]
         ],
         dtype="uint8",
-    
     )
     water_frequency = np.array(
         [
@@ -258,7 +261,7 @@ def test_ntv_herbaceous_seasonal_water_veg_cover():
         ],
         dtype="uint8",
     )
-  
+
     water_season = np.array(
         [
             [
@@ -271,7 +274,9 @@ def test_ntv_herbaceous_seasonal_water_veg_cover():
         dtype="uint8",
     )
 
-    xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency, water_season)
+    xx = image_groups(
+        l34, urban, cultivated, woody, pv_pc_50, water_frequency, water_season
+    )
 
     stats_l4 = StatsLccsLevel4()
     level3 = lc_level3.lc_level3(xx)
@@ -285,7 +290,7 @@ def test_ntv_herbaceous_seasonal_water_veg_cover():
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
         l4_ctv_ntv, veg_cover, xx.water_season
     )
- 
+
     assert (l4_ctv_ntv_nav.compute() == expected_l4_ntv_classes).all()
 
 
@@ -356,7 +361,7 @@ def test_ntv_woody_seasonal_water_veg_cover():
         ],
         dtype="uint8",
     )
-    
+
     water_frequency = np.array(
         [
             [
@@ -368,7 +373,7 @@ def test_ntv_woody_seasonal_water_veg_cover():
         ],
         dtype="uint8",
     )
-   
+
     water_season = np.array(
         [
             [
@@ -380,7 +385,9 @@ def test_ntv_woody_seasonal_water_veg_cover():
         ],
         dtype="uint8",
     )
-    xx = image_groups(l34, urban, cultivated, woody, pv_pc_50, water_frequency, water_season)
+    xx = image_groups(
+        l34, urban, cultivated, woody, pv_pc_50, water_frequency, water_season
+    )
 
     stats_l4 = StatsLccsLevel4()
     level3 = lc_level3.lc_level3(xx)

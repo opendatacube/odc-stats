@@ -74,12 +74,7 @@ def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_freque
 
 def test_water_classes():
     expected_water_classes = [
-        [
-            [104, 104, 104],
-            [103, 103, 103],
-            [102, 102, 101],
-            [99, 101, 101]
-        ],
+        [[104, 104, 104], [103, 103, 103], [102, 102, 101], [99, 101, 101]],
     ]
 
     l34 = np.array(
@@ -185,10 +180,10 @@ def test_water_classes():
 def test_water_intertidal():
 
     expected_water_classes = [
-          [100, 100, 100],
-          [100, 100, 100],
-          [102, 102, 101],
-          [101,  99, 100],
+        [100, 100, 100],
+        [100, 100, 100],
+        [102, 102, 101],
+        [101, 99, 100],
     ]
 
     l34 = np.array(

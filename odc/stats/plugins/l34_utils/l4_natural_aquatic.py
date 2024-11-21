@@ -6,6 +6,7 @@ from odc.stats._algebra import expr_eval
 
 NODATA = 255
 
+
 def natural_auquatic_veg(l4, veg_cover, water_season):
 
     # mark woody/herbaceous
@@ -19,9 +20,9 @@ def natural_auquatic_veg(l4, veg_cover, water_season):
         },
         name="mark_water_season",
         dtype="float32",
-         **{"nodata": NODATA},
+        **{"nodata": NODATA},
     )
-  
+
     res = expr_eval(
         "where((a==124), 56, a)",
         {
@@ -283,7 +284,7 @@ def natural_auquatic_veg(l4, veg_cover, water_season):
         name="mark_final",
         dtype="uint8",
     )
-    
+
     res = expr_eval(
         "where((a==251)&(b==16), 92, a)",
         {
@@ -294,7 +295,7 @@ def natural_auquatic_veg(l4, veg_cover, water_season):
         dtype="uint8",
     )
 
-    # There are cases where a tile falls over water. 
+    # There are cases where a tile falls over water.
     # In these cases, the PC will have no data so we map back 251-254 to their corresponding classes
     res = expr_eval(
         "where((a>=251)&(a<=252), 57, a)",
@@ -312,6 +313,5 @@ def natural_auquatic_veg(l4, veg_cover, water_season):
         name="mark_final",
         dtype="uint8",
     )
-    
 
     return res

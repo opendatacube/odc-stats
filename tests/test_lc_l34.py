@@ -168,7 +168,7 @@ def image_groups():
 def test_l4_classes(image_groups):
     expected_l3 = [[216, 216, 215], [216, 216, 216], [220, 215, 215], [220, 220, 220]]
 
-    expected_l4 = [[ 95, 97, 93], [97, 96, 96], [100, 93, 93], [101, 101, 101]]
+    expected_l4 = [[95, 97, 93], [97, 96, 96], [100, 93, 93], [101, 101, 101]]
     stats_l4 = StatsLccsLevel4(measurements=["level3", "level4"])
     ds = stats_l4.reduce(image_groups)
 
