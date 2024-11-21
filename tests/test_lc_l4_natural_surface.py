@@ -16,7 +16,6 @@ from odc.stats.plugins.l34_utils import (
     l4_surface,
     l4_bare_gradation,
     lc_lifeform,
-    lc_water_seasonality,
 )
 
 import pandas as pd
@@ -24,7 +23,7 @@ import pandas as pd
 NODATA = 255
 
 
-def image_groups(l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency):
+def image_groups(l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency, water_season):
 
     tuples = [
         (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
@@ -68,6 +67,11 @@ def image_groups(l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_freque
         ),
         "water_frequency": xr.DataArray(
             da.from_array(water_frequency, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
+        ),
+         "water_season": xr.DataArray(
+            da.from_array(water_season, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
@@ -168,9 +172,20 @@ def test_ns():
         ],
         dtype="uint8",
     )
+    water_season = np.array(
+        [
+            [
+                [1, 2, 1],
+                [2, 1, 2],
+                [1, 1, 2],
+                [2, 2, 1],
+            ]
+        ],
+        dtype="uint8",
+    )
 
     xx = image_groups(
-        l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency
+        l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency, water_season
     )
 
     stats_l4 = StatsLccsLevel4()
@@ -182,11 +197,8 @@ def test_ns():
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, lifeform, veg_cover)
     l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
 
-    water_seasonality = lc_water_seasonality.water_seasonality(
-        xx, stats_l4.water_seasonality_threshold
-    )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, veg_cover, water_seasonality
+        l4_ctv_ntv, veg_cover, xx.water_season
     )
 
     # Bare gradation

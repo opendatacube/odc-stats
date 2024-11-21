@@ -16,7 +16,6 @@ from odc.stats.plugins.l34_utils import (
 import pandas as pd
 
 NODATA = 255
-WATER_FREQ_NODATA = -999
 
 
 # @pytest.fixture(scope="module")
@@ -75,10 +74,12 @@ def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_freque
 
 def test_water_classes():
     expected_water_classes = [
-        [104, 104, 104],
-        [103, 103, 103],
-        [102, 102, 101],
-        [98, 101, 101],
+        [
+            [104, 104, 104],
+            [103, 103, 103],
+            [102, 102, 101],
+            [99, 101, 101]
+        ],
     ]
 
     l34 = np.array(
@@ -157,7 +158,7 @@ def test_water_classes():
                 [1, 3, 2],
                 [4, 5, 6],
                 [9, 7, 11],
-                [WATER_FREQ_NODATA, 11, 12],
+                [NODATA, 11, 12],
             ]
         ],
         dtype="float",
@@ -184,17 +185,17 @@ def test_water_classes():
 def test_water_intertidal():
 
     expected_water_classes = [
-        [104, 104, 104],
-        [103, 103, 103],
-        [102, 102, 101],
-        [101, 98, 100],
+          [100, 100, 100],
+          [100, 100, 100],
+          [102, 102, 101],
+          [101,  99, 100],
     ]
 
     l34 = np.array(
         [
             [
-                [221, 221, 221],
-                [221, 221, 221],
+                [223, 223, 223],
+                [223, 223, 223],
                 [221, 221, 221],
                 [221, 221, 223],
             ]
@@ -286,5 +287,5 @@ def test_water_intertidal():
     l4_water_classes = l4_water.water_classification(
         xx, intertidal_mask, water_persistence
     )
-    print(l4_water_classes.compute())
+
     assert (l4_water_classes.compute() == expected_water_classes).all()

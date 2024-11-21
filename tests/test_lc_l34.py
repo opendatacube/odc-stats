@@ -17,8 +17,8 @@ def image_groups():
             [
                 [210, 210, 210],
                 [210, 210, 210],
-                [210, 210, 210],
-                [210, 210, 210],
+                [223, 210, 210],
+                [221, 221, 221],
             ]
         ],
         dtype="uint8",
@@ -89,8 +89,20 @@ def image_groups():
             [
                 [1, 3, 2],
                 [4, 5, 6],
-                [9, 2, 11],
+                [2, 2, 11],
                 [10, 11, 12],
+            ]
+        ],
+        dtype="uint8",
+    )
+
+    water_season = np.array(
+        [
+            [
+                [1, 2, 1],
+                [2, 1, 2],
+                [1, 1, 2],
+                [2, 2, 1],
             ]
         ],
         dtype="uint8",
@@ -141,6 +153,11 @@ def image_groups():
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
+        "water_season": xr.DataArray(
+            da.from_array(water_season, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
+        ),
     }
 
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
@@ -149,9 +166,9 @@ def image_groups():
 
 
 def test_l4_classes(image_groups):
-    expected_l3 = [[216, 216, 215], [216, 216, 216], [215, 215, 215], [215, 215, 215]]
+    expected_l3 = [[216, 216, 215], [216, 216, 216], [220, 215, 215], [220, 220, 220]]
 
-    expected_l4 = [[95, 97, 93], [97, 96, 96], [93, 93, 93], [93, 93, 93]]
+    expected_l4 = [[ 95, 97, 93], [97, 96, 96], [100, 93, 93], [101, 101, 101]]
     stats_l4 = StatsLccsLevel4(measurements=["level3", "level4"])
     ds = stats_l4.reduce(image_groups)
 

@@ -4,12 +4,24 @@
 
 from odc.stats._algebra import expr_eval
 
+NODATA = 255
 
-def natural_auquatic_veg(l4, veg_cover, water_seasonality):
+def natural_auquatic_veg(l4, veg_cover, water_season):
 
     # mark woody/herbaceous
     # mangroves -> woody
     # everything else -> herbaceous
+
+    water_seasonality = expr_eval(
+        "where((a==a), a, nodata)",
+        {
+            "a": water_season,
+        },
+        name="mark_water_season",
+        dtype="float32",
+         **{"nodata": NODATA},
+    )
+  
     res = expr_eval(
         "where((a==124), 56, a)",
         {
@@ -102,7 +114,7 @@ def natural_auquatic_veg(l4, veg_cover, water_seasonality):
     )
 
     res = expr_eval(
-        "where((a==252)&(b==10), 80, a)",
+        "where((a==252)&(b==10), 79, a)",
         {
             "a": res,
             "b": veg_cover,
@@ -112,7 +124,7 @@ def natural_auquatic_veg(l4, veg_cover, water_seasonality):
     )
 
     res = expr_eval(
-        "where((a==251)&(b==10), 81, a)",
+        "where((a==251)&(b==10), 80, a)",
         {
             "a": res,
             "b": veg_cover,
@@ -271,7 +283,7 @@ def natural_auquatic_veg(l4, veg_cover, water_seasonality):
         name="mark_final",
         dtype="uint8",
     )
-
+    
     res = expr_eval(
         "where((a==251)&(b==16), 92, a)",
         {
@@ -281,5 +293,25 @@ def natural_auquatic_veg(l4, veg_cover, water_seasonality):
         name="mark_final",
         dtype="uint8",
     )
+
+    # There are cases where a tile falls over water. 
+    # In these cases, the PC will have no data so we map back 251-254 to their corresponding classes
+    res = expr_eval(
+        "where((a>=251)&(a<=252), 57, a)",
+        {
+            "a": res,
+        },
+        name="mark_final",
+        dtype="uint8",
+    )
+    res = expr_eval(
+        "where((a>=253)&(a<=254), 58, a)",
+        {
+            "a": res,
+        },
+        name="mark_final",
+        dtype="uint8",
+    )
+    
 
     return res

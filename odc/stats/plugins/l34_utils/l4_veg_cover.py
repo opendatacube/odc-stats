@@ -7,6 +7,7 @@ NODATA = 255
 
 def canopyco_veg_con(xx: xr.Dataset, veg_threshold):
 
+    
     # Mask NODATA
     pv_pc_50 = expr_eval(
         "where(a==a, a, nodata)",
@@ -88,7 +89,7 @@ def canopyco_veg_con(xx: xr.Dataset, veg_threshold):
 
     # 65-100 --> 10
     veg_mask = expr_eval(
-        "where((a>=m)&(a<n), 10, b)",
+        "where((a>=m)&(a<=n), 10, b)",
         {
             "a": pv_pc_50,
             "b": veg_mask,
