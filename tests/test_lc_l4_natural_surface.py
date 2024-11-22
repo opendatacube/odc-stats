@@ -190,11 +190,9 @@ def test_ns():
         l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency, water_season
     )
 
-
     level3 = lc_level3.lc_level3(xx)
     lifeform = lc_lifeform.lifeform(xx)
 
-   
     veg_threshold = [1, 4, 15, 40, 65, 100]
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, veg_threshold)
 
@@ -208,9 +206,7 @@ def test_ns():
 
     # Bare gradation
     bare_threshold = [20, 60]
-    bare_gradation = l4_bare_gradation.bare_gradation(
-        xx, bare_threshold, veg_cover
-    )
+    bare_gradation = l4_bare_gradation.bare_gradation(xx, bare_threshold, veg_cover)
 
     l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(
         l4_ctv_ntv_nav, level3, bare_gradation
