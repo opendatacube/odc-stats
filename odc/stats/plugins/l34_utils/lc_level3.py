@@ -51,4 +51,12 @@ def lc_level3(xx: xr.Dataset):
         dtype="uint8",
     )
 
+    # Combine woody and herbaceous aquatic vegetation
+    res = expr_eval(
+        "where((a==124)|(a==125), 124, b)",
+        {"a": xx.level_3_4.data, "b": res},
+        name="mark_aquatic_veg",
+        dtype="uint8",
+    )
+
     return res

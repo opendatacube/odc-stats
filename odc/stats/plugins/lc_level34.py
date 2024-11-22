@@ -19,8 +19,6 @@ from .l34_utils import (
     l4_surface,
     l4_bare_gradation,
     l4_water,
-    lc_lifeform,
-    lc_intertidal_mask,
 )
 
 
@@ -60,10 +58,8 @@ class StatsLccsLevel4(StatsPluginInterface):
             xx, self.watper_threshold
         )
 
-        intertidal_mask = lc_intertidal_mask.intertidal_mask(xx)
-
         # #TODO WATER (99-104)
-        l4 = l4_water.water_classification(xx, intertidal_mask, water_persistence)
+        l4 = l4_water.water_classification(xx, water_persistence)
 
         # Generate Level3 classes
         level3 = lc_level3.lc_level3(xx)
@@ -71,14 +67,11 @@ class StatsLccsLevel4(StatsPluginInterface):
         # Vegetation cover
         veg_cover = l4_veg_cover.canopyco_veg_con(xx, self.veg_threshold)
 
-        # Define life form
-        lifeform = lc_lifeform.lifeform(xx)
-
         # Apply cultivated Level-4 classes (1-18)
-        l4 = l4_cultivated.lc_l4_cultivated(l4, level3, lifeform, veg_cover)
+        l4 = l4_cultivated.lc_l4_cultivated(l4, level3, xx.woody, veg_cover)
 
         # Apply terrestrial vegetation classes [19-36]
-        l4 = l4_natural_veg.lc_l4_natural_veg(l4, level3, lifeform, veg_cover)
+        l4 = l4_natural_veg.lc_l4_natural_veg(l4, level3, xx.woody, veg_cover)
 
         # Bare gradation
         bare_gradation = l4_bare_gradation.bare_gradation(

@@ -10,7 +10,6 @@ from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
     l4_water_persistence,
     l4_water,
-    lc_intertidal_mask,
 )
 
 import pandas as pd
@@ -163,7 +162,6 @@ def test_water_classes():
     )
 
     stats_l4 = StatsLccsLevel4()
-    intertidal_mask = lc_intertidal_mask.intertidal_mask(xx)
 
     # Water persistence
     water_persistence = l4_water_persistence.water_persistence(
@@ -171,7 +169,7 @@ def test_water_classes():
     )
 
     l4_water_classes = l4_water.water_classification(
-        xx, intertidal_mask, water_persistence
+        xx, water_persistence
     )
 
     assert (l4_water_classes.compute() == expected_water_classes).all()
@@ -272,7 +270,6 @@ def test_water_intertidal():
     )
 
     stats_l4 = StatsLccsLevel4()
-    intertidal_mask = lc_intertidal_mask.intertidal_mask(xx)
 
     # Water persistence
     water_persistence = l4_water_persistence.water_persistence(
@@ -280,7 +277,7 @@ def test_water_intertidal():
     )
 
     l4_water_classes = l4_water.water_classification(
-        xx, intertidal_mask, water_persistence
+        xx, water_persistence
     )
 
     assert (l4_water_classes.compute() == expected_water_classes).all()

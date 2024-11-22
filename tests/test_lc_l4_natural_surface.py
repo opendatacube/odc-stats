@@ -15,7 +15,6 @@ from odc.stats.plugins.l34_utils import (
     l4_natural_aquatic,
     l4_surface,
     l4_bare_gradation,
-    lc_lifeform,
 )
 
 import pandas as pd
@@ -191,14 +190,13 @@ def test_ns():
     )
 
     level3 = lc_level3.lc_level3(xx)
-    lifeform = lc_lifeform.lifeform(xx)
 
     veg_threshold = [1, 4, 15, 40, 65, 100]
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, veg_threshold)
 
     # Apply cultivated to match the code in Level4 processing
-    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, lifeform, veg_cover)
-    l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
+    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, xx.woody, veg_cover)
+    l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, xx.woody, veg_cover)
 
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
         l4_ctv_ntv, veg_cover, xx.water_season

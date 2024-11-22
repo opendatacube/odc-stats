@@ -3,7 +3,8 @@ from odc.stats._algebra import expr_eval
 NODATA = 255
 
 
-def water_classification(xx, intertidal_mask, water_persistence):
+def water_classification(xx, water_persistence):
+
 
     # Replace nan with nodata
     l4 = expr_eval(
@@ -12,6 +13,14 @@ def water_classification(xx, intertidal_mask, water_persistence):
         name="mark_water",
         dtype="uint8",
         **{"nodata": NODATA},
+    )
+    
+    intertidal_mask = expr_eval(
+        "where(a==_u, 1, 0)",
+        {"a": l4},
+        name="mask_intertidal",
+        dtype="uint8",
+        **{"_u": 223},
     )
 
     l4 = expr_eval(
