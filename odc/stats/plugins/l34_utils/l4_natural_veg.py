@@ -22,13 +22,6 @@ def lc_l4_natural_veg(l4, l3, woody, veg_cover):
     )
 
     l4 = expr_eval(
-        "where((a==112), 19, d)",
-        {"a": l3, "d": l4},
-        name="mark_cultivated",
-        dtype="uint8",
-    )
-
-    l4 = expr_eval(
         "where((a==112)&(b==113), 20, d)",
         {"a": l3, "b": woody, "d": l4},
         name="mark_cultivated",

@@ -6,7 +6,6 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
-from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
     l4_cultivated,
     lc_level3,

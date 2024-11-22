@@ -14,30 +14,24 @@ def water_classification(xx, water_persistence):
         **{"nodata": NODATA},
     )
 
-    intertidal_mask = expr_eval(
-        "where(a==_u, 1, 0)",
-        {"a": l4},
-        name="mask_intertidal",
-        dtype="uint8",
-        **{"_u": 223},
-    )
-
     l4 = expr_eval(
         "where((a==223)|(a==221), 98, a)", {"a": l4}, name="mark_water", dtype="uint8"
     )
 
     l4 = expr_eval(
-        "where((a==98)&(b!=1), 99, a)",
-        {"a": l4, "b": intertidal_mask},
+        "where((a==98)&(b!=_u), 99, a)",
+        {"a": l4, "b": xx.level_3_4.data},
         name="mark_water",
         dtype="uint8",
+        **{"_u": 223},
     )
 
     l4 = expr_eval(
-        "where((a==98)&(b==1), 100, a)",
-        {"a": l4, "b": intertidal_mask},
+        "where((a==98)&(b==_u), 100, a)",
+        {"a": l4, "b": xx.level_3_4.data},
         name="mark_water",
         dtype="uint8",
+        **{"_u": 223},
     )
 
     l4 = expr_eval(
