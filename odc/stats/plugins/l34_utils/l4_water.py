@@ -5,7 +5,6 @@ NODATA = 255
 
 def water_classification(xx, water_persistence):
 
-
     # Replace nan with nodata
     l4 = expr_eval(
         "where((a==a), a, nodata)",
@@ -14,7 +13,7 @@ def water_classification(xx, water_persistence):
         dtype="uint8",
         **{"nodata": NODATA},
     )
-    
+
     intertidal_mask = expr_eval(
         "where(a==_u, 1, 0)",
         {"a": l4},

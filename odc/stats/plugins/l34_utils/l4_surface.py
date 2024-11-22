@@ -33,5 +33,5 @@ def lc_l4_surface(l4, level3, bare_gradation):
         name="mark_surface",
         dtype="uint8",
     )
-    
+
     return l4

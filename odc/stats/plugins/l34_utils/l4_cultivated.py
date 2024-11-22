@@ -4,7 +4,7 @@ NODATA = 255
 
 
 def lc_l4_cultivated(l34, level3, woody, veg_cover):
-    
+
     woody = expr_eval(
         "where((a!=a), nodata, a)",
         {"a": woody.data},
@@ -13,7 +13,7 @@ def lc_l4_cultivated(l34, level3, woody, veg_cover):
         **{"nodata": NODATA},
     )
 
-      # the 4-8 classes can't happen in LC since cultivated class will not be classified if vegetation doesn't exist.
+    # the 4-8 classes can't happen in LC since cultivated class will not be classified if vegetation doesn't exist.
     # skip these classes in level4
     l4 = expr_eval(
         "where((a==111), 1, d)",
@@ -42,7 +42,7 @@ def lc_l4_cultivated(l34, level3, woody, veg_cover):
         name="mark_cultivated",
         dtype="uint8",
     )
-    
+
     l4 = expr_eval(
         "where((a==111)&(b==12)&(c==113), 10, d)",
         {"a": level3, "b": veg_cover, "c": woody, "d": l4},
@@ -100,9 +100,5 @@ def lc_l4_cultivated(l34, level3, woody, veg_cover):
         name="mark_cultivated",
         dtype="uint8",
     )
-
-    
-
-  
 
     return l4

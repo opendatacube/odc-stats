@@ -12,7 +12,7 @@ def lc_l4_natural_veg(l4, l3, woody, veg_cover):
         dtype="float32",
         **{"nodata": NODATA},
     )
-    
+
     l4 = expr_eval(
         "where((b==nodata), nodata, a)",
         {"a": l4, "b": l3},
@@ -20,14 +20,14 @@ def lc_l4_natural_veg(l4, l3, woody, veg_cover):
         dtype="uint8",
         **{"nodata": NODATA},
     )
-    
+
     l4 = expr_eval(
         "where((a==112), 19, d)",
         {"a": l3, "d": l4},
         name="mark_cultivated",
         dtype="uint8",
     )
-    
+
     l4 = expr_eval(
         "where((a==112)&(b==113), 20, d)",
         {"a": l3, "b": woody, "d": l4},
@@ -136,7 +136,5 @@ def lc_l4_natural_veg(l4, l3, woody, veg_cover):
         name="mark_cultivated",
         dtype="uint8",
     )
-
-
 
     return l4

@@ -168,9 +168,7 @@ def test_water_classes():
         xx, stats_l4.watper_threshold
     )
 
-    l4_water_classes = l4_water.water_classification(
-        xx, water_persistence
-    )
+    l4_water_classes = l4_water.water_classification(xx, water_persistence)
 
     assert (l4_water_classes.compute() == expected_water_classes).all()
 
@@ -276,8 +274,6 @@ def test_water_intertidal():
         xx, stats_l4.watper_threshold
     )
 
-    l4_water_classes = l4_water.water_classification(
-        xx, water_persistence
-    )
+    l4_water_classes = l4_water.water_classification(xx, water_persistence)
 
     assert (l4_water_classes.compute() == expected_water_classes).all()

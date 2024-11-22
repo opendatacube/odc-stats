@@ -365,8 +365,8 @@ def test_ctv_classes_no_vegcover():
 
     stats_l4 = StatsLccsLevel4()
     level3 = lc_level3.lc_level3(xx)
-   
+
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, xx.woody, veg_cover)
-    
+
     assert (l4_ctv.compute() == expected_cultivated_classes).all()
