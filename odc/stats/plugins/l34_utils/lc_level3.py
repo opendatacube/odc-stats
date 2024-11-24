@@ -14,7 +14,7 @@ def lc_level3(xx: xr.Dataset):
 
     res = expr_eval(
         "where((a!=a)|(a>=nodata), b, a)",
-        {"a": xx.cultivated.data, "b": xx.classes_l3_l4.data},
+        {"a": xx.cultivated.data, "b": xx.level_3_4.data},
         name="mask_cultivated",
         dtype="float32",
         **{"nodata": xx.cultivated.attrs.get("nodata")},
@@ -46,8 +46,16 @@ def lc_level3(xx: xr.Dataset):
     # Add intertidal as water
     res = expr_eval(
         "where((a==223)|(a==221), 220, b)",
-        {"a": xx.classes_l3_l4.data, "b": res},
+        {"a": xx.level_3_4.data, "b": res},
         name="mark_urban",
+        dtype="uint8",
+    )
+
+    # Combine woody and herbaceous aquatic vegetation
+    res = expr_eval(
+        "where((a==124)|(a==125), 124, b)",
+        {"a": xx.level_3_4.data, "b": res},
+        name="mark_aquatic_veg",
         dtype="uint8",
     )
 

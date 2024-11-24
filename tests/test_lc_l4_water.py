@@ -10,13 +10,11 @@ from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
     l4_water_persistence,
     l4_water,
-    lc_intertidal_mask,
 )
 
 import pandas as pd
 
 NODATA = 255
-WATER_FREQ_NODATA = -999
 
 
 # @pytest.fixture(scope="module")
@@ -32,7 +30,7 @@ def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_freque
     }
 
     data_vars = {
-        "classes_l3_l4": xr.DataArray(
+        "level_3_4": xr.DataArray(
             da.from_array(l34, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -75,10 +73,7 @@ def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_freque
 
 def test_water_classes():
     expected_water_classes = [
-        [104, 104, 104],
-        [103, 103, 103],
-        [102, 102, 101],
-        [98, 101, 101],
+        [[104, 104, 104], [103, 103, 103], [102, 102, 101], [99, 101, 101]],
     ]
 
     l34 = np.array(
@@ -157,7 +152,7 @@ def test_water_classes():
                 [1, 3, 2],
                 [4, 5, 6],
                 [9, 7, 11],
-                [WATER_FREQ_NODATA, 11, 12],
+                [NODATA, 11, 12],
             ]
         ],
         dtype="float",
@@ -167,16 +162,13 @@ def test_water_classes():
     )
 
     stats_l4 = StatsLccsLevel4()
-    intertidal_mask = lc_intertidal_mask.intertidal_mask(xx)
 
     # Water persistence
     water_persistence = l4_water_persistence.water_persistence(
         xx, stats_l4.watper_threshold
     )
 
-    l4_water_classes = l4_water.water_classification(
-        xx, intertidal_mask, water_persistence
-    )
+    l4_water_classes = l4_water.water_classification(xx, water_persistence)
 
     assert (l4_water_classes.compute() == expected_water_classes).all()
 
@@ -184,17 +176,17 @@ def test_water_classes():
 def test_water_intertidal():
 
     expected_water_classes = [
-        [104, 104, 104],
-        [103, 103, 103],
+        [100, 100, 100],
+        [100, 100, 100],
         [102, 102, 101],
-        [101, 98, 100],
+        [101, 99, 100],
     ]
 
     l34 = np.array(
         [
             [
-                [221, 221, 221],
-                [221, 221, 221],
+                [223, 223, 223],
+                [223, 223, 223],
                 [221, 221, 221],
                 [221, 221, 223],
             ]
@@ -276,15 +268,12 @@ def test_water_intertidal():
     )
 
     stats_l4 = StatsLccsLevel4()
-    intertidal_mask = lc_intertidal_mask.intertidal_mask(xx)
 
     # Water persistence
     water_persistence = l4_water_persistence.water_persistence(
         xx, stats_l4.watper_threshold
     )
 
-    l4_water_classes = l4_water.water_classification(
-        xx, intertidal_mask, water_persistence
-    )
-    print(l4_water_classes.compute())
+    l4_water_classes = l4_water.water_classification(xx, water_persistence)
+
     assert (l4_water_classes.compute() == expected_water_classes).all()

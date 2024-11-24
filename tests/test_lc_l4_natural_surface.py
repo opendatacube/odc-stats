@@ -6,7 +6,6 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
-from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
     l4_cultivated,
     lc_level3,
@@ -15,8 +14,6 @@ from odc.stats.plugins.l34_utils import (
     l4_natural_aquatic,
     l4_surface,
     l4_bare_gradation,
-    lc_lifeform,
-    lc_water_seasonality,
 )
 
 import pandas as pd
@@ -24,7 +21,9 @@ import pandas as pd
 NODATA = 255
 
 
-def image_groups(l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency):
+def image_groups(
+    l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency, water_season
+):
 
     tuples = [
         (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
@@ -36,7 +35,7 @@ def image_groups(l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_freque
     }
 
     data_vars = {
-        "classes_l3_l4": xr.DataArray(
+        "level_3_4": xr.DataArray(
             da.from_array(l34, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -68,6 +67,11 @@ def image_groups(l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_freque
         ),
         "water_frequency": xr.DataArray(
             da.from_array(water_frequency, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
+        ),
+        "water_season": xr.DataArray(
+            da.from_array(water_season, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
@@ -168,33 +172,38 @@ def test_ns():
         ],
         dtype="uint8",
     )
+    water_season = np.array(
+        [
+            [
+                [1, 2, 1],
+                [2, 1, 2],
+                [1, 1, 2],
+                [2, 2, 1],
+            ]
+        ],
+        dtype="uint8",
+    )
 
     xx = image_groups(
-        l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency
+        l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency, water_season
     )
 
-    stats_l4 = StatsLccsLevel4()
     level3 = lc_level3.lc_level3(xx)
-    lifeform = lc_lifeform.lifeform(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
+
+    veg_threshold = [1, 4, 15, 40, 65, 100]
+    veg_cover = l4_veg_cover.canopyco_veg_con(xx, veg_threshold)
 
     # Apply cultivated to match the code in Level4 processing
-    l4_ctv = l4_cultivated.lc_l4_cultivated(
-        xx.classes_l3_l4, level3, lifeform, veg_cover
-    )
-    l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, lifeform, veg_cover)
+    l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, xx.woody, veg_cover)
+    l4_ctv_ntv = l4_natural_veg.lc_l4_natural_veg(l4_ctv, level3, xx.woody, veg_cover)
 
-    water_seasonality = lc_water_seasonality.water_seasonality(
-        xx, stats_l4.water_seasonality_threshold
-    )
     l4_ctv_ntv_nav = l4_natural_aquatic.natural_auquatic_veg(
-        l4_ctv_ntv, veg_cover, water_seasonality
+        l4_ctv_ntv, veg_cover, xx.water_season
     )
 
     # Bare gradation
-    bare_gradation = l4_bare_gradation.bare_gradation(
-        xx, stats_l4.bare_threshold, veg_cover
-    )
+    bare_threshold = [20, 60]
+    bare_gradation = l4_bare_gradation.bare_gradation(xx, bare_threshold, veg_cover)
 
     l4_ctv_ntv_nav_surface = l4_surface.lc_l4_surface(
         l4_ctv_ntv_nav, level3, bare_gradation

@@ -8,17 +8,13 @@ WATER_FREQ_NODATA = -999
 
 def water_persistence(xx: xr.Dataset, watper_threshold):
 
-    # Apply nodata
+    # Address nan
     water_frequency = expr_eval(
-        "where((a==water_freq_nodata), nodata, a)",
+        "where((a!=a), nodata, a)",
         {"a": xx.water_frequency.data},
         name="mark_water",
-        dtype="uint8",
-        **{
-            "m": watper_threshold[3],
-            "nodata": NODATA,
-            "water_freq_nodata": WATER_FREQ_NODATA,
-        },
+        dtype="float32",
+        **{"nodata": NODATA},
     )
 
     #  10 <= water_frequency < 1 --> 1
