@@ -327,6 +327,10 @@ class TaskRunner:
             )
         raise ValueError("Must supply one of tasks= or sqs=")
 
+    def __del__(self):
+        if self.client():
+            self.client().close()
+
 
 def get_max_mem() -> int:
     """
