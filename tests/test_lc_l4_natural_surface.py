@@ -40,7 +40,7 @@ def image_groups(
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "urban_classes": xr.DataArray(
+        "artificial_surface": xr.DataArray(
             da.from_array(urban, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -81,7 +81,7 @@ def image_groups(
     return xx
 
 
-def test_ns():
+def test_ns(veg_threshold):
     expected_l4_srf_classes = [
         [95, 97, 93],
         [97, 96, 96],
@@ -188,9 +188,9 @@ def test_ns():
         l34, urban, woody, bs_pc_50, pv_pc_50, cultivated, water_frequency, water_season
     )
 
-    level3 = lc_level3.lc_level3(xx)
+    mock_urban_mask = da.ones(xx.artificial_surface.shape)
+    level3 = lc_level3.lc_level3(xx, mock_urban_mask)
 
-    veg_threshold = [1, 4, 15, 40, 65, 100]
     veg_cover = l4_veg_cover.canopyco_veg_con(xx, veg_threshold)
 
     # Apply cultivated to match the code in Level4 processing

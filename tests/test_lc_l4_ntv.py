@@ -6,7 +6,6 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
-from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
     lc_level3,
     l4_veg_cover,
@@ -35,7 +34,7 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50):
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "urban_classes": xr.DataArray(
+        "artificial_surface": xr.DataArray(
             da.from_array(urban, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -61,7 +60,7 @@ def image_groups(l34, urban, cultivated, woody, pv_pc_50):
     return xx
 
 
-def test_ntv_classes_herbaceous():
+def test_ntv_classes_herbaceous(veg_threshold):
 
     expected_natural_terrestrial_veg_classes = [
         [36, 33, 32],
@@ -130,16 +129,16 @@ def test_ntv_classes_herbaceous():
         dtype="uint8",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
+    mock_urban_mask = da.ones(xx.artificial_surface.shape)
 
-    stats_l4 = StatsLccsLevel4()
-    level3 = lc_level3.lc_level3(xx)
+    level3 = lc_level3.lc_level3(xx, mock_urban_mask)
 
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
+    veg_cover = l4_veg_cover.canopyco_veg_con(xx, veg_threshold)
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.level_3_4, level3, xx.woody, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
 
 
-def test_ntv_classes_woody():
+def test_ntv_classes_woody(veg_threshold):
 
     expected_natural_terrestrial_veg_classes = [
         [31, 28, 27],
@@ -208,16 +207,16 @@ def test_ntv_classes_woody():
         dtype="uint8",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
+    mock_urban_mask = da.ones(xx.artificial_surface.shape)
 
-    stats_l4 = StatsLccsLevel4()
-    level3 = lc_level3.lc_level3(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
+    level3 = lc_level3.lc_level3(xx, mock_urban_mask)
+    veg_cover = l4_veg_cover.canopyco_veg_con(xx, veg_threshold)
 
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.level_3_4, level3, xx.woody, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
 
 
-def test_ntv_classes_no_veg():
+def test_ntv_classes_no_veg(veg_threshold):
 
     expected_natural_terrestrial_veg_classes = [
         [20, 20, 20],
@@ -286,16 +285,16 @@ def test_ntv_classes_no_veg():
         dtype="uint8",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
+    mock_urban_mask = da.ones(xx.artificial_surface.shape)
 
-    stats_l4 = StatsLccsLevel4()
-    level3 = lc_level3.lc_level3(xx)
+    level3 = lc_level3.lc_level3(xx, mock_urban_mask)
 
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
+    veg_cover = l4_veg_cover.canopyco_veg_con(xx, veg_threshold)
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.level_3_4, level3, xx.woody, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()
 
 
-def test_ntv_classes_no_lifeform():
+def test_ntv_classes_no_lifeform(veg_threshold):
 
     expected_natural_terrestrial_veg_classes = [
         [26, 23, 22],
@@ -364,10 +363,10 @@ def test_ntv_classes_no_lifeform():
         dtype="uint8",
     )
     xx = image_groups(l34, urban, cultivated, woody, pv_pc_50)
+    mock_urban_mask = da.ones(xx.artificial_surface.shape)
 
-    stats_l4 = StatsLccsLevel4()
-    level3 = lc_level3.lc_level3(xx)
+    level3 = lc_level3.lc_level3(xx, mock_urban_mask)
 
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
+    veg_cover = l4_veg_cover.canopyco_veg_con(xx, veg_threshold)
     l4_ntv = l4_natural_veg.lc_l4_natural_veg(xx.level_3_4, level3, xx.woody, veg_cover)
     assert (l4_ntv.compute() == expected_natural_terrestrial_veg_classes).all()

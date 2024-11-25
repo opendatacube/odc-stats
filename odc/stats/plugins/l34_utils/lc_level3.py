@@ -21,6 +21,7 @@ def lc_level3(xx: xr.Dataset, urban_mask):
     )
 
     # Mask urban results with bare sfc (210)
+    # and urban mask
 
     res = expr_eval(
         "where((a==_u)&(c>0), b, a)",

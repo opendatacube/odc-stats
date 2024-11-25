@@ -215,3 +215,13 @@ def urban_shape():
     ) as dst:
         dst.write(data)
     return filename
+
+
+@pytest.fixture()
+def veg_threshold():
+    return [1, 4, 15, 40, 65, 100]
+
+
+@pytest.fixture()
+def watper_threshold():
+    return [1, 4, 7, 10]

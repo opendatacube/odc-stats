@@ -6,7 +6,6 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
-from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
     l4_water_persistence,
     l4_water,
@@ -35,7 +34,7 @@ def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_freque
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "urban_classes": xr.DataArray(
+        "artificial_surface": xr.DataArray(
             da.from_array(urban, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -71,7 +70,7 @@ def image_groups(l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_freque
     return xx
 
 
-def test_water_classes():
+def test_water_classes(watper_threshold):
     expected_water_classes = [
         [[104, 104, 104], [103, 103, 103], [102, 102, 101], [99, 101, 101]],
     ]
@@ -161,19 +160,15 @@ def test_water_classes():
         l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_frequency
     )
 
-    stats_l4 = StatsLccsLevel4()
-
     # Water persistence
-    water_persistence = l4_water_persistence.water_persistence(
-        xx, stats_l4.watper_threshold
-    )
+    water_persistence = l4_water_persistence.water_persistence(xx, watper_threshold)
 
     l4_water_classes = l4_water.water_classification(xx, water_persistence)
 
     assert (l4_water_classes.compute() == expected_water_classes).all()
 
 
-def test_water_intertidal():
+def test_water_intertidal(watper_threshold):
 
     expected_water_classes = [
         [100, 100, 100],
@@ -267,12 +262,8 @@ def test_water_intertidal():
         l34, urban, cultivated, woody, bs_pc_50, pv_pc_50, water_frequency
     )
 
-    stats_l4 = StatsLccsLevel4()
-
     # Water persistence
-    water_persistence = l4_water_persistence.water_persistence(
-        xx, stats_l4.watper_threshold
-    )
+    water_persistence = l4_water_persistence.water_persistence(xx, watper_threshold)
 
     l4_water_classes = l4_water.water_classification(xx, water_persistence)
 
