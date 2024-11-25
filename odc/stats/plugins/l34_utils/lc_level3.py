@@ -21,18 +21,29 @@ def lc_level3(xx: xr.Dataset, urban_mask):
     )
 
     # Mask urban results with bare sfc (210)
-    # and urban mask
 
     res = expr_eval(
-        "where((a==_u)&(c>0), b, a)",
+        "where((a==_u), b, a)",
         {
             "a": res,
             "b": xx.artificial_surface.data,
-            "c": urban_mask,
         },
         name="mark_urban",
         dtype="float32",
         **{"_u": 210},
+    )
+
+    # Enforce non-urban mask area to be n/artificial (216)
+
+    res = expr_eval(
+        "where((b<=0)&(a==_u), _nu, a)",
+        {
+            "a": res,
+            "b": urban_mask,
+        },
+        name="mask_non_urban",
+        dtype="float32",
+        **{"_u": 215, "_nu": 216},
     )
 
     # Mark nodata to 255 in case any nan
