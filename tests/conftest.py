@@ -4,6 +4,12 @@ from mock import MagicMock
 import boto3
 from moto import mock_aws
 from odc.stats.plugins import register
+import json
+import tempfile
+import os
+import fiona
+from fiona.crs import CRS
+
 from . import DummyPlugin
 
 TEST_DIR = pathlib.Path(__file__).parent.absolute()
@@ -148,3 +154,74 @@ def usgs_ls8_sr_definition():
         ],
     }
     return definition
+
+
+@pytest.fixture
+def urban_shape():
+    data = """
+    {
+       "type":"FeatureCollection",
+       "features":[
+          {
+             "geometry":{
+                "type":"Polygon",
+                "coordinates":[
+                   [
+                      [
+                         0,
+                         0
+                      ],
+                      [
+                         0,
+                         100
+                      ],
+                      [
+                         100,
+                         100
+                      ],
+                      [
+                         100,
+                         0
+                      ],
+                      [
+                         0,
+                         0
+                      ]
+                   ]
+                ]
+             },
+             "type":"Feature",
+             "properties":
+                {
+                    "name": "mock",
+                    "value": 10
+                }
+          }
+       ]
+    }
+    """
+    data = json.loads(data)["features"][0]
+    tmpdir = tempfile.mkdtemp()
+    filename = os.path.join(tmpdir, "test.json")
+    with fiona.open(
+        filename,
+        "w",
+        driver="GeoJSON",
+        crs=CRS.from_epsg(3577),
+        schema={
+            "geometry": "Polygon",
+            "properties": {"name": "str", "value": "int"},
+        },
+    ) as dst:
+        dst.write(data)
+    return filename
+
+
+@pytest.fixture()
+def veg_threshold():
+    return [1, 4, 15, 40, 65, 100]
+
+
+@pytest.fixture()
+def watper_threshold():
+    return [1, 4, 7, 10]

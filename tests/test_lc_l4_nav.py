@@ -6,7 +6,6 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
-from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins.l34_utils import (
     l4_cultivated,
     lc_level3,
@@ -39,7 +38,7 @@ def image_groups(
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "urban_classes": xr.DataArray(
+        "artificial_surface": xr.DataArray(
             da.from_array(urban, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
@@ -75,7 +74,7 @@ def image_groups(
     return xx
 
 
-def test_ntv_classes_woody_herbaceous():
+def test_ntv_classes_woody_herbaceous(veg_threshold):
     expected_l4_ntv_classes = [[56, 56, 56], [57, 57, 57], [56, 56, 56], [57, 57, 57]]
 
     l34 = np.array(
@@ -165,10 +164,10 @@ def test_ntv_classes_woody_herbaceous():
     xx = image_groups(
         l34, urban, cultivated, woody, pv_pc_50, water_frequency, water_season
     )
+    mock_urban_mask = da.ones(xx.artificial_surface.shape)
 
-    stats_l4 = StatsLccsLevel4()
-    level3 = lc_level3.lc_level3(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
+    level3 = lc_level3.lc_level3(xx, mock_urban_mask)
+    veg_cover = l4_veg_cover.canopyco_veg_con(xx, veg_threshold)
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, xx.woody, veg_cover)
@@ -181,7 +180,7 @@ def test_ntv_classes_woody_herbaceous():
     assert (l4_ctv_ntv_nav.compute() == expected_l4_ntv_classes).all()
 
 
-def test_ntv_herbaceous_seasonal_water_veg_cover():
+def test_ntv_herbaceous_seasonal_water_veg_cover(veg_threshold):
     expected_l4_ntv_classes = [
         [91, 83, 79],
         [80, 82, 83],
@@ -275,10 +274,10 @@ def test_ntv_herbaceous_seasonal_water_veg_cover():
     xx = image_groups(
         l34, urban, cultivated, woody, pv_pc_50, water_frequency, water_season
     )
+    mock_urban_mask = da.ones(xx.artificial_surface.shape)
 
-    stats_l4 = StatsLccsLevel4()
-    level3 = lc_level3.lc_level3(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
+    level3 = lc_level3.lc_level3(xx, mock_urban_mask)
+    veg_cover = l4_veg_cover.canopyco_veg_con(xx, veg_threshold)
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, xx.woody, veg_cover)
@@ -291,7 +290,7 @@ def test_ntv_herbaceous_seasonal_water_veg_cover():
     assert (l4_ctv_ntv_nav.compute() == expected_l4_ntv_classes).all()
 
 
-def test_ntv_woody_seasonal_water_veg_cover():
+def test_ntv_woody_seasonal_water_veg_cover(veg_threshold):
     expected_l4_ntv_classes = [
         [76, 68, 64],
         [65, 67, 68],
@@ -385,10 +384,10 @@ def test_ntv_woody_seasonal_water_veg_cover():
     xx = image_groups(
         l34, urban, cultivated, woody, pv_pc_50, water_frequency, water_season
     )
+    mock_urban_mask = da.ones(xx.artificial_surface.shape)
 
-    stats_l4 = StatsLccsLevel4()
-    level3 = lc_level3.lc_level3(xx)
-    veg_cover = l4_veg_cover.canopyco_veg_con(xx, stats_l4.veg_threshold)
+    level3 = lc_level3.lc_level3(xx, mock_urban_mask)
+    veg_cover = l4_veg_cover.canopyco_veg_con(xx, veg_threshold)
 
     # Apply cultivated to match the code in Level4 processing
     l4_ctv = l4_cultivated.lc_l4_cultivated(xx.level_3_4, level3, xx.woody, veg_cover)

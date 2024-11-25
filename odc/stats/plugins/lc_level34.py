@@ -8,6 +8,8 @@ import numpy as np
 import xarray as xr
 
 from ._registry import StatsPluginInterface, register
+from ._utils import rasterize_vector_mask
+from osgeo import gdal
 
 from .l34_utils import (
     l4_water_persistence,
@@ -33,12 +35,28 @@ class StatsLccsLevel4(StatsPluginInterface):
 
     def __init__(
         self,
+        urban_mask: str = None,
+        filter_expression: str = None,
+        mask_threshold: Optional[float] = None,
         veg_threshold: Optional[List] = None,
         bare_threshold: Optional[List] = None,
         watper_threshold: Optional[List] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
+        if urban_mask is None:
+            raise ValueError("Missing urban mask shapefile")
+
+        file_metadata = gdal.VSIStatL(urban_mask)
+        if file_metadata is None:
+            raise FileNotFoundError(f"{urban_mask} not found")
+
+        if filter_expression is None:
+            raise ValueError("Missing urban mask filter")
+
+        self.urban_mask = urban_mask
+        self.filter_expression = filter_expression
+        self.mask_threshold = mask_threshold
 
         self.veg_threshold = (
             veg_threshold if veg_threshold is not None else [1, 4, 15, 40, 65, 100]
@@ -51,6 +69,7 @@ class StatsLccsLevel4(StatsPluginInterface):
     def fuser(self, xx):
         return xx
 
+    # pylint: disable=too-many-locals
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
 
         # Water persistence
@@ -62,7 +81,15 @@ class StatsLccsLevel4(StatsPluginInterface):
         l4 = l4_water.water_classification(xx, water_persistence)
 
         # Generate Level3 classes
-        level3 = lc_level3.lc_level3(xx)
+        urban_mask = rasterize_vector_mask(
+            self.urban_mask,
+            xx.geobox.transform,
+            xx.artificial_surface.shape,
+            filter_expression=self.filter_expression,
+            threshold=self.mask_threshold,
+        )
+
+        level3 = lc_level3.lc_level3(xx, urban_mask)
 
         # Vegetation cover
         veg_cover = l4_veg_cover.canopyco_veg_con(xx, self.veg_threshold)
@@ -98,4 +125,4 @@ class StatsLccsLevel4(StatsPluginInterface):
         return leve34
 
 
-register("lc_l3_l4", StatsLccsLevel4)
+register("lccs_level34", StatsLccsLevel4)
