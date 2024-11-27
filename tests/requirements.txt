@@ -16,6 +16,7 @@ pytest
 pytest-cov
 pytest-httpserver
 pytest-timeout
+s3fs
 tflite-runtime
 tl2cgen
 
