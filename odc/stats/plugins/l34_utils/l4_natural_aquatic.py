@@ -302,15 +302,15 @@ def natural_auquatic_veg(l4, veg_cover, water_season):
         {
             "a": res,
         },
-        name="mark_final",
+        name="mark_herbaceous",
         dtype="uint8",
     )
     res = expr_eval(
-        "where((a>=253)&(a<=254), 58, a)",
+        "where((a>=253)&(a<=254), 56, a)",
         {
             "a": res,
         },
-        name="mark_final",
+        name="mark_woody",
         dtype="uint8",
     )
 
