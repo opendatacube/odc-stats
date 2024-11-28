@@ -87,7 +87,7 @@ class StatsLccsLevel4(StatsPluginInterface):
         res = da.full(xx.level_3_4.shape, 0, dtype="uint8")
 
         for expression in expressions:
-            _log.info(expression)
+            _log.debug(expression)
             local_dict.update({"res": res})
             res = expr_eval(
                 expression,

@@ -1,11 +1,13 @@
 from odc.stats.plugins.lc_level34 import StatsLccsLevel4
+from odc.stats.plugins._utils import generate_numexpr_expressions
+
+import re
 import numpy as np
 import pandas as pd
 import xarray as xr
 import dask.array as da
 from datacube.utils.geometry import GeoBox
 from affine import Affine
-
 
 import pytest
 
@@ -178,6 +180,21 @@ def test_l4_classes(image_groups, urban_shape):
     expected_l4 = [[95, 97, 93], [97, 96, 96], [100, 93, 93], [101, 101, 101]]
     stats_l4 = StatsLccsLevel4(
         measurements=["level3", "level4"],
+        class_def_path="s3://dea-public-data-dev/lccs_validation/c3/data_to_plot/"
+        "lccs_colour_scheme_golden_dark_au_c3.csv",
+        class_condition={
+            "level3": ["level1", "artificial_surface", "cultivated"],
+            "level4": [
+                "level1",
+                "level3",
+                "woody",
+                "water_season",
+                "water_frequency",
+                "pv_pc_50",
+                "bs_pc_50",
+            ],
+        },
+        data_var_condition={"level1": "level_3_4"},
         urban_mask=urban_shape,
         filter_expression="mock > 9",
         mask_threshold=0.3,
@@ -186,3 +203,79 @@ def test_l4_classes(image_groups, urban_shape):
 
     assert (ds.level3.compute() == expected_l3).all()
     assert (ds.level4.compute() == expected_l4).all()
+
+
+@pytest.mark.parametrize(
+    "rules_df, expected_expressions",
+    [
+        # Test with range conditions
+        # when condition numbers are the same the order doesn't matter
+        (
+            pd.DataFrame(
+                {
+                    "condition_1": ["[5, 10)", "(1, 4]"],
+                    "condition_2": ["==2", "!=2"],
+                    "final_class": [1, 2],
+                }
+            ),
+            [
+                "where((condition_1>1.0)&(condition_1<=4.0)&(condition_2!=2.0), 2, previous)",
+                "where((condition_1>=5.0)&(condition_1<10.0)&(condition_2==2.0), 1, previous)",
+            ],
+        ),
+        # Test with NaN
+        # when clause with smaller number of conditions always takes precedence
+        (
+            pd.DataFrame(
+                {
+                    "condition_1": ["[5, 10)", "nan"],
+                    "condition_2": ["==2", "!=2"],
+                    "final_class": [1, 2],
+                }
+            ),
+            [
+                "where((condition_2!=2.0), 2, previous)",
+                "where((condition_1>=5.0)&(condition_1<10.0)&(condition_2==2.0), 1, previous)",
+            ],
+        ),
+        # Test with single value implying "==" and "255"
+        (
+            pd.DataFrame(
+                {
+                    "condition_1": ["3", "255"],
+                    "condition_2": ["==2", "!=2"],
+                    "final_class": [1, 2],
+                }
+            ),
+            [
+                "where((condition_2!=2.0), 2, previous)",
+                "where((condition_1==3)&(condition_2==2.0), 1, previous)",
+            ],
+        ),
+    ],
+)
+def test_generate_numexpr_expressions(rules_df, expected_expressions):
+    con_cols = ["condition_1", "condition_2"]
+    class_col = "final_class"
+
+    generated_expressions = generate_numexpr_expressions(
+        rules_df[con_cols + [class_col]], class_col, "previous"
+    )
+
+    def normalize_expression(expression):
+        match = re.match(r"where\((.*), (.*?), (.*?)\)", expression)
+        if match:
+            conditions, true_value, false_value = match.groups()
+            # Split conditions, sort them, and rejoin
+            sorted_conditions = "&".join(sorted(conditions.split("&")))
+            return f"where({sorted_conditions}, {true_value}, {false_value})"
+        return expression
+
+    normalized_expected = [normalize_expression(expr) for expr in expected_expressions]
+    normalized_generated = [
+        normalize_expression(expr) for expr in generated_expressions
+    ]
+
+    assert (
+        normalized_generated == normalized_expected
+    ), f"Expected {expected_expressions}, but got {generated_expressions}"
