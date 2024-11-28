@@ -41,7 +41,7 @@ class StatsLccsLevel4(StatsPluginInterface):
             raise ValueError("Missing level34 class definition csv")
 
         if class_def_path.startswith("s3://"):
-            if not s3fs.S3FileSystem().exists(class_def_path):
+            if not s3fs.S3FileSystem(anon=True).exists(class_def_path):
                 raise FileNotFoundError(f"{class_def_path} not found")
         elif not os.path.exists(class_def_path):
             raise FileNotFoundError(f"{class_def_path} not found")

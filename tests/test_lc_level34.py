@@ -2,12 +2,15 @@ from odc.stats.plugins.lc_level34 import StatsLccsLevel4
 from odc.stats.plugins._utils import generate_numexpr_expressions
 
 import re
+import os
 import numpy as np
 import pandas as pd
 import xarray as xr
 import dask.array as da
 from datacube.utils.geometry import GeoBox
 from affine import Affine
+from unittest.mock import patch
+
 
 import pytest
 
@@ -178,27 +181,35 @@ def test_l4_classes(image_groups, urban_shape):
     expected_l3 = [[216, 216, 215], [216, 216, 216], [220, 215, 215], [220, 220, 220]]
 
     expected_l4 = [[95, 97, 93], [97, 96, 96], [100, 93, 93], [101, 101, 101]]
-    stats_l4 = StatsLccsLevel4(
-        measurements=["level3", "level4"],
-        class_def_path="s3://dea-public-data-dev/lccs_validation/c3/data_to_plot/"
-        "lccs_colour_scheme_golden_dark_au_c3.csv",
-        class_condition={
-            "level3": ["level1", "artificial_surface", "cultivated"],
-            "level4": [
-                "level1",
-                "level3",
-                "woody",
-                "water_season",
-                "water_frequency",
-                "pv_pc_50",
-                "bs_pc_50",
-            ],
+    with patch.dict(
+        os.environ,
+        {
+            "AWS_ACCESS_KEY_ID": "fake-access-key",
+            "AWS_SECRET_ACCESS_KEY": "fake-secret-key",
+            "AWS_SESSION_TOKEN": "fake-session-token",  # Optional
         },
-        data_var_condition={"level1": "level_3_4"},
-        urban_mask=urban_shape,
-        filter_expression="mock > 9",
-        mask_threshold=0.3,
-    )
+    ):
+        stats_l4 = StatsLccsLevel4(
+            measurements=["level3", "level4"],
+            class_def_path="s3://dea-public-data-dev/lccs_validation/c3/data_to_plot/"
+            "lccs_colour_scheme_golden_dark_au_c3.csv",
+            class_condition={
+                "level3": ["level1", "artificial_surface", "cultivated"],
+                "level4": [
+                    "level1",
+                    "level3",
+                    "woody",
+                    "water_season",
+                    "water_frequency",
+                    "pv_pc_50",
+                    "bs_pc_50",
+                ],
+            },
+            data_var_condition={"level1": "level_3_4"},
+            urban_mask=urban_shape,
+            filter_expression="mock > 9",
+            mask_threshold=0.3,
+        )
     ds = stats_l4.reduce(image_groups)
 
     assert (ds.level3.compute() == expected_l3).all()
