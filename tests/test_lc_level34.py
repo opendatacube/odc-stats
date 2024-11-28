@@ -290,3 +290,210 @@ def test_generate_numexpr_expressions(rules_df, expected_expressions):
     assert (
         normalized_generated == normalized_expected
     ), f"Expected {expected_expressions}, but got {generated_expressions}"
+
+
+def test_level4(urban_shape):
+
+    level_3_4 = np.array(
+        [
+            [
+                [110, 110, 110, 110, 110, 110],
+                [110, 110, 110, 110, 110, 110],
+                [110, 110, 110, 110, 110, 110],
+                [110, 110, 110, 110, 110, 110],
+            ]
+        ],
+        dtype="uint8",
+    )
+
+    cultivated = np.array(
+        [
+            [
+                [111, 111, 111, 111, 111, 111],
+                [111, 111, 111, 111, 111, 111],
+                [112, 112, 112, 112, 112, 112],
+                [112, 112, 112, 112, 112, 112],
+            ]
+        ],
+        dtype="uint8",
+    )
+
+    urban = np.array(
+        [
+            [
+                [255, 255, 255, 255, 255, 255],
+                [255, 255, 255, 255, 255, 255],
+                [255, 255, 255, 255, 255, 255],
+                [255, 255, 255, 255, 255, 255],
+            ]
+        ],
+        dtype="uint8",
+    )
+
+    woody = np.array(
+        [
+            [
+                [113, 114, 113, 113, 113, 113],
+                [113, 114, 114, 114, 114, 114],
+                [113, 114, 113, 113, 113, 113],
+                [113, 114, 114, 114, 114, 114],
+            ]
+        ],
+        dtype="uint8",
+    )
+
+    pv_pc_50 = np.array(
+        [
+            [
+                [np.nan, np.nan, 66, 41, 21, 5],
+                [3, 66, 41, 21, 5, 3],
+                [np.nan, np.nan, 66, 41, 21, 5],
+                [3, 66, 41, 21, 5, 3],
+            ]
+        ],
+        dtype="float32",
+    )
+
+    water_season = np.array(
+        [
+            [
+                [255, 255, 255, 255, 255, 255],
+                [255, 255, 255, 255, 255, 255],
+                [255, 255, 255, 255, 255, 255],
+                [255, 255, 255, 255, 255, 255],
+            ]
+        ],
+        dtype="uint8",
+    )
+
+    water_frequency = np.array(
+        [
+            [
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+            ]
+        ],
+        dtype="float32",
+    )
+
+    bs_pc_50 = np.array(
+        [
+            [
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+            ]
+        ],
+        dtype="float32",
+    )
+
+    tuples = [
+        (np.datetime64("2000-01-01T00"), np.datetime64("2000-01-01")),
+    ]
+    index = pd.MultiIndex.from_tuples(tuples, names=["time", "solar_day"])
+
+    affine = Affine.translation(10, 0) * Affine.scale(
+        (20 - 10) / level_3_4.shape[2], (5 - 0) / level_3_4.shape[1]
+    )
+    geobox = GeoBox(
+        crs="epsg:3577",
+        affine=affine,
+        width=level_3_4.shape[2],
+        height=level_3_4.shape[1],
+    )
+    coords = geobox.xr_coords()
+
+    data_vars = {
+        "level_3_4": xr.DataArray(
+            da.from_array(level_3_4, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
+        ),
+        "artificial_surface": xr.DataArray(
+            da.from_array(urban, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
+        ),
+        "cultivated": xr.DataArray(
+            da.from_array(cultivated, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
+        ),
+        "woody": xr.DataArray(
+            da.from_array(woody, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
+        ),
+        "pv_pc_50": xr.DataArray(
+            da.from_array(pv_pc_50, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
+        ),
+        "bs_pc_50": xr.DataArray(
+            da.from_array(bs_pc_50, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
+        ),
+        "water_frequency": xr.DataArray(
+            da.from_array(water_frequency, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
+        ),
+        "water_season": xr.DataArray(
+            da.from_array(water_season, chunks=(1, -1, -1)),
+            dims=("spec", "y", "x"),
+            attrs={"nodata": 255},
+        ),
+    }
+
+    xx = xr.Dataset(data_vars=data_vars, coords=coords)
+    xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
+
+    expected_l4 = np.array(
+        [
+            [2, 3, 9, 10, 11, 12],
+            [13, 14, 15, 16, 17, 18],
+            [20, 21, 27, 28, 29, 30],
+            [31, 32, 33, 34, 35, 36],
+        ],
+        dtype="uint8",
+    )
+
+    expected_l3 = np.array(
+        [
+            [111, 111, 111, 111, 111, 111],
+            [111, 111, 111, 111, 111, 111],
+            [112, 112, 112, 112, 112, 112],
+            [112, 112, 112, 112, 112, 112],
+        ],
+        dtype="uint8",
+    )
+
+    stats_l4 = StatsLccsLevel4(
+        measurements=["level3", "level4"],
+        class_def_path="s3://dea-public-data-dev/lccs_validation/c3/data_to_plot/"
+        "lccs_colour_scheme_golden_dark_au_c3.csv",
+        class_condition={
+            "level3": ["level1", "artificial_surface", "cultivated"],
+            "level4": [
+                "level1",
+                "level3",
+                "woody",
+                "water_season",
+                "water_frequency",
+                "pv_pc_50",
+                "bs_pc_50",
+            ],
+        },
+        data_var_condition={"level1": "level_3_4"},
+        urban_mask=urban_shape,
+        filter_expression="mock > 9",
+        mask_threshold=0.3,
+    )
+    ds = stats_l4.reduce(xx)
+
+    assert (ds.level3.compute() == expected_l3).all()
+    assert (ds.level4.compute() == expected_l4).all()
