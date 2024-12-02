@@ -161,23 +161,26 @@ class StatsVegClassL1(StatsPluginInterface):
                         },
                     )
 
-        # all unmarked values (0) is terretrial veg
-
+        # all unmarked values (0) and 255 > veg >= 2 is terretrial veg
         l3_mask = expr_eval(
-            "where(a<=0, m, a)",
-            {"a": l3_mask},
+            "where((a<=0)&(b>=2)&(b<nodata), m, a)",
+            {"a": l3_mask, "b": xx["veg_frequency"].data},
             name="mark_veg",
             dtype="uint8",
-            **{"m": self.output_classes["terrestrial_veg"]},
+            **{
+                "m": self.output_classes["terrestrial_veg"],
+                "nodata": (
+                    NODATA
+                    if xx["veg_frequency"].attrs["nodata"]
+                    != xx["veg_frequency"].attrs["nodata"]
+                    else xx["veg_frequency"].attrs["nodata"]
+                ),
+            },
         )
 
-        # mark nodata if any source is nodata
-        # issues:
-        # - nodata information from non-indexed datasets missing
-
-        # Mask nans with NODATA
+        # Mask nans and pixels where non of classes applicable
         l3_mask = expr_eval(
-            "where((a!=a), nodata, e)",
+            "where((a!=a)|(e<=0), nodata, e)",
             {
                 "a": si5,
                 "e": l3_mask,
