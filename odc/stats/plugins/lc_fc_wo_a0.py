@@ -132,7 +132,6 @@ class StatsVegCount(StatsPluginInterface):
                 "a": xx["pv"].data,
                 "c": xx["npv"].data,
                 "b": xx["bs"].data,
-                "d": xx["ue"].data,
             },
             name="get_veg",
             dtype="uint8",
