@@ -57,7 +57,6 @@ class StatsVegClassL1(StatsPluginInterface):
         saltpan_threshold: Optional[int] = None,
         water_threshold: Optional[float] = None,
         veg_threshold: Optional[int] = None,
-        water_seasonality_threshold: Optional[float] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -70,9 +69,6 @@ class StatsVegClassL1(StatsPluginInterface):
         )
         self.water_threshold = water_threshold if water_threshold is not None else 0.2
         self.veg_threshold = veg_threshold if veg_threshold is not None else 2
-        self.water_seasonality_threshold = (
-            water_seasonality_threshold if water_seasonality_threshold else 0.25
-        )
         self.output_classes = output_classes
 
     def fuser(self, xx):
@@ -191,49 +187,15 @@ class StatsVegClassL1(StatsPluginInterface):
             **{"nodata": NODATA},
         )
 
-        # Now add the water frequency
-        # Divide water frequency into following classes:
-        # 0 --> 0
-        # (0,0.25] --> 1
-        # (0.25,1] --> 2
-
-        water_seasonality = expr_eval(
-            "where((a > 0) & (a <= wt), 1, a)",
-            {"a": xx["frequency"].data},
-            name="mark_wo_fq",
-            dtype="float32",
-            **{"wt": self.water_seasonality_threshold},
-        )
-
-        water_seasonality = expr_eval(
-            "where((a > wt) & (a <= 1), 2, b)",
-            {"a": xx["frequency"].data, "b": water_seasonality},
-            name="mark_wo_fq",
-            dtype="float32",
-            **{"wt": self.water_seasonality_threshold},
-        )
-
-        water_seasonality = expr_eval(
-            "where((a != a), nodata, a)",
-            {
-                "a": water_seasonality,
-            },
-            name="mark_nodata",
-            dtype="uint8",
-            **{"nodata": NODATA},
-        )
-
-        return l3_mask, water_seasonality
+        return l3_mask
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
-        l3_mask, water_seasonality = self.l3_class(xx)
+        l3_mask = self.l3_class(xx)
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
         data_vars = {
             k: xr.DataArray(v, dims=xx["veg_frequency"].dims[1:], attrs=attrs)
-            for k, v in zip(
-                self.measurements, [l3_mask.squeeze(0), water_seasonality.squeeze(0)]
-            )
+            for k, v in zip(self.measurements, [l3_mask.squeeze(0)])
         }
         coords = dict((dim, xx.coords[dim]) for dim in xx["veg_frequency"].dims[1:])
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)

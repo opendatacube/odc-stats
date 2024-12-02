@@ -136,7 +136,7 @@ def test_l3_classes(dataset):
             "surface": 210,
         },
         optional_bands=["canopy_cover_class", "elevation"],
-        measurements=["level_3_4", "water_season"],
+        measurements=["level_3_4"],
     )
 
     expected_res = np.array(
@@ -151,72 +151,10 @@ def test_l3_classes(dataset):
         dtype="uint8",
     )
 
-    res, water_seasonality = stats_l3.l3_class(dataset)
+    res = stats_l3.l3_class(dataset)
     assert (res == expected_res).all()
 
-
-def test_l4_water_seasonality(dataset):
-    stats_l3 = StatsVegClassL1(
-        output_classes={
-            "aquatic_veg_wood": 124,
-            "aquatic_veg_herb": 125,
-            "terrestrial_veg": 110,
-            "water": 221,
-            "intertidal": 223,
-            "surface": 210,
-        },
-        optional_bands=["canopy_cover_class", "elevation"],
-        measurements=["level_3_4", "water_season"],
-    )
-
-    wo_fq = np.array(
-        [
-            [
-                [0.0, 0.021, 0.152, 255],
-                [0.249, 0.273, 0.252, 0.0375],
-                [0.302, 0, 0.789, 0.078],
-                [0.021, 0.243, 255, 0.255],
-            ]
-        ],
-        dtype="float32",
-    )
-    wo_fq = da.from_array(wo_fq, chunks=(1, -1, -1))
-
-    dataset["frequency"] = xr.DataArray(
-        wo_fq, dims=("spec", "y", "x"), attrs={"nodata": np.nan}
-    )
-
-    expected_water_seasonality = np.array(
-        [
-            [
-                [0, 1, 1, 255],
-                [1, 2, 2, 1],
-                [2, 0, 2, 1],
-                [1, 1, 255, 2],
-            ]
-        ],
-        dtype="float32",
-    )
-
-    res, water_seasonality = stats_l3.l3_class(dataset)
-    assert np.allclose(water_seasonality, expected_water_seasonality)
-
-
-def test_reduce(dataset):
-    stats_l3 = StatsVegClassL1(
-        output_classes={
-            "aquatic_veg_wood": 124,
-            "aquatic_veg_herb": 125,
-            "terrestrial_veg": 110,
-            "water": 221,
-            "intertidal": 223,
-            "surface": 210,
-        },
-        optional_bands=["canopy_cover_class", "elevation"],
-        measurements=["level_3_4", "water_season"],
-    )
     res = stats_l3.reduce(dataset)
-
     for var in res:
         assert res[var].attrs.get("nodata") is not None
         if res[var].dtype == "uint8":

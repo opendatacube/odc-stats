@@ -104,16 +104,16 @@ def image_groups():
         dtype="uint8",
     )
 
-    water_season = np.array(
+    frequency = np.array(
         [
             [
-                [1, 2, 1],
-                [2, 1, 2],
-                [1, 1, 2],
-                [2, 2, 1],
+                [0.1, 0.3, 0.15],
+                [0.9, 0.1, 0.5],
+                [0, 0.15, 0.4],
+                [0.9, 0.8, 0],
             ]
         ],
-        dtype="uint8",
+        dtype="float32",
     )
 
     tuples = [
@@ -165,10 +165,10 @@ def image_groups():
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "water_season": xr.DataArray(
-            da.from_array(water_season, chunks=(1, -1, -1)),
+        "frequency": xr.DataArray(
+            da.from_array(frequency, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
-            attrs={"nodata": 255},
+            attrs={"nodata": "nan"},
         ),
     }
 
@@ -199,7 +199,7 @@ def test_l4_classes(image_groups, urban_shape):
                     "level1",
                     "level3",
                     "woody",
-                    "water_season",
+                    "frequency",
                     "water_frequency",
                     "pv_pc_50",
                     "bs_pc_50",
@@ -354,16 +354,16 @@ def test_level4(urban_shape):
         dtype="float32",
     )
 
-    water_season = np.array(
+    frequency = np.array(
         [
             [
-                [255, 255, 255, 255, 255, 255],
-                [255, 255, 255, 255, 255, 255],
-                [255, 255, 255, 255, 255, 255],
-                [255, 255, 255, 255, 255, 255],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
             ]
         ],
-        dtype="uint8",
+        dtype="float32",
     )
 
     water_frequency = np.array(
@@ -442,10 +442,10 @@ def test_level4(urban_shape):
             dims=("spec", "y", "x"),
             attrs={"nodata": 255},
         ),
-        "water_season": xr.DataArray(
-            da.from_array(water_season, chunks=(1, -1, -1)),
+        "frequency": xr.DataArray(
+            da.from_array(frequency, chunks=(1, -1, -1)),
             dims=("spec", "y", "x"),
-            attrs={"nodata": 255},
+            attrs={"nodata": "nan"},
         ),
     }
 
@@ -482,7 +482,7 @@ def test_level4(urban_shape):
                 "level1",
                 "level3",
                 "woody",
-                "water_season",
+                "frequency",
                 "water_frequency",
                 "pv_pc_50",
                 "bs_pc_50",
