@@ -81,13 +81,17 @@ class StatsVegCount(StatsPluginInterface):
             **{"_nan": np.nan},
         )
 
-        # get high ue pixels
+        # get high ue valid pixels
         ue = expr_eval(
-            "where((a<_v), _nan, 1)",
+            "where((a<_v)|(a>=nodata), _nan, 1)",
             {"a": xx["ue"].data},
             name="get_high_ue",
             dtype="float32",
-            **{"_v": self.ue_threshold, "_nan": np.nan},
+            **{
+                "_v": self.ue_threshold,
+                "_nan": np.nan,
+                "nodata": xx["ue"].attrs["nodata"],
+            },
         )
         xx = xx.drop_vars(["ue"])
 
