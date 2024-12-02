@@ -81,34 +81,36 @@ class StatsVegCount(StatsPluginInterface):
             **{"_nan": np.nan},
         )
 
+        # pick all valid fc pixels
+        xx = keep_good_only(xx, valid, nodata=NODATA)
+        xx = to_float(xx, dtype="float32")
+
         # get high ue valid pixels
         ue = expr_eval(
-            "where((a<_v)|(a>=nodata), _nan, 1)",
+            "where(a>=_v, 1, _nan)",
             {"a": xx["ue"].data},
             name="get_high_ue",
             dtype="float32",
             **{
                 "_v": self.ue_threshold,
                 "_nan": np.nan,
-                "nodata": xx["ue"].attrs["nodata"],
             },
         )
-        xx = xx.drop_vars(["ue"])
 
-        # Pick out the fc pixels that have an unmixing error of less than the threshold
+        # get low ue valid pixels
         valid = expr_eval(
-            "where(a&(b!=b), 1, 0)",
-            {"a": valid.data, "b": ue},
+            "where(b<_v, 1, 0)",
+            {"b": xx["ue"].data},
             name="get_valid_pixels",
             dtype="bool",
+            **{"_v": self.ue_threshold},
         )
+        xx = xx.drop_vars(["ue"])
         valid = xr.DataArray(valid, dims=xx["pv"].dims, coords=xx["pv"].coords)
+        xx = keep_good_only(xx, valid, nodata=np.nan)
 
-        xx = keep_good_only(xx, valid, nodata=NODATA)
-        xx = to_float(xx, dtype="float32")
         xx["wet"] = xr.DataArray(wet, dims=xx["pv"].dims, coords=xx["pv"].coords)
         xx["ue"] = xr.DataArray(ue, dims=xx["pv"].dims, coords=xx["pv"].coords)
-
         return xx
 
     def fuser(self, xx):
@@ -142,7 +144,7 @@ class StatsVegCount(StatsPluginInterface):
         )
 
         # mark nans only if not valid & low ue
-        # if any high ue (c is not nan): 0
+        # if any high ue valid (ue is not nan): 0
         data = expr_eval(
             "where((a!=a)&(c!=c), nodata, b)",
             {"a": xx["pv"].data, "c": xx["ue"].data, "b": data},
