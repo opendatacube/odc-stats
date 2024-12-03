@@ -327,12 +327,12 @@ def test_native_transform(fc_wo_dataset, bits):
         np.array([1, 1, 3, 5, 6, 2, 6, 2, 2, 5, 6, 0, 0, 2, 3]),
         np.array([0, 3, 2, 1, 3, 5, 6, 1, 4, 5, 6, 0, 2, 4, 2]),
     )
-    result = np.where(out_xx["wet"].data == out_xx["wet"].data)
+    result = np.where(out_xx["wet_valid"].data == out_xx["wet_valid"].data)
     for a, b in zip(expected_valid, result):
         assert (a == b).all()
 
     expected_valid = (np.array([1, 2, 3]), np.array([6, 2, 0]), np.array([6, 1, 2]))
-    result = np.where(out_xx["wet"].data == 1)
+    result = np.where(out_xx["wet_valid"].data == 1)
 
     for a, b in zip(expected_valid, result):
         assert (a == b).all()
@@ -391,11 +391,11 @@ def test_water_or_not(fc_wo_dataset):
     xx = xx.groupby("solar_day").map(partial(StatsVegCount.fuser, None))
     yy = stats_veg._water_or_not(xx).compute()
     valid_index = (
-        np.array([0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 2, 2, 2]),
-        np.array([1, 1, 3, 5, 6, 2, 6, 0, 0, 2, 2, 3, 5, 6]),
-        np.array([0, 3, 2, 1, 3, 5, 6, 0, 2, 1, 4, 2, 5, 6]),
+        np.array([0, 0, 1, 1, 2, 2, 2]),
+        np.array([3, 6, 2, 6, 0, 2, 2]),
+        np.array([2, 3, 5, 6, 2, 1, 4]),
     )
-    expected_value = np.array([0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0])
+    expected_value = np.array([0, 0, 0, 1, 1, 1, 0])
     i = 0
     for idx in zip(*valid_index):
         assert yy[idx] == expected_value[i]
@@ -410,27 +410,26 @@ def test_reduce(fc_wo_dataset):
     expected_value = np.array(
         [
             [1, 255, 0, 255, 255, 255, 255],
-            [1, 255, 255, 0, 255, 255, 255],
-            [255, 0, 255, 255, 1, 0, 255],
+            [1, 255, 255, 255, 255, 255, 255],
+            [255, 0, 255, 255, 1, 255, 255],
             [255, 255, 1, 255, 255, 255, 255],
             [255, 255, 255, 255, 255, 255, 255],
-            [255, 1, 255, 255, 255, 0, 255],
-            [255, 255, 255, 0, 255, 255, 0],
-        ],
-        dtype="uint8",
+            [255, 1, 255, 255, 255, 255, 255],
+            [255, 255, 255, 255, 255, 255, 0],
+        ]
     )
 
     assert (xx.veg_frequency.data == expected_value).all()
 
     expected_value = np.array(
         [
-            [0, 255, 1, 255, 255, 255, 255],
-            [0, 255, 255, 0, 255, 255, 255],
-            [255, 1, 255, 255, 0, 0, 255],
+            [255, 255, 12, 255, 255, 255, 255],
+            [255, 255, 255, 255, 255, 255, 255],
+            [255, 12, 255, 255, 0, 0, 255],
             [255, 255, 0, 255, 255, 255, 255],
             [255, 255, 255, 255, 255, 255, 255],
-            [255, 0, 255, 255, 255, 0, 255],
-            [255, 255, 255, 0, 255, 255, 1],
+            [255, 255, 255, 255, 255, 255, 255],
+            [255, 255, 255, 0, 255, 255, 12],
         ],
         dtype="uint8",
     )

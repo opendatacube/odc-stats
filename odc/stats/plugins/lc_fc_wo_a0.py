@@ -52,13 +52,34 @@ class StatsVegCount(StatsPluginInterface):
         5. Drop the WOfS band
         """
 
-        # clear and dry pixels not mask against bit 4: terrain high slope,
+        # valid and dry pixels not mask against bit 4: terrain high slope,
         # bit 3: terrain shadow, and
         # bit 2: low solar angle
-        valid = (xx["water"] & ~((1 << 4) | (1 << 3) | (1 << 2))) == 0
+        valid = (xx["water"].data & ~((1 << 4) | (1 << 3) | (1 << 2))) == 0
 
-        # clear and wet pixels not mask against bit 2: low solar angle
-        wet = (xx["water"] & ~(1 << 2)) == 128
+        # clear wet pixels not mask against bit 2: low solar angle
+        wet = (xx["water"].data & ~(1 << 2)) == 128
+
+        # clear dry pixels
+        clear = xx["water"].data == 0
+
+        # get "valid" wo pixels, both dry and wet used in veg_frequency
+        wet_valid = expr_eval(
+            "where(a|b, a, _nan)",
+            {"a": wet, "b": valid},
+            name="get_valid_pixels",
+            dtype="float32",
+            **{"_nan": np.nan},
+        )
+
+        # get "clear" wo pixels, both dry and wet used in water_frequency
+        wet_clear = expr_eval(
+            "where(a|b, a, _nan)",
+            {"a": wet, "b": clear},
+            name="get_clear_pixels",
+            dtype="float32",
+            **{"_nan": np.nan},
+        )
 
         # dilate both 'valid' and 'water'
         for key, val in self.BAD_BITS_MASK.items():
@@ -67,87 +88,81 @@ class StatsVegCount(StatsPluginInterface):
                 raw_mask = mask_cleanup(
                     raw_mask, mask_filters=self.cloud_filters.get(key)
                 )
-                valid &= ~raw_mask
-                wet &= ~raw_mask
-
+                valid = expr_eval(
+                    "where(b>0, 0, a)",
+                    {"a": valid, "b": raw_mask.data},
+                    name="get_valid_pixels",
+                    dtype="uint8",
+                )
+                wet_clear = expr_eval(
+                    "where(b>0, _nan, a)",
+                    {"a": wet_clear, "b": raw_mask.data},
+                    name="get_lear_pixels",
+                    dtype="float32",
+                    **{"_nan": np.nan},
+                )
+                wet_valid = expr_eval(
+                    "where(b>0, _nan, a)",
+                    {"a": wet_valid, "b": raw_mask.data},
+                    name="get_valid_pixels",
+                    dtype="float32",
+                    **{"_nan": np.nan},
+                )
         xx = xx.drop_vars(["water"])
 
-        # get valid wo pixels, both dry and wet
-        wet = expr_eval(
-            "where(a|b, a, _nan)",
-            {"a": wet.data, "b": valid.data},
-            name="get_valid_pixels",
-            dtype="float32",
-            **{"_nan": np.nan},
-        )
-
-        # pick all valid fc pixels
-        xx = keep_good_only(xx, valid, nodata=NODATA)
-        xx = to_float(xx, dtype="float32")
-
-        # get high ue valid pixels
-        ue = expr_eval(
-            "where(a>=_v, 1, _nan)",
-            {"a": xx["ue"].data},
-            name="get_high_ue",
-            dtype="float32",
-            **{
-                "_v": self.ue_threshold,
-                "_nan": np.nan,
-            },
-        )
-
-        # get low ue valid pixels
+        # Pick out the fc pixels that have an unmixing error of less than the threshold
         valid = expr_eval(
-            "where(b<_v, 1, 0)",
-            {"b": xx["ue"].data},
-            name="get_valid_pixels",
+            "where(b<_v, a, 0)",
+            {"a": valid, "b": xx["ue"].data},
+            name="get_low_ue",
             dtype="bool",
             **{"_v": self.ue_threshold},
         )
         xx = xx.drop_vars(["ue"])
         valid = xr.DataArray(valid, dims=xx["pv"].dims, coords=xx["pv"].coords)
-        xx = keep_good_only(xx, valid, nodata=np.nan)
 
-        xx["wet"] = xr.DataArray(wet, dims=xx["pv"].dims, coords=xx["pv"].coords)
-        xx["ue"] = xr.DataArray(ue, dims=xx["pv"].dims, coords=xx["pv"].coords)
+        xx = keep_good_only(xx, valid, nodata=NODATA)
+        xx = to_float(xx, dtype="float32")
+
+        xx["wet_valid"] = xr.DataArray(
+            wet_valid, dims=xx["pv"].dims, coords=xx["pv"].coords
+        )
+        xx["wet_clear"] = xr.DataArray(
+            wet_clear, dims=xx["pv"].dims, coords=xx["pv"].coords
+        )
+
         return xx
 
     def fuser(self, xx):
 
-        wet = xx["wet"]
-        ue = xx["ue"]
+        wet_valid = xx["wet_valid"]
+        wet_clear = xx["wet_clear"]
 
         xx = _xr_fuse(
-            xx.drop_vars(["wet", "ue"]),
+            xx.drop_vars(["wet_valid", "wet_clear"]),
             partial(_fuse_mean_np, nodata=np.nan),
-            "fuse_fc",
+            "",
         )
 
-        xx["wet"] = _nodata_fuser(wet, nodata=np.nan)
-        xx["ue"] = _nodata_fuser(ue, nodata=np.nan)
+        xx["wet_valid"] = _nodata_fuser(wet_valid, nodata=np.nan)
+        xx["wet_clear"] = _nodata_fuser(wet_clear, nodata=np.nan)
 
         return xx
 
     def _veg_or_not(self, xx: xr.Dataset):
-        # pv or npv > bs: 1
+        # either pv or npv > bs: 1
         # otherwise 0
         data = expr_eval(
             "where((a>b)|(c>b), 1, 0)",
-            {
-                "a": xx["pv"].data,
-                "c": xx["npv"].data,
-                "b": xx["bs"].data,
-            },
+            {"a": xx["pv"].data, "c": xx["npv"].data, "b": xx["bs"].data},
             name="get_veg",
             dtype="uint8",
         )
 
-        # mark nans only if not valid & low ue
-        # if any high ue valid (ue is not nan): 0
+        # mark nans
         data = expr_eval(
-            "where((a!=a)&(c!=c), nodata, b)",
-            {"a": xx["pv"].data, "c": xx["ue"].data, "b": data},
+            "where(a!=a, nodata, b)",
+            {"a": xx["pv"].data, "b": data},
             name="get_veg",
             dtype="uint8",
             **{"nodata": int(NODATA)},
@@ -156,7 +171,7 @@ class StatsVegCount(StatsPluginInterface):
         # mark water freq >= 0.5 as 0
         data = expr_eval(
             "where(a>0, 0, b)",
-            {"a": xx["wet"].data, "b": data},
+            {"a": xx["wet_valid"].data, "b": data},
             name="get_veg",
             dtype="uint8",
         )
@@ -167,7 +182,7 @@ class StatsVegCount(StatsPluginInterface):
         # mark water freq > 0.5 as 1
         data = expr_eval(
             "where(a>0.5, 1, 0)",
-            {"a": xx["wet"].data},
+            {"a": xx["wet_clear"].data},
             name="get_water",
             dtype="uint8",
         )
@@ -175,17 +190,17 @@ class StatsVegCount(StatsPluginInterface):
         # mark nans
         data = expr_eval(
             "where(a!=a, nodata, b)",
-            {"a": xx["wet"].data, "b": data},
+            {"a": xx["wet_clear"].data, "b": data},
             name="get_water",
             dtype="uint8",
             **{"nodata": int(NODATA)},
         )
         return data
 
-    def _max_consecutive_months(self, data, nodata):
-        nan_mask = da.ones(data.shape[1:], chunks=data.chunks[1:], dtype="bool")
+    def _max_consecutive_months(self, data, nodata, normalize=False):
         tmp = da.zeros(data.shape[1:], chunks=data.chunks[1:], dtype="uint8")
         max_count = da.zeros(data.shape[1:], chunks=data.chunks[1:], dtype="uint8")
+        total = da.zeros(data.shape[1:], chunks=data.chunks[1:], dtype="uint8")
 
         for t in data:
             # +1 if not nodata
@@ -213,23 +228,34 @@ class StatsVegCount(StatsPluginInterface):
                 dtype="uint8",
             )
 
-            # mark nodata
-            nan_mask = expr_eval(
-                "where(a==nodata, b, False)",
-                {"a": t, "b": nan_mask},
-                name="mark_nodata",
-                dtype="bool",
+            # total valid
+            total = expr_eval(
+                "where(a==nodata, b, b+1)",
+                {"a": t, "b": total},
+                name="get_total_valid",
+                dtype="uint8",
                 **{"nodata": nodata},
             )
 
         # mark nodata
-        max_count = expr_eval(
-            "where(a, nodata, b)",
-            {"a": nan_mask, "b": max_count},
-            name="mark_nodata",
-            dtype="uint8",
-            **{"nodata": int(nodata)},
-        )
+        if normalize:
+            max_count = expr_eval(
+                "where(a<=0, nodata, b/a*12)",
+                {"a": total, "b": max_count},
+                name="normalize_max_count",
+                dtype="float32",
+                **{"nodata": int(nodata)},
+            )
+            max_count = da.ceil(max_count).astype("uint8")
+        else:
+            max_count = expr_eval(
+                "where(a<=0, nodata, b)",
+                {"a": total, "b": max_count},
+                name="mark_nodata",
+                dtype="uint8",
+                **{"nodata": int(nodata)},
+            )
+
         return max_count
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
@@ -240,15 +266,15 @@ class StatsVegCount(StatsPluginInterface):
         max_count_veg = self._max_consecutive_months(data, NODATA)
 
         data = self._water_or_not(xx)
-        max_count_water = self._max_consecutive_months(data, NODATA)
+        max_count_water = self._max_consecutive_months(data, NODATA, normalize=True)
 
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
         data_vars = {
-            k: xr.DataArray(v, dims=xx["wet"].dims[1:], attrs=attrs)
+            k: xr.DataArray(v, dims=xx["pv"].dims[1:], attrs=attrs)
             for k, v in zip(self.measurements, [max_count_veg, max_count_water])
         }
-        coords = dict((dim, xx.coords[dim]) for dim in xx["wet"].dims[1:])
+        coords = dict((dim, xx.coords[dim]) for dim in xx["pv"].dims[1:])
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)
 
 
