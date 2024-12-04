@@ -57,7 +57,6 @@ class StatsVegClassL1(StatsPluginInterface):
         saltpan_threshold: Optional[int] = None,
         water_threshold: Optional[float] = None,
         veg_threshold: Optional[int] = None,
-        water_seasonality_threshold: Optional[float] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -70,9 +69,6 @@ class StatsVegClassL1(StatsPluginInterface):
         )
         self.water_threshold = water_threshold if water_threshold is not None else 0.2
         self.veg_threshold = veg_threshold if veg_threshold is not None else 2
-        self.water_seasonality_threshold = (
-            water_seasonality_threshold if water_seasonality_threshold else 0.25
-        )
         self.output_classes = output_classes
 
     def fuser(self, xx):
@@ -165,23 +161,26 @@ class StatsVegClassL1(StatsPluginInterface):
                         },
                     )
 
-        # all unmarked values (0) is terretrial veg
-
+        # all unmarked values (0) and 255 > veg >= 2 is terretrial veg
         l3_mask = expr_eval(
-            "where(a<=0, m, a)",
-            {"a": l3_mask},
+            "where((a<=0)&(b>=2)&(b<nodata), m, a)",
+            {"a": l3_mask, "b": xx["veg_frequency"].data},
             name="mark_veg",
             dtype="uint8",
-            **{"m": self.output_classes["terrestrial_veg"]},
+            **{
+                "m": self.output_classes["terrestrial_veg"],
+                "nodata": (
+                    NODATA
+                    if xx["veg_frequency"].attrs["nodata"]
+                    != xx["veg_frequency"].attrs["nodata"]
+                    else xx["veg_frequency"].attrs["nodata"]
+                ),
+            },
         )
 
-        # mark nodata if any source is nodata
-        # issues:
-        # - nodata information from non-indexed datasets missing
-
-        # Mask nans with NODATA
+        # Mask nans and pixels where non of classes applicable
         l3_mask = expr_eval(
-            "where((a!=a), nodata, e)",
+            "where((a!=a)|(e<=0), nodata, e)",
             {
                 "a": si5,
                 "e": l3_mask,
@@ -191,49 +190,15 @@ class StatsVegClassL1(StatsPluginInterface):
             **{"nodata": NODATA},
         )
 
-        # Now add the water frequency
-        # Divide water frequency into following classes:
-        # 0 --> 0
-        # (0,0.25] --> 1
-        # (0.25,1] --> 2
-
-        water_seasonality = expr_eval(
-            "where((a > 0) & (a <= wt), 1, a)",
-            {"a": xx["frequency"].data},
-            name="mark_wo_fq",
-            dtype="float32",
-            **{"wt": self.water_seasonality_threshold},
-        )
-
-        water_seasonality = expr_eval(
-            "where((a > wt) & (a <= 1), 2, b)",
-            {"a": xx["frequency"].data, "b": water_seasonality},
-            name="mark_wo_fq",
-            dtype="float32",
-            **{"wt": self.water_seasonality_threshold},
-        )
-
-        water_seasonality = expr_eval(
-            "where((a != a), nodata, a)",
-            {
-                "a": water_seasonality,
-            },
-            name="mark_nodata",
-            dtype="uint8",
-            **{"nodata": NODATA},
-        )
-
-        return l3_mask, water_seasonality
+        return l3_mask
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
-        l3_mask, water_seasonality = self.l3_class(xx)
+        l3_mask = self.l3_class(xx)
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
         data_vars = {
             k: xr.DataArray(v, dims=xx["veg_frequency"].dims[1:], attrs=attrs)
-            for k, v in zip(
-                self.measurements, [l3_mask.squeeze(0), water_seasonality.squeeze(0)]
-            )
+            for k, v in zip(self.measurements, [l3_mask.squeeze(0)])
         }
         coords = dict((dim, xx.coords[dim]) for dim in xx["veg_frequency"].dims[1:])
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)
