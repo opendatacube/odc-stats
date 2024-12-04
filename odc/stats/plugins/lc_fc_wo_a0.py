@@ -97,7 +97,7 @@ class StatsVegCount(StatsPluginInterface):
                 wet_clear = expr_eval(
                     "where(b>0, _nan, a)",
                     {"a": wet_clear, "b": raw_mask.data},
-                    name="get_lear_pixels",
+                    name="get_clear_pixels",
                     dtype="float32",
                     **{"_nan": np.nan},
                 )
