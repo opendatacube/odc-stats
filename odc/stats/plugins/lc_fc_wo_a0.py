@@ -34,12 +34,14 @@ class StatsVegCount(StatsPluginInterface):
     def __init__(
         self,
         ue_threshold: Optional[int] = None,
+        veg_threshold: Optional[int] = None,
         cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
         **kwargs,
     ):
         super().__init__(input_bands=["water", "pv", "bs", "npv", "ue"], **kwargs)
 
         self.ue_threshold = ue_threshold if ue_threshold is not None else 30
+        self.veg_threshold = veg_threshold if veg_threshold is not None else 2
         self.cloud_filters = cloud_filters if cloud_filters is not None else {}
 
     def native_transform(self, xx):
@@ -62,15 +64,6 @@ class StatsVegCount(StatsPluginInterface):
 
         # clear dry pixels
         clear = xx["water"].data == 0
-
-        # get "valid" wo pixels, both dry and wet used in veg_frequency
-        wet_valid = expr_eval(
-            "where(a|b, a, _nan)",
-            {"a": wet, "b": valid},
-            name="get_valid_pixels",
-            dtype="float32",
-            **{"_nan": np.nan},
-        )
 
         # get "clear" wo pixels, both dry and wet used in water_frequency
         wet_clear = expr_eval(
@@ -101,13 +94,7 @@ class StatsVegCount(StatsPluginInterface):
                     dtype="float32",
                     **{"_nan": np.nan},
                 )
-                wet_valid = expr_eval(
-                    "where(b>0, _nan, a)",
-                    {"a": wet_valid, "b": raw_mask.data},
-                    name="get_valid_pixels",
-                    dtype="float32",
-                    **{"_nan": np.nan},
-                )
+
         xx = xx.drop_vars(["water"])
 
         # Pick out the fc pixels that have an unmixing error of less than the threshold
@@ -124,9 +111,6 @@ class StatsVegCount(StatsPluginInterface):
         xx = keep_good_only(xx, valid, nodata=NODATA)
         xx = to_float(xx, dtype="float32")
 
-        xx["wet_valid"] = xr.DataArray(
-            wet_valid, dims=xx["pv"].dims, coords=xx["pv"].coords
-        )
         xx["wet_clear"] = xr.DataArray(
             wet_clear, dims=xx["pv"].dims, coords=xx["pv"].coords
         )
@@ -135,16 +119,14 @@ class StatsVegCount(StatsPluginInterface):
 
     def fuser(self, xx):
 
-        wet_valid = xx["wet_valid"]
         wet_clear = xx["wet_clear"]
 
         xx = _xr_fuse(
-            xx.drop_vars(["wet_valid", "wet_clear"]),
+            xx.drop_vars(["wet_clear"]),
             partial(_fuse_mean_np, nodata=np.nan),
             "",
         )
 
-        xx["wet_valid"] = _nodata_fuser(wet_valid, nodata=np.nan)
         xx["wet_clear"] = _nodata_fuser(wet_clear, nodata=np.nan)
 
         return xx
@@ -166,14 +148,6 @@ class StatsVegCount(StatsPluginInterface):
             name="get_veg",
             dtype="uint8",
             **{"nodata": int(NODATA)},
-        )
-
-        # mark water freq >= 0.5 as 0
-        data = expr_eval(
-            "where(a>0, 0, b)",
-            {"a": xx["wet_valid"].data, "b": data},
-            name="get_veg",
-            dtype="uint8",
         )
 
         return data
@@ -262,8 +236,30 @@ class StatsVegCount(StatsPluginInterface):
 
         xx = xx.groupby("time.month").map(median_ds, dim="spec")
 
-        data = self._veg_or_not(xx)
-        max_count_veg = self._max_consecutive_months(data, NODATA)
+        # consecutive observation of veg
+        veg_data = self._veg_or_not(xx)
+        max_count_veg = self._max_consecutive_months(veg_data, NODATA)
+
+        # consecutive observation of non-veg
+        non_veg_data = expr_eval(
+            "where(a<nodata, 1-a, nodata)",
+            {"a": veg_data},
+            name="invert_veg",
+            dtype="uint8",
+            **{"nodata": NODATA},
+        )
+        max_count_non_veg = self._max_consecutive_months(non_veg_data, NODATA)
+
+        # non-veg < threshold implies veg >= threshold
+        # implies any "wet" area potentially veg
+
+        max_count_veg = expr_eval(
+            "where((a<_v)&(b<_v), _v, b)",
+            {"a": max_count_non_veg, "b": max_count_veg},
+            name="clip_veg",
+            dtype="uint8",
+            **{"_v": self.veg_threshold},
+        )
 
         data = self._water_or_not(xx)
         max_count_water = self._max_consecutive_months(data, NODATA, normalize=True)

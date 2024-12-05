@@ -76,7 +76,9 @@ class StatsMLTree(StatsPluginInterface):
         self.dask_worker_plugin = TreeliteModelPlugin(model_path)
         self.output_classes = output_classes
         self.mask_bands = mask_bands
-        self.temporal_coverage = temporal_coverage
+        self.temporal_coverage = (
+            temporal_coverage if temporal_coverage is not None else {}
+        )
         self._log = logging.getLogger(__name__)
 
     def input_data(
@@ -160,8 +162,8 @@ class StatsMLTree(StatsPluginInterface):
 
         for var in xx.data_vars:
             if var not in self.mask_bands:
-                if self.temporal_coverage is not None:
-                    # filter and impute by sensors
+                # filter and impute by sensors
+                if self.temporal_coverage.get(var) is not None:
                     temporal_range = [
                         DateTimeRange(v) for v in self.temporal_coverage.get(var)
                     ]
