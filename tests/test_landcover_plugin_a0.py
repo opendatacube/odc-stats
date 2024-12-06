@@ -322,17 +322,8 @@ def test_native_transform(fc_wo_dataset, bits):
     stats_veg = StatsVegCount(measurements=["veg_frequency", "water_frequency"])
     out_xx = stats_veg.native_transform(xx).compute()
 
-    expected_valid = (
-        np.array([0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]),
-        np.array([1, 1, 3, 5, 6, 2, 6, 2, 2, 5, 6, 0, 0, 2, 3]),
-        np.array([0, 3, 2, 1, 3, 5, 6, 1, 4, 5, 6, 0, 2, 4, 2]),
-    )
-    result = np.where(out_xx["wet_valid"].data == out_xx["wet_valid"].data)
-    for a, b in zip(expected_valid, result):
-        assert (a == b).all()
-
     expected_valid = (np.array([1, 2, 3]), np.array([6, 2, 0]), np.array([6, 1, 2]))
-    result = np.where(out_xx["wet_valid"].data == 1)
+    result = np.where(out_xx["wet_clear"].data == 1)
 
     for a, b in zip(expected_valid, result):
         assert (a == b).all()
@@ -374,11 +365,11 @@ def test_veg_or_not(fc_wo_dataset):
     xx = xx.groupby("solar_day").map(partial(StatsVegCount.fuser, None))
     yy = stats_veg._veg_or_not(xx).compute()
     valid_index = (
-        np.array([0, 0, 1, 2, 2, 2, 2, 2]),
-        np.array([1, 5, 6, 0, 0, 2, 2, 3]),
-        np.array([0, 1, 6, 0, 2, 1, 4, 2]),
+        np.array([0, 0, 2, 2, 2]),
+        np.array([1, 5, 0, 2, 3]),
+        np.array([0, 1, 0, 4, 2]),
     )
-    expected_value = np.array([1, 1, 0, 1, 0, 0, 1, 1])
+    expected_value = np.array([1, 1, 1, 1, 1])
     i = 0
     for idx in zip(*valid_index):
         assert yy[idx] == expected_value[i]
@@ -409,14 +400,15 @@ def test_reduce(fc_wo_dataset):
     xx = stats_veg.reduce(xx).compute()
     expected_value = np.array(
         [
-            [1, 255, 0, 255, 255, 255, 255],
-            [1, 255, 255, 255, 255, 255, 255],
-            [255, 0, 255, 255, 1, 255, 255],
-            [255, 255, 1, 255, 255, 255, 255],
+            [2, 255, 255, 255, 255, 255, 255],
+            [2, 255, 255, 255, 255, 255, 255],
+            [255, 255, 255, 255, 2, 255, 255],
+            [255, 255, 2, 255, 255, 255, 255],
             [255, 255, 255, 255, 255, 255, 255],
-            [255, 1, 255, 255, 255, 255, 255],
-            [255, 255, 255, 255, 255, 255, 0],
-        ]
+            [255, 2, 255, 255, 255, 255, 255],
+            [255, 255, 255, 255, 255, 255, 255],
+        ],
+        dtype="uint8",
     )
 
     assert (xx.veg_frequency.data == expected_value).all()
