@@ -1,7 +1,9 @@
 import re
 import operator
+import numpy as np
 import dask
 from osgeo import gdal, ogr, osr
+from functools import partial
 
 
 def rasterize_vector_mask(
@@ -140,3 +142,87 @@ def generate_numexpr_expressions(rules_df, final_class_column, previous):
     expressions = sorted(expressions, key=len)
 
     return expressions
+
+
+def numpy_mode_exclude_nodata(values, target_value, exclude_values):
+    """
+    Compute the mode of an array using NumPy, excluding nodata.
+    :param values: A flattened 1D array representing the neighborhood.
+    :param target_value: The value to be replaced
+    :param exclude_values: A list or set of values to exclude from the mode calculation.
+    :return: The mode of the array (smallest value in case of ties), excluding nodata.
+    """
+
+    valid_mask = ~(
+        np.isin(values, list(set(exclude_values) | {target_value})) | np.isnan(values)
+    )
+    valid_values = values[valid_mask]
+    if len(valid_values) == 0:
+        return target_value
+    unique_vals, counts = np.unique(valid_values, return_counts=True)
+    max_count = counts.max()
+    # select the smallest value among ties
+    mode_value = unique_vals[counts == max_count].min()
+    return mode_value
+
+
+def process_nodata_pixels(block, target_value, exclude_values, max_radius):
+    """
+    Replace nodata pixels in a block with the mode of their 3x3 neighborhood.
+    :param block : numpy.ndarray The 2D array chunk.
+    :param target_value: The value to be replaced
+    :param exclude_values: A list or set of values to exclude from the mode calculation.
+    :param max_radius: maximum size of neighbourhood
+    :return: numpy.ndarray The modified block where nodata pixels are replaced.
+    """
+    result = block.copy()
+    nodata_indices = np.argwhere(block == target_value)
+
+    for i, j in nodata_indices:
+        # start from the smallest/nearest neighbourhood
+        # stop once finding the valid value otherwise expand till the max_radius
+        for radius in range(1, max_radius + 1):
+            i_min, i_max = max(0, i - radius), min(block.shape[0], i + radius + 1)
+            j_min, j_max = max(0, j - radius), min(block.shape[1], j + radius + 1)
+
+            neighborhood = block[i_min:i_max, j_min:j_max].flatten()
+            tmp = numpy_mode_exclude_nodata(neighborhood, target_value, exclude_values)
+            if np.isnan(tmp) | (tmp == target_value):
+                continue
+            result[i, j] = tmp
+            break
+
+    return result
+
+
+def replace_nodata_with_mode(
+    arr, target_value, exclude_values=None, neighbourhood_size=3
+):
+    """
+    Replace nodata-valued pixels in a Dask array with the mode of their neighborhood,
+    processing only the nodata pixels.
+    :param arr: A 2D Dask array.
+    :param target_value: The value to be replaced
+    :param exclude_values: A list or set of values to exclude from the mode calculation.
+    :param neighbourhood_size: the size of neighbourhood, e.g., 3:= 3*3 block, 5:=5*5 block
+    :return: A Dask array where nodata-valued pixels have been replaced.
+    """
+    if exclude_values is None:
+        exclude_values = set()
+
+    radius = neighbourhood_size // 2
+    process_func = partial(
+        process_nodata_pixels,
+        target_value=target_value,
+        exclude_values=exclude_values,
+        max_radius=radius,
+    )
+    # Use map_overlap to handle edges and target only the nodata pixels
+    result = arr.map_overlap(
+        process_func,
+        depth=(radius, radius),
+        boundary="nearest",
+        dtype=arr.dtype,
+        trim=True,
+    )
+    return result

@@ -65,15 +65,6 @@ class StatsVegCount(StatsPluginInterface):
         # clear dry pixels
         clear = xx["water"].data == 0
 
-        # get "clear" wo pixels, both dry and wet used in water_frequency
-        wet_clear = expr_eval(
-            "where(a|b, a, _nan)",
-            {"a": wet, "b": clear},
-            name="get_clear_pixels",
-            dtype="float32",
-            **{"_nan": np.nan},
-        )
-
         # dilate both 'valid' and 'water'
         for key, val in self.BAD_BITS_MASK.items():
             if self.cloud_filters.get(key) is not None:
@@ -85,17 +76,41 @@ class StatsVegCount(StatsPluginInterface):
                     "where(b>0, 0, a)",
                     {"a": valid, "b": raw_mask.data},
                     name="get_valid_pixels",
-                    dtype="uint8",
+                    dtype="bool",
                 )
-                wet_clear = expr_eval(
-                    "where(b>0, _nan, a)",
-                    {"a": wet_clear, "b": raw_mask.data},
+                clear = expr_eval(
+                    "where(b>0, 0, a)",
+                    {"a": clear, "b": raw_mask.data},
                     name="get_clear_pixels",
-                    dtype="float32",
-                    **{"_nan": np.nan},
+                    dtype="bool",
+                )
+                wet = expr_eval(
+                    "where(b>0, 0, a)",
+                    {"a": wet, "b": raw_mask.data},
+                    name="get_wet_pixels",
+                    dtype="bool",
                 )
 
         xx = xx.drop_vars(["water"])
+
+        # get "clear" wo pixels, both dry and wet used in water_frequency
+        wet_clear = expr_eval(
+            "where(a|b, a, _nan)",
+            {"a": wet, "b": clear},
+            name="get_clear_pixels",
+            dtype="float32",
+            **{"_nan": np.nan},
+        )
+
+        # get "valid" wo pixels, both dry and wet
+        # to remark nodata reason in veg_frequency
+        wet_valid = expr_eval(
+            "where(a|b, a, _nan)",
+            {"a": wet, "b": valid},
+            name="get_valid_pixels",
+            dtype="float32",
+            **{"_nan": np.nan},
+        )
 
         # Pick out the fc pixels that have an unmixing error of less than the threshold
         valid = expr_eval(
@@ -114,12 +129,16 @@ class StatsVegCount(StatsPluginInterface):
         xx["wet_clear"] = xr.DataArray(
             wet_clear, dims=xx["pv"].dims, coords=xx["pv"].coords
         )
+        xx["wet_valid"] = xr.DataArray(
+            wet_valid, dims=xx["pv"].dims, coords=xx["pv"].coords
+        )
 
         return xx
 
     def fuser(self, xx):
 
         wet_clear = xx["wet_clear"]
+        wet_valid = xx["wet_valid"]
 
         xx = _xr_fuse(
             xx.drop_vars(["wet_clear"]),
@@ -128,6 +147,7 @@ class StatsVegCount(StatsPluginInterface):
         )
 
         xx["wet_clear"] = _nodata_fuser(wet_clear, nodata=np.nan)
+        xx["wet_valid"] = _nodata_fuser(wet_valid, nodata=np.nan)
 
         return xx
 
@@ -170,6 +190,59 @@ class StatsVegCount(StatsPluginInterface):
             **{"nodata": int(NODATA)},
         )
         return data
+
+    def _wet_or_not(self, xx: xr.Dataset):
+        # mark water freq >= 0.5 as 1
+        data = expr_eval(
+            "where(a>0, 1, 0)",
+            {"a": xx["wet_valid"].data},
+            name="get_wet",
+            dtype="uint8",
+        )
+
+        # mark nans
+        data = expr_eval(
+            "where(a!=a, nodata, b)",
+            {"a": xx["wet_valid"].data, "b": data},
+            name="get_wet",
+            dtype="uint8",
+            **{"nodata": int(NODATA)},
+        )
+        return data
+
+    def _wet_valid_percent(self, data, nodata):
+        wet = da.zeros(data.shape[1:], chunks=data.chunks[1:], dtype="uint8")
+        total = da.zeros(data.shape[1:], chunks=data.chunks[1:], dtype="uint8")
+
+        for t in data:
+            # +1 if not nodata
+            wet = expr_eval(
+                "where(a==nodata, b, a+b)",
+                {"a": t, "b": wet},
+                name="get_wet",
+                dtype="uint8",
+                **{"nodata": nodata},
+            )
+
+            # total valid
+            total = expr_eval(
+                "where(a==nodata, b, b+1)",
+                {"a": t, "b": total},
+                name="get_total_valid",
+                dtype="uint8",
+                **{"nodata": nodata},
+            )
+
+        wet = expr_eval(
+            "where(a<=0, nodata, b/a*100)",
+            {"a": total, "b": wet},
+            name="normalize_max_count",
+            dtype="float32",
+            **{"nodata": int(nodata)},
+        )
+
+        wet = da.ceil(wet).astype("uint8")
+        return wet
 
     def _max_consecutive_months(self, data, nodata, normalize=False):
         tmp = da.zeros(data.shape[1:], chunks=data.chunks[1:], dtype="uint8")
@@ -264,11 +337,16 @@ class StatsVegCount(StatsPluginInterface):
         data = self._water_or_not(xx)
         max_count_water = self._max_consecutive_months(data, NODATA, normalize=True)
 
+        data = self._wet_or_not(xx)
+        wet_percent = self._wet_valid_percent(data, NODATA)
+
         attrs = xx.attrs.copy()
         attrs["nodata"] = int(NODATA)
         data_vars = {
             k: xr.DataArray(v, dims=xx["pv"].dims[1:], attrs=attrs)
-            for k, v in zip(self.measurements, [max_count_veg, max_count_water])
+            for k, v in zip(
+                self.measurements, [max_count_veg, max_count_water, wet_percent]
+            )
         }
         coords = dict((dim, xx.coords[dim]) for dim in xx["pv"].dims[1:])
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)
