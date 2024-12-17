@@ -2,6 +2,7 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 from odc.stats.plugins.lc_veg_class_a1 import StatsVegClassL1
+from odc.stats.plugins._utils import replace_nodata_with_mode
 import pytest
 import pandas as pd
 
@@ -22,9 +23,13 @@ def dataset():
     wo_fq = da.from_array(wo_fq, chunks=(1, -1, -1))
 
     veg_fq = np.array(
-        [[[0, 3, 1, 2], [0, 7, 5, 0], [0, 2, 11, 3], [11, 5, 8, 4]]], dtype="uint8"
+        [[[0, 3, 1, 2], [0, 7, 5, 0], [0, 2, 11, 3], [11, 255, 8, 4]]], dtype="uint8"
     )
     veg_fq = da.from_array(veg_fq, chunks=(1, -1, -1))
+
+    wet_percentage = np.array(
+        [[[0, 10, 20, 30], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 80, 40]]], dtype="uint8"
+    )
 
     dem_h = np.array(
         [
@@ -58,7 +63,7 @@ def dataset():
                 [5529, 833, 580, 1144],
                 [1172, 4680, 4999, 1746],
                 [2702, 5572, 3048, 1382],
-                [3080, 3149, 4080, 2463],
+                [3080, -999, 4080, 2463],
             ]
         ],
         dtype="int16",
@@ -71,7 +76,7 @@ def dataset():
                 [5159, 801, 4187, 1861],
                 [1123, 5827, 5080, 3464],
                 [1209, 1744, 4020, 413],
-                [4375, 4321, 4531, 4030],
+                [4375, -999, 4531, 4030],
             ]
         ],
         dtype="int16",
@@ -84,7 +89,7 @@ def dataset():
                 [2798, 5539, 4431, 5996],
                 [705, 2869, 4741, 4349],
                 [1716, 4392, 5325, 878],
-                [4174, 3233, 3368, 1118],
+                [4174, -999, 3368, 1118],
             ]
         ],
         dtype="int16",
@@ -106,6 +111,9 @@ def dataset():
         "veg_frequency": xr.DataArray(
             veg_fq, dims=("spec", "y", "x"), attrs={"nodata": 255}
         ),
+        "wet_percentage": xr.DataArray(
+            wet_percentage, dims=("spec", "y", "x"), attrs={"nodata": 255}
+        ),
         "dem_h": xr.DataArray(dem_h, dims=("spec", "y", "x"), attrs={"nodata": np.nan}),
         "elevation": xr.DataArray(
             nidem, dims=("spec", "y", "x"), attrs={"nodata": np.nan}
@@ -123,6 +131,95 @@ def dataset():
     xx = xr.Dataset(data_vars=data_vars, coords=coords)
     xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
     return xx
+
+
+@pytest.fixture
+def setup_data():
+    target_value = 0
+    # Case 1: Replace within smallest neighborhood (3x3)
+    input_1 = np.array(
+        [
+            [1, 1, 1, 1, 1],
+            [1, 0, 2, 0, 1],
+            [1, 3, 4, 3, 1],
+            [1, 0, 2, 0, 1],
+            [1, 1, 1, 1, 1],
+        ]
+    )
+    expected_1 = np.array(
+        [
+            [1, 1, 1, 1, 1],
+            [1, 1, 2, 1, 1],
+            [1, 3, 4, 3, 1],
+            [1, 1, 2, 1, 1],
+            [1, 1, 1, 1, 1],
+        ]
+    )
+
+    # Case 2: Replace after expanding to maximum neighborhood (5x5)
+    input_2 = np.array(
+        [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0],
+        ]
+    )
+    expected_2 = np.array(
+        [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [1, 1, 1, 0, 0],
+            [1, 1, 1, 0, 0],
+            [1, 1, 1, 0, 0],
+        ]
+    )  # Correct propagation of '1' to the valid 5x5 neighborhood.
+
+    # Case 3: No valid replacement (everything excluded)
+    input_3 = np.array(
+        [
+            [5, 5, 5, 5, 5],
+            [5, 0, 5, 0, 5],
+            [5, 5, 5, 5, 5],
+            [5, 0, 5, 0, 5],
+            [5, 5, 5, 5, 5],
+        ]
+    )
+    exclude_values_3 = [5]
+    expected_3 = np.array(
+        [
+            [5, 5, 5, 5, 5],
+            [5, 0, 5, 0, 5],
+            [5, 5, 5, 5, 5],
+            [5, 0, 5, 0, 5],
+            [5, 5, 5, 5, 5],
+        ]
+    )  # Zeros remain unchanged because '5' is excluded.
+
+    input_1 = da.from_array(input_1, chunks=(5, 5))
+
+    input_2 = da.from_array(input_2, chunks=(5, 5))
+
+    input_3 = da.from_array(input_3, chunks=(5, 5))
+
+    return [
+        (input_1, target_value, expected_1, None),
+        (input_2, target_value, expected_2, None),
+        (input_3, target_value, expected_3, exclude_values_3),
+    ]
+
+
+def test_replace_nodata_with_mode(setup_data):
+    for input_dask_array, target_value, expected, exclude_values in setup_data:
+        result = replace_nodata_with_mode(
+            input_dask_array,
+            target_value,
+            exclude_values=exclude_values,
+            neighbourhood_size=5,
+        )
+
+        assert (result.compute() == expected).all()
 
 
 def test_l3_classes(dataset):
@@ -151,7 +248,7 @@ def test_l3_classes(dataset):
         dtype="uint8",
     )
 
-    res = stats_l3.l3_class(dataset)
+    res = stats_l3.l3_class(dataset).compute()
     assert (res == expected_res).all()
 
     res = stats_l3.reduce(dataset)

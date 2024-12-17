@@ -9,6 +9,7 @@ import xarray as xr
 from odc.stats._algebra import expr_eval
 
 from ._registry import StatsPluginInterface, register
+from ._utils import replace_nodata_with_mode
 
 NODATA = 255
 
@@ -117,6 +118,23 @@ class StatsVegClassL1(StatsPluginInterface):
             },
         )
 
+        # all unmarked values (0) and 255 > veg >= 2 is terretrial veg
+        l3_mask = expr_eval(
+            "where((a<=0)&(b<nodata), m, a)",
+            {"a": l3_mask, "b": xx["veg_frequency"].data},
+            name="mark_veg",
+            dtype="uint8",
+            **{
+                "m": self.output_classes["terrestrial_veg"],
+                "nodata": (
+                    NODATA
+                    if xx["veg_frequency"].attrs["nodata"]
+                    != xx["veg_frequency"].attrs["nodata"]
+                    else xx["veg_frequency"].attrs["nodata"]
+                ),
+            },
+        )
+
         # if its mangrove or coast region
         for b in self.optional_bands:
             if b in xx.data_vars:
@@ -133,19 +151,26 @@ class StatsVegClassL1(StatsPluginInterface):
                     )
 
                     l3_mask = expr_eval(
-                        "where(a&(b>0), m, b)",
+                        "where(a&((b==_w)|(b==_s)), m, b)",
                         {"a": data, "b": l3_mask},
                         name="intertidal_water",
                         dtype="uint8",
-                        **{"m": self.output_classes["intertidal"]},
+                        **{
+                            "m": self.output_classes["intertidal"],
+                            "_w": self.output_classes["water"],
+                            "_s": self.output_classes["surface"],
+                        },
                     )
 
                     l3_mask = expr_eval(
-                        "where(a&(b<=0), m, b)",
+                        "where(a&(b==_v), m, b)",
                         {"a": data, "b": l3_mask},
                         name="intertidal_veg",
                         dtype="uint8",
-                        **{"m": self.output_classes["aquatic_veg_herb"]},
+                        **{
+                            "m": self.output_classes["aquatic_veg_herb"],
+                            "_v": self.output_classes["terrestrial_veg"],
+                        },
                     )
                 elif b == "canopy_cover_class":
                     # aquatic_veg: (mangroves > 0) & (mangroves != nodata)
@@ -161,28 +186,34 @@ class StatsVegClassL1(StatsPluginInterface):
                         },
                     )
 
-        # all unmarked values (0) and 255 > veg >= 2 is terretrial veg
+        # all unmarked values (0) and wet_percentage != nodata is mode of neighbourhood
+        target_value = 254
         l3_mask = expr_eval(
-            "where((a<=0)&(b>=2)&(b<nodata), m, a)",
-            {"a": l3_mask, "b": xx["veg_frequency"].data},
-            name="mark_veg",
+            "where((a<=0)&(b<nodata), _u, a)",
+            {"a": l3_mask, "b": xx["wet_percentage"].data},
+            name="mark_other_valid",
             dtype="uint8",
             **{
-                "m": self.output_classes["terrestrial_veg"],
                 "nodata": (
                     NODATA
-                    if xx["veg_frequency"].attrs["nodata"]
-                    != xx["veg_frequency"].attrs["nodata"]
-                    else xx["veg_frequency"].attrs["nodata"]
+                    if xx["wet_percentage"].attrs["nodata"]
+                    != xx["wet_percentage"].attrs["nodata"]
+                    else xx["wet_percentage"].attrs["nodata"]
                 ),
+                "_u": target_value,
             },
+        )
+        l3_mask = replace_nodata_with_mode(
+            l3_mask.squeeze(0),
+            target_value=target_value,
+            exclude_values=[0],
+            neighbourhood_size=5,
         )
 
         # Mask nans and pixels where non of classes applicable
         l3_mask = expr_eval(
-            "where((a!=a)|(e<=0), nodata, e)",
+            "where((e<=0)|(e==254), nodata, e)",
             {
-                "a": si5,
                 "e": l3_mask,
             },
             name="mark_nodata",
@@ -198,7 +229,7 @@ class StatsVegClassL1(StatsPluginInterface):
         attrs["nodata"] = int(NODATA)
         data_vars = {
             k: xr.DataArray(v, dims=xx["veg_frequency"].dims[1:], attrs=attrs)
-            for k, v in zip(self.measurements, [l3_mask.squeeze(0)])
+            for k, v in zip(self.measurements, [l3_mask])
         }
         coords = dict((dim, xx.coords[dim]) for dim in xx["veg_frequency"].dims[1:])
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)
