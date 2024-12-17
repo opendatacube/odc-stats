@@ -62,15 +62,6 @@ class StatsVegCount(StatsPluginInterface):
         # clear wet pixels not mask against bit 2: low solar angle
         wet = (xx["water"].data & ~(1 << 2)) == 128
 
-        # get "valid" wo pixels, both dry and wet used in veg_frequency
-        wet_valid = expr_eval(
-            "where(a|b, a, _nan)",
-            {"a": wet, "b": valid},
-            name="get_valid_pixels",
-            dtype="float32",
-            **{"_nan": np.nan},
-        )
-
         # clear dry pixels
         clear = xx["water"].data == 0
 
@@ -90,13 +81,12 @@ class StatsVegCount(StatsPluginInterface):
                 raw_mask = mask_cleanup(
                     raw_mask, mask_filters=self.cloud_filters.get(key)
                 )
-                wet_valid = expr_eval(
-                    "where(b>0, _nan, a)",
-                    {"a": wet_valid, "b": raw_mask.data},
+                valid = expr_eval(
+                    "where(b>0, 0, a)",
+                    {"a": valid, "b": raw_mask.data},
                     name="get_valid_pixels",
-                    dtype="float32",
+                    dtype="uint8",
                 )
-
                 wet_clear = expr_eval(
                     "where(b>0, _nan, a)",
                     {"a": wet_clear, "b": raw_mask.data},
@@ -107,13 +97,11 @@ class StatsVegCount(StatsPluginInterface):
 
         xx = xx.drop_vars(["water"])
 
-        # Pick out the fc pixels that
-        # have an unmixing error of less than the threshold for dry
-        # and ignore ue for wet
+        # Pick out the fc pixels that have an unmixing error of less than the threshold
         valid = expr_eval(
-            "where((b>=_v)&(a<=0)|(a!=a), 0, 1)",
+            "where(b<_v, a, 0)",
             {"a": valid, "b": xx["ue"].data},
-            name="get_low_ue_wet",
+            name="get_low_ue",
             dtype="bool",
             **{"_v": self.ue_threshold},
         )
