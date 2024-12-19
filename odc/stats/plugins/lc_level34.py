@@ -114,6 +114,17 @@ class StatsLccsLevel4(StatsPluginInterface):
             xx, self.class_def, self.class_condition[class_col], class_col
         )
 
+        # patch the bright building top, where
+        # level3 = nodata & artificial_surface = 215 -> artificial_surface (215)
+
+        level3 = expr_eval(
+            "where((a==nodata)&(b==215), 215, a)",
+            {"a": level3, "b": xx.artificial_surface.data},
+            name="l3_patch_building_top",
+            dtype="uint8",
+            **{"nodata": NODATA},
+        )
+
         # apply urban mask
         # 215 -> 216 if urban_mask == 0
         urban_mask = rasterize_vector_mask(
@@ -144,6 +155,17 @@ class StatsLccsLevel4(StatsPluginInterface):
         class_col = "level4"
         level4 = self.classification(
             xx, self.class_def, self.class_condition[class_col], class_col
+        )
+
+        # patch the bright building top, where
+        # level4 = nodata & level3 = 215 -> artifical_surface(93)
+
+        level4 = expr_eval(
+            "where((a==nodata)&(b==215), 93, a)",
+            {"a": level4, "b": xx.level3.data},
+            name="l4_patch_building_top",
+            dtype="uint8",
+            **{"nodata": NODATA},
         )
 
         data_vars = {
