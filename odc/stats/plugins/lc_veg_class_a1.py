@@ -212,9 +212,10 @@ class StatsVegClassL1(StatsPluginInterface):
 
         # Mask nans and pixels where non of classes applicable
         l3_mask = expr_eval(
-            "where((e<=0)|(e==254), nodata, e)",
+            "where((e<=0)|(e==254)|(g!=g), nodata, e)",
             {
                 "e": l3_mask,
+                "g": si5,
             },
             name="mark_nodata",
             dtype="uint8",
