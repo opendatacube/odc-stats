@@ -215,7 +215,7 @@ class StatsVegClassL1(StatsPluginInterface):
             "where((e<=0)|(e==254)|(g!=g), nodata, e)",
             {
                 "e": l3_mask,
-                "g": si5,
+                "g": si5.squeeze(0),
             },
             name="mark_nodata",
             dtype="uint8",
