@@ -616,6 +616,8 @@ class SaveTasks:
             tasks = bin_seasonal(cells, months=12, anchor=7)
         elif self._frequency == "annual":
             tasks = bin_annual(cells)
+        elif self._frequency == "monthly":
+            tasks = bin_seasonal(cells, months=1, anchor=1)
         elif temporal_range is not None:
             tasks = bin_generic(cells, [temporal_range])
         else:
