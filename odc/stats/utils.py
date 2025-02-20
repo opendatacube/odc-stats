@@ -110,7 +110,7 @@ def bin_full_history(
 
 
 def bin_annual(
-    cells: Dict[Tuple[int, int], Cell]
+    cells: Dict[Tuple[int, int], Cell],
 ) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
     """
     Annual binning
