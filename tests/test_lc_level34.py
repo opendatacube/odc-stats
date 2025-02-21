@@ -191,7 +191,7 @@ def test_l4_classes(image_groups, urban_shape):
     ):
         stats_l4 = StatsLccsLevel4(
             measurements=["level3", "level4"],
-            class_def_path="s3://dea-public-data-dev/lccs_validation/c3/data_to_plot/"
+            class_def_path="s3://dea-public-data-dev/lccs_validation/c3/development/data_to_plot/"
             "lccs_colour_scheme_golden_dark_au_c3.csv",
             class_condition={
                 "level3": ["level1", "artificial_surface", "cultivated"],
@@ -474,7 +474,7 @@ def test_level4(urban_shape):
 
     stats_l4 = StatsLccsLevel4(
         measurements=["level3", "level4"],
-        class_def_path="s3://dea-public-data-dev/lccs_validation/c3/data_to_plot/"
+        class_def_path="s3://dea-public-data-dev/lccs_validation/c3/development/data_to_plot/"
         "lccs_colour_scheme_golden_dark_au_c3.csv",
         class_condition={
             "level3": ["level1", "artificial_surface", "cultivated"],
