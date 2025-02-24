@@ -12,8 +12,14 @@ permissions:
 jobs:
   delete-ghcr-image:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
     steps:
-      - name: Authenticate with GitHub API
+      - name: Install GitHub CLI
+        run: |
+          sudo apt update
+          sudo apt install gh -y
+
+      - name: Check Authentication Status
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh auth status
@@ -23,7 +29,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_NAME: "odc-stats-stages"
         run: |
-          gh api --paginate /user/packages/container/$IMAGE_NAME/versions > versions.json
+          gh api --paginate /user/packages/container/$IMAGE_NAME/versions > versions.json || echo "[]" > versions.json
           cat versions.json | jq '.[] | {id, created_at}'
 
       - name: Delete Old Image Versions
@@ -42,6 +48,6 @@ jobs:
 
             if [[ $CREATED_TIME -lt $THRESHOLD ]]; then
               echo "Deleting image version $ID (created at $CREATED_AT)"
-              gh api --method DELETE /user/packages/container/$IMAGE_NAME/versions/$ID
+              gh api --method DELETE /user/packages/container/$IMAGE_NAME
             fi
           done
