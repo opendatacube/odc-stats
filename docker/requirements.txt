@@ -17,4 +17,7 @@ odc-apps-dc-tools>=0.2.12
 odc-cloud>=0.2.5
 odc-dscache>=0.2.3
 odc-stac @ git+https://github.com/opendatacube/odc-stac@69bdf64
+
+# odc-stac is in PyPI
+odc-stats @ git+https://github.com/opendatacube/odc-stats@major_upgrade_in_progress
 tl2cgen
