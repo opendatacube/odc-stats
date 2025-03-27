@@ -10,7 +10,6 @@ datacube[performance,s3]
 # For testing
 eodatasets3 @ git+https://github.com/opendatacube/eo-datasets
 # hdstats==0.1.8.post1
-numexpr @ git+https://github.com/pydata/numexpr@a99412e
 odc-algo @ git+https://github.com/opendatacube/odc-algo@adb1856
 odc-apps-cloud>=0.2.2
 odc-apps-dc-tools>=0.2.12
