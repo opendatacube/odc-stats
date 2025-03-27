@@ -1,4 +1,4 @@
-FROM mambaorg/micromamba:git-df79b72-jammy as stats-conda
+FROM mambaorg/micromamba:git-df79b72-jammy AS stats-conda
 
 USER root
 COPY env.yaml /conf/
