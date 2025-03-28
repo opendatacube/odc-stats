@@ -36,6 +36,15 @@ odc-stats run  --threads=1 --config https://raw.githubusercontent.com/Geoscience
 
 ./tests/compare_data.sh /tmp/x49/y24/ ga_ls_tc_pc_cyear_3_x49y24_2015--P1Y_final*.tif
 
+echo "Test Indexing"
+
+datacube product add https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/5681c4bdced2fa5262554feac66e732d8bb824f9/products/baseline_satellite_data/geomedian-au/ga_ls8c_nbart_gm_cyear_3.odc-product.yaml
+datacube product add https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/5681c4bdced2fa5262554feac66e732d8bb824f9/products/inland_water/wofs/ga_ls_wo_fq_cyear_3.odc-product.yaml
+datacube product add https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/5681c4bdced2fa5262554feac66e732d8bb824f9/products/land_and_vegetation/fc/ga_ls_fc_pc_cyear_3.odc-product.yaml
+datacube product add https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/5681c4bdced2fa5262554feac66e732d8bb824f9/products/inland_water/c3_tc/ga_ls_tc_pc_cyear_3.odc-product.yaml
+
+fs-to-dc  --stac /tmp/x49/y24/
+
 # echo "Test S2 GeoMAD"
 # # use au-30 to save cost
 # odc-stats save-tasks --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/feature/add-S2ab-GM-processing-cfg/dev/services/odc-stats/geomedian/ga_s2ab_gm_4fyear_3.yaml --input-products ga_s2am_ard_3 --grid au-30 --year=2020 --tiles 43:44,15:16 --overwrite s2-geomad-cyear.db
