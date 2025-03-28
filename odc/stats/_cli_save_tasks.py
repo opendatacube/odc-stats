@@ -21,6 +21,20 @@ CONFIG_ITEMS = [
     "optional_products",
 ]
 
+SUPPORTED_FREQUENCY = [
+    "annual",
+    "annual-fy",
+    "semiannual",
+    "seasonal",
+    "quartely",
+    "3month-seasons",
+    "rolling-3months",
+    "nov-mar",
+    "apr-oct",
+    "monthly",
+    "all",
+]
+
 
 @main.command("save-tasks")
 @click.option(
@@ -51,10 +65,7 @@ CONFIG_ITEMS = [
 @click.option(
     "--frequency",
     type=str,
-    help=(
-        "Specify temporal binning: "
-        "annual|annual-fy|semiannual|seasonal|quartely|3month-seasons|rolling-3months|nov-mar|apr-oct|all"
-    ),
+    help=f"Specify temporal binning: {'|'.join(SUPPORTED_FREQUENCY)}",
 )
 @click.option("--env", "-E", type=str, help="Datacube environment name")
 @click.option(
@@ -198,21 +209,9 @@ def save_tasks(
         sys.exit(1)
 
     if _cfg.get("frequency") is not None:
-        if _cfg.get("frequency") not in (
-            "annual",
-            "annual-fy",
-            "semiannual",
-            "seasonal",
-            "quartely",
-            "3month-seasons",
-            "rolling-3months",
-            "nov-mar",
-            "apr-oct",
-            "all",
-        ):
+        if _cfg.get("frequency") not in SUPPORTED_FREQUENCY:
             print(
-                f"""Frequency must be one of annual|annual-fy|semiannual|seasonal|
-                quartely|3month-seasons|rolling-3months|nov-mar|apr-oct|all
+                f"""Frequency must be one of {'|'.join(SUPPORTED_FREQUENCY)}
                 and not '{frequency}'""",
                 file=sys.stderr,
             )
