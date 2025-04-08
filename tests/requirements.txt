@@ -1,12 +1,12 @@
 --extra-index-url https://packages.dea.ga.gov.au/
-datacube<1.9
+datacube>=1.9
 # for pytest-depends
 deepdiff
 future_fstrings
 mock
 moto
 networkx
-numpy<2.0
+numpy>=2.0
 odc-algo @ git+https://github.com/opendatacube/odc-algo@adb1856
 odc-cloud>=0.2.5
 odc-stac @ git+https://github.com/opendatacube/odc-stac@69bdf64

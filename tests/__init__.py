@@ -8,6 +8,7 @@ from uuid import UUID
 import xarray as xr
 import dask.array as da
 import numpy as np
+from odc.geo.xr import xr_coords
 from odc.stats.utils import CompressedDataset
 from odc.stats.plugins import StatsPluginInterface
 from odc.stats.model import DateTimeRange
@@ -119,7 +120,7 @@ def mk_dask_xx(
         elif data.dtype != dtype:
             data = data.astype(dtype)
 
-    coords = geobox.xr_coords(with_crs=True)
+    coords = xr_coords(geobox, crs_coord_name="spatial_ref")
     coords["time"] = mk_time_coords(timestamps)
 
     return xr.DataArray(data=data, dims=("time", "y", "x"), coords=coords, attrs=attrs)

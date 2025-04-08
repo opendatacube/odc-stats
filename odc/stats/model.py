@@ -12,7 +12,7 @@ import pystac
 import xarray as xr
 from datacube.model import Dataset
 from datacube.utils.dates import normalise_dt
-from datacube.utils.geometry import GeoBox
+from odc.geo.geobox import GeoBox
 from ._text import split_and_check
 from pystac.extensions.projection import ProjectionExtension
 from toolz import dicttoolz
@@ -318,13 +318,12 @@ class Task:
 
         # TODO: replace this and test
         # if 'fused' in ds.metadata._doc['properties'].keys():
-        if "fused" in ds.type.name:
+        if "fused" in ds.product.name:
             lineage = tuple(
                 set(
                     x
                     for ds in self.datasets
-                    for y in ds.metadata.sources.values()
-                    for x in y.values()
+                    for x in ds.metadata.sources
                 )
             )
         else:
@@ -544,7 +543,7 @@ class Task:
         )
         ProjectionExtension.add_to(item)
         proj_ext = ProjectionExtension.ext(item)
-        proj_ext.apply(geobox.crs.epsg, transform=geobox.transform, shape=geobox.shape)
+        proj_ext.apply(epsg=geobox.crs.epsg, transform=geobox.transform, shape=list(geobox.shape))
 
         # Lineage last
         item.properties["odc:lineage"] = {"inputs": inputs}

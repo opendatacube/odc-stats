@@ -7,7 +7,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import dask.array as da
-from datacube.utils.geometry import GeoBox
+from odc.geo import wh_
+from odc.geo.geobox import GeoBox
+from odc.geo.xr import xr_coords
 from affine import Affine
 from unittest.mock import patch
 
@@ -125,9 +127,9 @@ def image_groups():
         (20 - 10) / l34.shape[2], (5 - 0) / l34.shape[1]
     )
     geobox = GeoBox(
-        crs="epsg:3577", affine=affine, width=l34.shape[2], height=l34.shape[1]
+        crs="epsg:3577", affine=affine, shape=wh_(l34.shape[2], l34.shape[1])
     )
-    coords = geobox.xr_coords()
+    coords = xr_coords(geobox)
 
     data_vars = {
         "level_3_4": xr.DataArray(
@@ -401,10 +403,9 @@ def test_level4(urban_shape):
     geobox = GeoBox(
         crs="epsg:3577",
         affine=affine,
-        width=level_3_4.shape[2],
-        height=level_3_4.shape[1],
+        shape=wh_(level_3_4.shape[2], level_3_4.shape[1]),
     )
-    coords = geobox.xr_coords()
+    coords = xr_coords(geobox)
 
     data_vars = {
         "level_3_4": xr.DataArray(

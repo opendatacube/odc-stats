@@ -4,8 +4,9 @@ import toolz
 from typing import Tuple, Dict, Any
 from datetime import timedelta
 
-from datacube.model import GridSpec
-from datacube.utils.geometry import polygon_from_transform, Geometry
+from odc.geo.gridspec import GridSpec
+from odc.geo import Geometry, wh_
+from odc.geo.geom import polygon_from_transform
 from odc.dscache.tools import solar_offset
 from .model import TileIdx_xy, TileIdx_txy
 
@@ -20,14 +21,14 @@ def gs_bounds(gs: GridSpec, tiles: Tuple[Tuple[int, int], Tuple[int, int]]) -> G
     X,Y ranges are inclusive on the left and exclusive on the right, same as numpy slicing.
     """
     ((x0, x1), (y0, y1)) = tiles
-    if gs.resolution[0] < 0:
+    if gs.resolution.y < 0:
         gb = gs.tile_geobox((x0, y1 - 1))
     else:
         gb = gs.tile_geobox((x0, y0))
 
-    nx = (x1 - x0) * gb.shape[1]
-    ny = (y1 - y0) * gb.shape[0]
-    return polygon_from_transform(nx, ny, gb.affine, gb.crs)
+    nx = (x1 - x0) * gb.shape.x
+    ny = (y1 - y0) * gb.shape.y
+    return polygon_from_transform(wh_(nx, ny), gb.affine, gb.crs)
 
 
 def timedelta_to_hours(td: timedelta) -> float:

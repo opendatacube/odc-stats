@@ -17,7 +17,7 @@ from numpy import datetime64
 from odc.aws.s3_client import S3Client
 from dask.distributed import get_worker
 from datacube.utils.dask import save_blob_to_file
-from datacube.utils.cog import to_cog
+from odc.geo.cog import to_cog
 from datacube.model import Dataset
 from .model import Task, EXT_TIFF
 from .plugins import StatsPluginInterface

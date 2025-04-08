@@ -12,7 +12,7 @@ import dask.array as da
 from dask.distributed import get_worker
 
 from datacube.model import Dataset
-from datacube.utils.geometry import GeoBox
+from odc.geo.geobox import GeoBox
 from odc.algo._memsink import yxbt_sink
 from odc.algo.io import load_with_native_transform
 

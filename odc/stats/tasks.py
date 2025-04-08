@@ -18,8 +18,9 @@ import toolz
 
 from odc.dscache import DatasetCache
 from datacube import Datacube
-from datacube.model import Dataset, GridSpec
-from datacube.utils.geometry import Geometry
+from datacube.model import Dataset
+from odc.geo import Geometry
+from odc.geo.gridspec import GridSpec
 from datacube.utils.documents import transform_object_tree
 from datacube.utils.dates import normalise_dt
 
@@ -326,7 +327,7 @@ class SaveTasks:
             query.update({"product": indexed_products, **dataset_filter})
             dss = ordered_dss(
                 dc,
-                freq="y",
+                freq="Y",
                 key=lambda ds: (
                     (ds.center_time, ds.metadata.region_code)
                     if hasattr(ds.metadata, "region_code")
@@ -340,7 +341,7 @@ class SaveTasks:
             query.update({"product": list(ignore_time), "time": ("1970", "2038")})
             dss_extra = ordered_dss(
                 dc,
-                freq="y",
+                freq="Y",
                 key=lambda ds: (
                     (ds.center_time, ds.metadata.region_code)
                     if hasattr(ds.metadata, "region_code")
@@ -660,7 +661,7 @@ class SaveTasks:
 
         msg("Dumping GeoJSON(s)")
         grid_info = compute_grid_info(
-            cells, resolution=max(self._gridspec.tile_size) / 4
+            cells, resolution=max(self._gridspec.tile_size.xy) / 4
         )
         tasks_geo = gjson_from_tasks(tasks, grid_info)
         for temporal_range, gjson in tasks_geo.items():
