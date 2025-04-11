@@ -408,8 +408,7 @@ class Task:
         platforms, instruments = ([], [])
 
         for dataset in self.datasets:
-            if "fused" in dataset.type.name:
-                sources = [e["id"] for e in dataset.metadata.sources.values()]
+            if "fused" in dataset.product.name:
                 if dataset.metadata_doc["properties"].get("eo:platform") is not None:
                     platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
                 if dataset.metadata_doc["properties"].get("eo:instrument") is not None:
@@ -424,7 +423,7 @@ class Task:
                             dataset.metadata_doc["properties"]["eo:instrument"]
                         ]
                 dataset_assembler.note_source_datasets(
-                    self.product.classifier, *sources
+                    self.product.classifier, *dataset.metadata.sources
                 )
             else:
                 dataset.metadata_doc.setdefault("$schema", "")
@@ -491,7 +490,7 @@ class Task:
                     path,
                     expand_valid_data=False,
                     grid=GridSpec(
-                        shape=self.geobox.shape,
+                        shape=self.geobox.shape.yx,
                         transform=self.geobox.transform,
                         crs=CRS.from_epsg(self.geobox.crs.to_epsg()),
                     ),
