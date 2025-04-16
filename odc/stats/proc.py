@@ -241,6 +241,7 @@ class TaskRunner:
                     task.geobox,
                     transform_code=proc.transform_code,
                     area_of_interest=proc.area_of_interest,
+                    **{"XSCALE": None, "YSCALE": None},
                 )
             )
 

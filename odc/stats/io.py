@@ -35,11 +35,11 @@ from importlib.metadata import version
 WriteResult = namedtuple("WriteResult", ["path", "sha1", "error"])
 
 _log = logging.getLogger(__name__)
-DEFAULT_COG_OPTS = dict(
-    compress="deflate",
-    zlevel=6,
-    blocksize=512,
-)
+DEFAULT_COG_OPTS = {
+    "compress": "deflate",
+    "zlevel": 6,
+    "blocksize": 512,
+}
 
 
 def dump_json(meta: Dict[str, Any]) -> str:
@@ -123,9 +123,9 @@ class S3COGSink:
         """
 
         if cog_opts is None:
-            cog_opts = dict(**DEFAULT_COG_OPTS)
+            cog_opts = {**DEFAULT_COG_OPTS}
         else:
-            tmp = dict(**DEFAULT_COG_OPTS)
+            tmp = {**DEFAULT_COG_OPTS}
             tmp.update(cog_opts)
             cog_opts = tmp
 
@@ -381,7 +381,7 @@ class S3COGSink:
         )
 
         dataset_assembler.extend_user_metadata(
-            "input-products", sorted({e.type.name for e in task.datasets})
+            "input-products", sorted({e.product.name for e in task.datasets})
         )
 
         dataset_assembler.extend_user_metadata("odc-stats-config", vars(task.product))
@@ -504,6 +504,7 @@ class S3COGSink:
             with_deps=odc_meta_done,
         )
 
+    # pylint: disable=too-many-positional-arguments
     def dump(
         self,
         task: Task,
