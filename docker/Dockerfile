@@ -1,4 +1,4 @@
-FROM mambaorg/micromamba:git-df79b72-jammy AS stats-conda
+FROM mambaorg/micromamba:git-fddee42-debian12-slim AS stats-conda
 
 USER root
 COPY env.yaml /conf/
@@ -18,7 +18,7 @@ ENV CC=/env/bin/x86_64-conda-linux-gnu-gcc \
 RUN micromamba run -p /env pip install --no-cache-dir \
     --no-build-isolation -r /conf/requirements.txt
 
-FROM ubuntu:noble-20250127
+FROM debian:12.10-slim
 COPY --from=stats-conda /env /env
 COPY distributed.yaml  /etc/dask/
 
