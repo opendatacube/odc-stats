@@ -9,9 +9,9 @@ mock
 moto
 networkx
 numpy<2.0
-odc-algo @ git+https://github.com/opendatacube/odc-algo@integrate_1.9
+# odc-algo @ git+https://github.com/opendatacube/odc-algo@integrate_1.9
 odc-cloud>=0.2.5
-odc-dscache @ git+https://github.com/opendatacube/odc-dscache@integrate_1.9
+# odc-dscache @ git+https://github.com/opendatacube/odc-dscache@integrate_1.9
 
 # For tests
 pytest
