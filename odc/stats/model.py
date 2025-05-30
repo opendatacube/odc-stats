@@ -319,13 +319,7 @@ class Task:
         # TODO: replace this and test
         # if 'fused' in ds.metadata._doc['properties'].keys():
         if "fused" in ds.product.name:
-            lineage = tuple(
-                set(
-                    x
-                    for ds in self.datasets
-                    for x in ds.metadata.sources
-                )
-            )
+            lineage = tuple(set(x for ds in self.datasets for x in ds.metadata.sources))
         else:
             lineage = tuple(ds.id for ds in self.datasets)
 
@@ -542,7 +536,9 @@ class Task:
         )
         ProjectionExtension.add_to(item)
         proj_ext = ProjectionExtension.ext(item)
-        proj_ext.apply(epsg=geobox.crs.epsg, transform=geobox.transform, shape=list(geobox.shape))
+        proj_ext.apply(
+            epsg=geobox.crs.epsg, transform=geobox.transform, shape=list(geobox.shape)
+        )
 
         # Lineage last
         item.properties["odc:lineage"] = {"inputs": inputs}
