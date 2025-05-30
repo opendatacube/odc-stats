@@ -6,7 +6,7 @@ import numpy as np
 from datacube.model import Dataset
 from odc.geo.geobox import GeoBox
 from odc.algo import to_rgba
-from odc.algo.io import load_with_native_transform
+from odc.stats.io import load_with_native_transform
 from odc.algo._masking import _nodata_fuser
 
 
@@ -16,7 +16,7 @@ class StatsPluginInterface(ABC):
     VERSION = "0.0.0"
     PRODUCT_FAMILY = "statistics"
 
-    # pylint:disable=too-many-arguments
+    # pylint:disable=too-many-arguments,too-many-positional-arguments
     def __init__(
         self,
         resampling: str = "bilinear",
