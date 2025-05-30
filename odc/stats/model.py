@@ -12,7 +12,7 @@ import pystac
 import xarray as xr
 from datacube.model import Dataset
 from datacube.utils.dates import normalise_dt
-from datacube.utils.geometry import GeoBox
+from odc.geo.geobox import GeoBox
 from ._text import split_and_check
 from pystac.extensions.projection import ProjectionExtension
 from toolz import dicttoolz
@@ -318,15 +318,8 @@ class Task:
 
         # TODO: replace this and test
         # if 'fused' in ds.metadata._doc['properties'].keys():
-        if "fused" in ds.type.name:
-            lineage = tuple(
-                set(
-                    x
-                    for ds in self.datasets
-                    for y in ds.metadata.sources.values()
-                    for x in y.values()
-                )
-            )
+        if "fused" in ds.product.name:
+            lineage = tuple(set(x for ds in self.datasets for x in ds.metadata.sources))
         else:
             lineage = tuple(ds.id for ds in self.datasets)
 
@@ -409,8 +402,7 @@ class Task:
         platforms, instruments = ([], [])
 
         for dataset in self.datasets:
-            if "fused" in dataset.type.name:
-                sources = [e["id"] for e in dataset.metadata.sources.values()]
+            if "fused" in dataset.product.name:
                 if dataset.metadata_doc["properties"].get("eo:platform") is not None:
                     platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
                 if dataset.metadata_doc["properties"].get("eo:instrument") is not None:
@@ -425,7 +417,7 @@ class Task:
                             dataset.metadata_doc["properties"]["eo:instrument"]
                         ]
                 dataset_assembler.note_source_datasets(
-                    self.product.classifier, *sources
+                    self.product.classifier, *dataset.metadata.sources
                 )
             else:
                 dataset.metadata_doc.setdefault("$schema", "")
@@ -492,7 +484,7 @@ class Task:
                     path,
                     expand_valid_data=False,
                     grid=GridSpec(
-                        shape=self.geobox.shape,
+                        shape=self.geobox.shape.yx,
                         transform=self.geobox.transform,
                         crs=CRS.from_epsg(self.geobox.crs.to_epsg()),
                     ),
@@ -544,7 +536,9 @@ class Task:
         )
         ProjectionExtension.add_to(item)
         proj_ext = ProjectionExtension.ext(item)
-        proj_ext.apply(geobox.crs.epsg, transform=geobox.transform, shape=geobox.shape)
+        proj_ext.apply(
+            epsg=geobox.crs.epsg, transform=geobox.transform, shape=list(geobox.shape)
+        )
 
         # Lineage last
         item.properties["odc:lineage"] = {"inputs": inputs}

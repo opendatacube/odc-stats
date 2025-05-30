@@ -9,7 +9,7 @@ from typing import (
     Union,
 )
 from dask.distributed import Client, WorkerPlugin
-from datetime import datetime
+from datetime import datetime, timezone
 import xarray as xr
 import math
 import psutil
@@ -221,7 +221,7 @@ class TaskRunner:
             if tk is not None:
                 t0 = tk.start_time
             else:
-                t0 = datetime.utcnow()
+                t0 = datetime.now(timezone.utc)
             if not cfg.overwrite:
                 path = sink.uri(task)
                 _log.debug("Checking if can skip %s", path)
@@ -241,6 +241,7 @@ class TaskRunner:
                     task.geobox,
                     transform_code=proc.transform_code,
                     area_of_interest=proc.area_of_interest,
+                    **{"XSCALE": None, "YSCALE": None},
                 )
             )
 

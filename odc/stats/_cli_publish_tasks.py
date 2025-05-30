@@ -5,7 +5,7 @@ from typing import List, Optional
 import click
 import fsspec
 import toolz
-from datacube.utils.geometry import Geometry
+from odc.geo import Geometry
 from odc.aws.queue import get_queue, publish_messages
 from odc.dscache.tools.tiling import GRIDS
 from odc.stats.model import TileIdx_txy

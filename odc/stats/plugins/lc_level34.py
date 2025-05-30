@@ -129,7 +129,7 @@ class StatsLccsLevel4(StatsPluginInterface):
         # 215 -> 216 if urban_mask == 0
         urban_mask = rasterize_vector_mask(
             self.urban_mask,
-            xx.geobox.transform,
+            xx.odc.geobox.transform,
             xx.artificial_surface.shape,
             filter_expression=self.filter_expression,
             threshold=self.mask_threshold,

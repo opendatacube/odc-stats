@@ -1,21 +1,22 @@
 
 --extra-index-url https://packages.dea.ga.gov.au/
-datacube-ows<1.9
-datacube[performance,s3]<1.9
-eodatasets3<1.9
-hdstats==0.1.8.post1
-numexpr @ git+https://github.com/pydata/numexpr@a99412e
+# odc-stac is in PyPI
+# odc-stats[ows]
+
+# For ML
+ai-edge-litert
+datacube-ows
+datacube[performance,s3]
+# For testing
+eodatasets3 @ git+https://github.com/opendatacube/eo-datasets
+# hdstats==0.1.8.post1
 odc-algo @ git+https://github.com/opendatacube/odc-algo@adb1856
 odc-apps-cloud>=0.2.2
-# For testing
 odc-apps-dc-tools>=0.2.12
 odc-cloud>=0.2.5
 odc-dscache>=0.2.3
 odc-stac @ git+https://github.com/opendatacube/odc-stac@69bdf64
 
 # odc-stac is in PyPI
-odc-stats[ows]
-
-# For ML
-tflite-runtime
+odc-stats @ git+https://github.com/opendatacube/odc-stats@major_upgrade_in_progress
 tl2cgen

@@ -5,7 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from .model import DateTimeRange, odc_uuid
 from datacube.storage import measurement_paths
-from datacube.model import Dataset, DatasetType
+from datacube.model import Dataset, Product
 from datacube.index.eo3 import prep_eo3
 
 
@@ -299,7 +299,7 @@ def dedup_s2_datasets(dss):
     return out, skipped
 
 
-def fuse_products(*ds_types) -> DatasetType:
+def fuse_products(*ds_types) -> Product:
     """
     Fuses two products. This function requires access to a Datacube to access the metadata type.
 
@@ -352,12 +352,12 @@ def fuse_products(*ds_types) -> DatasetType:
     for d in def_s:
         fused_def["measurements"] += d["measurements"]
 
-    return DatasetType(ds_types[0].metadata_type, fused_def)
+    return Product(ds_types[0].metadata_type, fused_def)
 
 
 def fuse_ds(
     *dss,
-    product: Optional[DatasetType] = None,
+    product: Optional[Product] = None,
 ) -> Dataset:
     """
     This function fuses two datasets. It requires that:
@@ -375,7 +375,7 @@ def fuse_ds(
     doc_s = [ds.metadata_doc for ds in dss]
 
     if product is None:
-        product = fuse_products(*[ds.type for ds in dss])
+        product = fuse_products(*[ds.product for ds in dss])
 
     fused_doc = {
         "id": str(odc_uuid(product.name, "0.0.0", sources=[d["id"] for d in doc_s])),
@@ -454,6 +454,6 @@ def fuse_ds(
         for key, path in {**measurement_paths(ds)}.items():
             fused_doc["measurements"][key]["path"] = path
 
-    fused_ds = Dataset(product, prep_eo3(fused_doc), uris=[""])
+    fused_ds = Dataset(product, prep_eo3(fused_doc), uri="fake")
     fused_doc["properties"]["fused"] = "True"
     return fused_ds

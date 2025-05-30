@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 import boto3
 import moto
-from datacube.utils.geometry import Geometry
+from odc.geo import Geometry
 from odc.aws.queue import get_queue, publish_message
 from odc.stats._cli_publish_tasks import filter_tasks, get_geometry, publish_tasks
 from odc.stats._sqs import SQSWorkToken
