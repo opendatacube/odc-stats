@@ -7,10 +7,6 @@ import pytest
 from odc.stats.model import product_for_plugin
 from odc.stats.plugins.gm import StatsGMLS
 from odc.stats.tasks import TaskReader
-from dask.distributed import Client, LocalCluster
-
-cluster = LocalCluster(n_workers=1, threads_per_worker=2)
-client = Client(cluster)
 
 
 @pytest.fixture
@@ -208,7 +204,6 @@ def test_no_data_value(monkeypatch):
     task.datasets = task.datasets[2:3]
 
     xx_0_0 = gm_ls.input_data(task.datasets, task.geobox)
-    print(xx_0_0.compute())
     xx_0_0 = xx_0_0.sel(
         indexers={"x": slice(None, None, 100), "y": slice(None, None, 100)}
     )
