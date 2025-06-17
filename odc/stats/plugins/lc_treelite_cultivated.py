@@ -7,7 +7,7 @@ import xarray as xr
 import dask.array as da
 import numexpr as ne
 
-from odc.stats._algebra import expr_eval
+from odc.io import expr_eval
 from ._registry import register
 from .lc_ml_treelite import StatsMLTree, mask_and_predict
 
@@ -53,6 +53,7 @@ def feature_BSI(input_block, nbart_swir_1, nbart_red, nbart_nir, nbart_blue):
     ).astype("float32")
 
 
+# pylint: disable=too-many-positional-arguments
 def feature_TCW(
     input_block,
     nbart_blue,

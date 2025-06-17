@@ -6,7 +6,7 @@ from typing import Optional, Dict
 
 import numpy as np
 import xarray as xr
-from odc.stats._algebra import expr_eval
+from odc.algo import expr_eval
 
 from ._registry import StatsPluginInterface, register
 from ._utils import replace_nodata_with_mode
@@ -52,6 +52,7 @@ class StatsVegClassL1(StatsPluginInterface):
 
     def __init__(
         self,
+        *,
         output_classes: Dict,
         dem_threshold: Optional[int] = None,
         mudflat_threshold: Optional[int] = None,

@@ -16,7 +16,7 @@ from odc.geo.geobox import GeoBox
 from odc.algo._memsink import yxbt_sink
 from odc.stats.io import load_with_native_transform
 
-from odc.stats._algebra import expr_eval
+from odc.algo import expr_eval
 from ._registry import StatsPluginInterface, register
 from ._worker import TensorFlowLiteModelPlugin
 

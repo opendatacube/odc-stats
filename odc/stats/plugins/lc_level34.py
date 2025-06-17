@@ -13,7 +13,7 @@ import logging
 
 from ._registry import StatsPluginInterface, register
 from ._utils import rasterize_vector_mask, generate_numexpr_expressions
-from odc.stats._algebra import expr_eval
+from odc.algo import expr_eval
 from osgeo import gdal
 
 NODATA = 255
@@ -28,6 +28,7 @@ class StatsLccsLevel4(StatsPluginInterface):
 
     def __init__(
         self,
+        *,
         class_def_path: str = None,
         class_condition: Dict[str, List] = None,
         urban_mask: str = None,

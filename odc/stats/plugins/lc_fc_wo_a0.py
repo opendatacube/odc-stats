@@ -16,7 +16,8 @@ from odc.algo._masking import (
     to_float,
     _nodata_fuser,
 )
-from odc.stats._algebra import expr_eval, median_ds
+from odc.stats._algebra import median_ds
+from odc.algo import expr_eval
 
 from ._registry import StatsPluginInterface, register
 
