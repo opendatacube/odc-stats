@@ -4,6 +4,7 @@ datacube-ows>=1.9
 datacube[performance,s3]>=1.9.5
 eodatasets3>1.9
 hdstats==0.1.8.post1
+numexpr>=2.11
 odc-algo>=1.0.1
 odc-apps-cloud>=0.2.2
 # For testing
