@@ -1,5 +1,5 @@
 --extra-index-url https://packages.dea.ga.gov.au/
-datacube @ git+https://github.com/opendatacube/datacube-core@565de91
+datacube>=1.9.5
 datacube-ows>=1.9
 # for pytest-depends
 deepdiff
@@ -9,7 +9,7 @@ mock
 moto
 networkx
 numpy<2.0
-odc-algo @ git+https://github.com/opendatacube/odc-algo@8cfaf89
+odc-algo>=1.0.1
 odc-cloud>=0.2.5
 odc-dscache>=1.9
 odc-geo>=0.5.0rc1
