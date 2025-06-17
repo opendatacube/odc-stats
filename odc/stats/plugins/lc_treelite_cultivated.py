@@ -7,7 +7,7 @@ import xarray as xr
 import dask.array as da
 import numexpr as ne
 
-from odc.io import expr_eval
+from odc.algo import expr_eval
 from ._registry import register
 from .lc_ml_treelite import StatsMLTree, mask_and_predict
 
