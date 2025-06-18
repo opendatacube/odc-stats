@@ -316,9 +316,7 @@ class Task:
     def _lineage(self) -> Tuple[UUID, ...]:
         ds, *_ = self.datasets
 
-        # TODO: replace this and test
-        # if 'fused' in ds.metadata._doc['properties'].keys():
-        if "fused" in ds.product.name:
+        if ds.metadata_doc["properties"].get("fused", False):
             lineage = tuple(set(x for ds in self.datasets for x in ds.metadata.sources))
         else:
             lineage = tuple(ds.id for ds in self.datasets)
@@ -402,7 +400,7 @@ class Task:
         platforms, instruments = ([], [])
 
         for dataset in self.datasets:
-            if "fused" in dataset.product.name:
+            if dataset.metadata_doc["properties"].get("fused", False):
                 if dataset.metadata_doc["properties"].get("eo:platform") is not None:
                     platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
                 if dataset.metadata_doc["properties"].get("eo:instrument") is not None:
@@ -574,6 +572,7 @@ class Task:
 
 def product_for_plugin(  # pylint:disable=too-many-arguments,too-many-locals
     plugin: StatsPluginInterface,
+    *,
     location: str,
     name: Optional[str] = None,
     short_name: Optional[str] = None,
