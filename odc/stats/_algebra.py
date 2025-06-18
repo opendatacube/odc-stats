@@ -32,7 +32,7 @@ def median_by_ind(xr_da, dim, dtype="float32", name="median_by_ind"):
         meta=np.array((), dtype=dtype),
         drop_axis=0,
     )
-    coords = dict((dim, xr_da.coords[dim]) for dim in xr_da.dims[1:])
+    coords = {dim: xr_da.coords[dim] for dim in xr_da.dims[1:]}
 
     return xr.DataArray(
         res, dims=xr_da.dims[1:], coords=coords, attrs=xr_da.attrs.copy()
@@ -44,5 +44,5 @@ def median_ds(xr_ds, dim, dtype="float32", name="median_ds"):
     for var, data in xr_ds.data_vars.items():
         res[var] = median_by_ind(data, dim, dtype, name)
     # pylint: disable=undefined-loop-variable
-    coords = dict((dim, xr_ds.coords[dim]) for dim in data.dims[1:])
+    coords = {dim: xr_ds.coords[dim] for dim in data.dims[1:]}
     return xr.Dataset(res, coords=coords, attrs=xr_ds.attrs.copy())

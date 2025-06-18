@@ -1,5 +1,6 @@
 import toolz
-from typing import Dict, Tuple, List, Any, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 from collections import namedtuple, defaultdict
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -14,14 +15,14 @@ Cell = Any
 
 
 def _bin_generic(
-    dss: List[CompressedDataset], bins: List[DateTimeRange]
-) -> Dict[str, List[CompressedDataset]]:
+    dss: list[CompressedDataset], bins: list[DateTimeRange]
+) -> dict[str, list[CompressedDataset]]:
     """
     Dumb O(NM) implementation, N number of dataset, M number of bins.
 
     For every bin find all datasets that fall in there, and if not empty keep that bin.
     """
-    out: Dict[str, List[CompressedDataset]] = {}
+    out: dict[str, list[CompressedDataset]] = {}
     for b in bins:
         _dss = [ds for ds in dss if ds.time in b]
         if len(_dss) > 0:
@@ -31,9 +32,9 @@ def _bin_generic(
 
 
 def bin_generic(
-    cells: Dict[Tuple[int, int], Cell], bins: List[DateTimeRange]
-) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
-    tasks: Dict[Tuple[str, int, int], List[CompressedDataset]] = {}
+    cells: dict[tuple[int, int], Cell], bins: list[DateTimeRange]
+) -> dict[tuple[str, int, int], list[CompressedDataset]]:
+    tasks: dict[tuple[str, int, int], list[CompressedDataset]] = {}
     for tidx, cell in cells.items():
         _bins = _bin_generic(cell.dss, bins)
         for t, dss in _bins.items():
@@ -43,11 +44,11 @@ def bin_generic(
 
 
 def bin_seasonal(
-    cells: Dict[Tuple[int, int], Cell],
+    cells: dict[tuple[int, int], Cell],
     months: int,
     anchor: int,
     extract_single_season=False,
-) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
+) -> dict[tuple[str, int, int], list[CompressedDataset]]:
     # mk_single_season_rules is different from mk_season_rules
     # because the mk_season_rules will split the whole year to 2/3/4 seasons
     # but mk_single_season_rules only extract a single season from the whole year
@@ -72,11 +73,11 @@ def bin_seasonal(
 
 
 def bin_rolling_seasonal(
-    cells: Dict[Tuple[int, int], Cell],
+    cells: dict[tuple[int, int], Cell],
     temporal_range,
     months: int,
     interval: int,
-) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
+) -> dict[tuple[str, int, int], list[CompressedDataset]]:
     binner = rolling_season_binner(
         mk_rolling_season_rules(temporal_range, months, interval)
     )
@@ -102,16 +103,16 @@ def bin_rolling_seasonal(
 
 
 def bin_full_history(
-    cells: Dict[Tuple[int, int], Cell], start: datetime, end: datetime
-) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
+    cells: dict[tuple[int, int], Cell], start: datetime, end: datetime
+) -> dict[tuple[str, int, int], list[CompressedDataset]]:
     duration = end.year - start.year + 1
     temporal_key = (f"{start.year}--P{duration}Y",)
     return {temporal_key + k: cell.dss for k, cell in cells.items()}
 
 
 def bin_annual(
-    cells: Dict[Tuple[int, int], Cell],
-) -> Dict[Tuple[str, int, int], List[CompressedDataset]]:
+    cells: dict[tuple[int, int], Cell],
+) -> dict[tuple[str, int, int], list[CompressedDataset]]:
     """
     Annual binning
     :param cells: (x,y) -> Cell(dss: List[CompressedDataset], geobox: GeoBox, idx: Tuple[int, int])
@@ -131,7 +132,7 @@ def bin_annual(
     return tasks
 
 
-def mk_single_season_rules(months: int, anchor: int) -> Dict[int, str]:
+def mk_single_season_rules(months: int, anchor: int) -> dict[int, str]:
     """
     Construct rules for a each year single season summary
     :param months: Length of season in months can be one of [1, 12]
@@ -140,7 +141,7 @@ def mk_single_season_rules(months: int, anchor: int) -> Dict[int, str]:
     assert 1 <= months <= 12
     assert 1 <= anchor <= 12
 
-    rules: Dict[int, str] = {}
+    rules: dict[int, str] = {}
 
     start_month = anchor
 
@@ -157,7 +158,7 @@ def mk_single_season_rules(months: int, anchor: int) -> Dict[int, str]:
     return rules
 
 
-def mk_season_rules(months: int, anchor: int) -> Dict[int, str]:
+def mk_season_rules(months: int, anchor: int) -> dict[int, str]:
     """
     Construct rules for a regular seasons
     :param months: Length of season in months can be one of (1,2,3,4,6,12)
@@ -166,7 +167,7 @@ def mk_season_rules(months: int, anchor: int) -> Dict[int, str]:
     assert months in (1, 2, 3, 4, 6, 12)
     assert 1 <= anchor <= 12
 
-    rules: Dict[int, str] = {}
+    rules: dict[int, str] = {}
     for i in range(12 // months):
         start_month = anchor + i * months
         if start_month > 12:
@@ -201,18 +202,18 @@ def mk_rolling_season_rules(temporal_range, months, interval):
     rules = {}
     season_start = start_date
     while (
-        DateTimeRange(f'{season_start.strftime("%Y-%m-%d")}--P{months}M').end
+        DateTimeRange(f"{season_start.strftime('%Y-%m-%d')}--P{months}M").end
         <= end_date
     ):
-        rules[f'{season_start.strftime("%Y-%m")}--P{months}M'] = DateTimeRange(
-            f'{season_start.strftime("%Y-%m-%d")}--P{months}M'
+        rules[f"{season_start.strftime('%Y-%m')}--P{months}M"] = DateTimeRange(
+            f"{season_start.strftime('%Y-%m-%d')}--P{months}M"
         )
         season_start += season_start_interval
 
     return rules
 
 
-def season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
+def season_binner(rules: dict[int, str]) -> Callable[[datetime], str]:
     """
     Construct mapping from datetime to a string in the form like 2010-06--P3M
 
@@ -221,7 +222,7 @@ def season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
                   month of the season and ``N`` is a duration of the season in
                   months.
     """
-    _rules: Dict[int, Tuple[str, int]] = {}
+    _rules: dict[int, tuple[str, int]] = {}
 
     for month in range(1, 12 + 1):
         season = rules.get(month, "")
@@ -241,7 +242,7 @@ def season_binner(rules: Dict[int, str]) -> Callable[[datetime], str]:
     return label
 
 
-def rolling_season_binner(rules: Dict[int, str]) -> Callable[[datetime], list]:
+def rolling_season_binner(rules: dict[int, str]) -> Callable[[datetime], list]:
     """
     Construct mapping from datetime to a string in the form like 2010-06--P3M
 
@@ -357,7 +358,7 @@ def fuse_products(*ds_types) -> Product:
 
 def fuse_ds(
     *dss,
-    product: Optional[Product] = None,
+    product: Product | None = None,
 ) -> Dataset:
     """
     This function fuses two datasets. It requires that:

@@ -2,14 +2,13 @@
 Work token for SQS based job control
 """
 
-from typing import Optional
 from datetime import timedelta, datetime
 import toolz
 from .model import WorkTokenInterface
 
 
 class SQSWorkToken(WorkTokenInterface):
-    def __init__(self, msg, timeout: int, t0: Optional[datetime] = None):
+    def __init__(self, msg, timeout: int, t0: datetime | None = None):
         super().__init__()
         if t0 is None:
             t0 = self.now()

@@ -32,9 +32,9 @@ def patch_version_lines(lines, patch_number):
 
 
 def patch_file(fname, patch_number):
-    with open(fname, "rt", encoding="utf-8") as src:
+    with open(fname, encoding="utf-8") as src:
         lines = list(patch_version_lines(src, patch_number))
-    with open(fname, "wt", encoding="utf-8") as dst:
+    with open(fname, "w", encoding="utf-8") as dst:
         dst.writelines(lines)
 
 

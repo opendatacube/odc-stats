@@ -2,7 +2,7 @@
 Geomedian
 """
 
-from typing import Optional, Union, Tuple, Iterable, Dict
+from collections.abc import Iterable
 import xarray as xr
 from odc.algo import geomedian_with_mads
 from ._registry import StatsPluginInterface, register
@@ -21,16 +21,15 @@ class StatsGM(StatsPluginInterface):
 
     def __init__(
         self,
-        bands: Tuple[str, ...],
+        bands: tuple[str, ...],
         mask_band: str,
-        contiguity_band: Optional[str] = None,
-        nodata_classes: Optional[Tuple[str, ...]] = None,
-        cloud_filters: Dict[
-            Union[str, Tuple[str, ...]], Iterable[Tuple[str, int]]
-        ] = None,
+        *,
+        contiguity_band: str | None = None,
+        nodata_classes: tuple[str, ...] | None = None,
+        cloud_filters: dict[str | tuple[str, ...], Iterable[tuple[str, int]]] = None,
         basis_band=None,
-        aux_names: Dict[str, str] = None,
-        work_chunks: Tuple[int, int] = (400, 400),
+        aux_names: dict[str, str] = None,
+        work_chunks: tuple[int, int] = (400, 400),
         **kwargs,
     ):
         aux_names = (
@@ -71,7 +70,7 @@ class StatsGM(StatsPluginInterface):
         self._work_chunks = work_chunks
 
     @property
-    def measurements(self) -> Tuple[str, ...]:
+    def measurements(self) -> tuple[str, ...]:
         return self.bands + self.aux_bands
 
     def native_transform(self, xx: xr.Dataset) -> xr.Dataset:
@@ -137,13 +136,12 @@ class StatsGMS2(StatsGM):
 
     def __init__(
         self,
-        bands: Optional[Tuple[str, ...]] = None,
+        *,
+        bands: tuple[str, ...] | None = None,
         mask_band: str = "SCL",
-        nodata_classes: Optional[Tuple[str, ...]] = ("no data",),
-        cloud_filters: Dict[
-            Union[str, Tuple[str, ...]], Iterable[Tuple[str, int]]
-        ] = None,
-        aux_names: Dict[str, str] = None,
+        nodata_classes: tuple[str, ...] | None = ("no data",),
+        cloud_filters: dict[str | tuple[str, ...], Iterable[tuple[str, int]]] = None,
+        aux_names: dict[str, str] = None,
         rgb_bands=None,
         **kwargs,
     ):
@@ -204,14 +202,13 @@ class StatsGMLS(StatsGM):
 
     def __init__(
         self,
-        bands: Optional[Tuple[str, ...]] = None,
+        *,
+        bands: tuple[str, ...] | None = None,
         mask_band: str = "fmask",
         contiguity_band: str = "nbart_contiguity",
-        nodata_classes: Optional[Tuple[str, ...]] = ("nodata",),
-        cloud_filters: Dict[
-            Union[str, Tuple[str, ...]], Iterable[Tuple[str, int]]
-        ] = None,
-        aux_names: Dict[str, str] = None,
+        nodata_classes: tuple[str, ...] | None = ("nodata",),
+        cloud_filters: dict[str | tuple[str, ...], Iterable[tuple[str, int]]] = None,
+        aux_names: dict[str, str] = None,
         rgb_bands=None,
         **kwargs,
     ):
@@ -256,7 +253,7 @@ class StatsGMLS(StatsGM):
         )
 
     @property
-    def measurements(self) -> Tuple[str, ...]:
+    def measurements(self) -> tuple[str, ...]:
         return (
             tuple(b for b in self.bands if b != self._contiguity_band) + self.aux_bands
         )

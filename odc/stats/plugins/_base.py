@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Mapping, Optional, Sequence, Tuple
+from collections.abc import Mapping, Sequence
 
 import xarray as xr
 import numpy as np
@@ -20,16 +20,16 @@ class StatsPluginInterface(ABC):
     def __init__(
         self,
         resampling: str = "bilinear",
-        input_bands: Optional[Sequence[str]] = None,
-        optional_bands: Optional[Sequence[str]] = None,
-        chunks: Optional[Mapping[str, int]] = None,
-        basis: Optional[str] = None,
+        input_bands: Sequence[str] | None = None,
+        optional_bands: Sequence[str] | None = None,
+        chunks: Mapping[str, int] | None = None,
+        basis: str | None = None,
         group_by: str = "solar_day",
-        rgb_bands: Optional[Sequence[str]] = None,
-        rgb_clamp: Tuple[float, float] = (1.0, 3_000.0),
-        transform_code: Optional[str] = None,
-        area_of_interest: Optional[Sequence[float]] = None,
-        measurements: Optional[Sequence[str]] = None,
+        rgb_bands: Sequence[str] | None = None,
+        rgb_clamp: tuple[float, float] = (1.0, 3_000.0),
+        transform_code: str | None = None,
+        area_of_interest: Sequence[float] | None = None,
+        measurements: Sequence[str] | None = None,
     ):
         self.resampling = resampling
         self.input_bands = input_bands if input_bands is not None else []
@@ -45,7 +45,7 @@ class StatsPluginInterface(ABC):
         self.dask_worker_plugin = None
 
     @property
-    def measurements(self) -> Tuple[str, ...]:
+    def measurements(self) -> tuple[str, ...]:
         if self._measurements is None:
             raise NotImplementedError("Plugins must provide 'measurements'")
         return self._measurements
@@ -84,7 +84,7 @@ class StatsPluginInterface(ABC):
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         pass
 
-    def rgba(self, xx: xr.Dataset) -> Optional[xr.DataArray]:
+    def rgba(self, xx: xr.Dataset) -> xr.DataArray | None:
         """
         Given result of ``.reduce(..)`` optionally produce RGBA preview image
         """

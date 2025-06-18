@@ -3,7 +3,8 @@ Landsat QA Pixel Geomedian
 """
 
 from functools import partial
-from typing import Iterable, Optional, Sequence, Tuple, Dict, Any
+from typing import Any
+from collections.abc import Iterable, Sequence
 
 import xarray as xr
 import numpy as np
@@ -20,16 +21,17 @@ class StatsGMLSBitmask(StatsPluginInterface):
 
     def __init__(  # pylint:disable=too-many-arguments
         self,
-        bands: Optional[Sequence[str]] = None,
+        *,
+        bands: Sequence[str] | None = None,
         mask_band: str = "QA_PIXEL",
         # provide flags with high cloud bits definition
-        flags: Dict[str, Optional[Any]] = None,
-        nodata_flags: Dict[str, Optional[Any]] = None,
-        filters: Optional[
-            Iterable[Tuple[str, int]]
-        ] = None,  # e.g. [("closing", 10),("opening", 2),("dilation", 2)]
+        flags: dict[str, Any | None] = None,
+        nodata_flags: dict[str, Any | None] = None,
+        filters: None | (
+            Iterable[tuple[str, int]]
+        ) = None,  # e.g. [("closing", 10),("opening", 2),("dilation", 2)]
         aux_names=None,
-        work_chunks: Tuple[int, int] = (400, 400),
+        work_chunks: tuple[int, int] = (400, 400),
         scale: float = 0.0000275,
         offset: float = -0.2,
         output_scale: int = 10000,  # gm rescaling - making SR range match sentinel-2 gm
@@ -37,14 +39,16 @@ class StatsGMLSBitmask(StatsPluginInterface):
         **kwargs,
     ):
         if aux_names is None:
-            aux_names = dict(smad="smad", emad="emad", bcmad="bcmad", count="count")
+            aux_names = {
+                "smad": "smad",
+                "emad": "emad",
+                "bcmad": "bcmad",
+                "count": "count",
+            }
         if nodata_flags is None:
-            nodata_flags = dict(nodata=False)
+            nodata_flags = {"nodata": False}
         if flags is None:
-            flags = dict(
-                cloud="high_confidence",
-                cirrus="high_confidence",
-            )
+            flags = {"cloud": "high_confidence", "cirrus": "high_confidence"}
         if bands is None:
             self.bands = (
                 "red",
@@ -71,7 +75,7 @@ class StatsGMLSBitmask(StatsPluginInterface):
         self.output_nodata = 0
 
     @property
-    def measurements(self) -> Tuple[str, ...]:
+    def measurements(self) -> tuple[str, ...]:
         return self.bands + self.aux_bands
 
     def native_transform(self, xx):
@@ -133,17 +137,17 @@ class StatsGMLSBitmask(StatsPluginInterface):
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
         cloud_mask = xx["cloud_mask"]
-        cfg = dict(
-            maxiters=1000,
-            num_threads=1,
-            scale=self.scale,
-            offset=self.offset,
-            reshape_strategy="mem",
-            out_chunks=(-1, -1, -1),
-            work_chunks=self.work_chunks,
-            compute_count=True,
-            compute_mads=True,
-        )
+        cfg = {
+            "maxiters": 1000,
+            "num_threads": 1,
+            "scale": self.scale,
+            "offset": self.offset,
+            "reshape_strategy": "mem",
+            "out_chunks": (-1, -1, -1),
+            "work_chunks": self.work_chunks,
+            "compute_count": True,
+            "compute_mads": True,
+        }
 
         if self.filters is not None:
             cloud_mask = mask_cleanup(xx["cloud_mask"], mask_filters=self.filters)

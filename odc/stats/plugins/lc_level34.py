@@ -2,8 +2,6 @@
 Plugin of Module A3 in LandCover PipeLine
 """
 
-from typing import Optional, Dict, List
-
 import xarray as xr
 import s3fs
 import os
@@ -30,11 +28,11 @@ class StatsLccsLevel4(StatsPluginInterface):
         self,
         *,
         class_def_path: str = None,
-        class_condition: Dict[str, List] = None,
+        class_condition: dict[str, list] = None,
         urban_mask: str = None,
         filter_expression: str = None,
-        mask_threshold: Optional[float] = None,
-        data_var_condition: Optional[Dict] = None,
+        mask_threshold: float | None = None,
+        data_var_condition: dict | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -148,7 +146,7 @@ class StatsLccsLevel4(StatsPluginInterface):
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
         dims = xx.level_3_4.dims[1:]
-        coords = dict((dim, xx.coords[dim]) for dim in dims)
+        coords = {dim: xx.coords[dim] for dim in dims}
         xx["level3"] = xr.DataArray(
             level3.squeeze(), dims=dims, attrs=attrs, coords=coords
         )

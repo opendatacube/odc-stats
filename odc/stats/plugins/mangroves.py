@@ -2,8 +2,6 @@
 Mangroves canopy cover classes
 """
 
-from typing import Tuple
-
 import numpy as np
 import xarray as xr
 import dask
@@ -40,7 +38,7 @@ class Mangroves(StatsPluginInterface):
         super().__init__(input_bands=["pv_pc_10", "qa", "wet_pc_10"], **kwargs)
 
     @property
-    def measurements(self) -> Tuple[str, ...]:
+    def measurements(self) -> tuple[str, ...]:
         _measurements = ["canopy_cover_class"]
         return _measurements
 

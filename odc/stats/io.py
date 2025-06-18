@@ -4,7 +4,7 @@ Various I/O adaptors
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Union, cast, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, cast
 from hashlib import sha1
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Sequence
@@ -64,7 +64,7 @@ DEFAULT_COG_OPTS = {
 }
 
 
-def dump_json(meta: Dict[str, Any]) -> str:
+def dump_json(meta: dict[str, Any]) -> str:
     return json.dumps(meta, separators=(",", ":"))
 
 
@@ -91,7 +91,7 @@ def _sha1_digest(*write_results):
     lines = []
     for wr in write_results:
         if wr.error is not None:
-            raise IOError(f"Failed to write for: {wr.path}")
+            raise OSError(f"Failed to write for: {wr.path}")
         file = wr.path.split("/")[-1]
         lines.append(f"{wr.sha1}  {file}\n")
     return "".join(lines)
@@ -116,8 +116,8 @@ def save_with_s3_client(data, url, with_deps=None, **kw):
 class S3COGSink:
     def __init__(
         self,
-        cog_opts: Optional[Dict[str, Any]] = None,
-        acl: Optional[str] = None,
+        cog_opts: dict[str, Any] | None = None,
+        acl: str | None = None,
         public: bool = False,
         band_ext: str = "tif",
     ):
@@ -153,7 +153,7 @@ class S3COGSink:
             cog_opts = tmp
 
         cog_opts_per_band = cast(
-            Dict[str, Dict[str, Any]], cog_opts.pop("overrides", {})
+            dict[str, dict[str, Any]], cog_opts.pop("overrides", {})
         )
         per_band_cfg = {k: v for k, v in cog_opts.items() if isinstance(v, dict)}
         if per_band_cfg:
@@ -179,7 +179,7 @@ class S3COGSink:
     def uri(self, task: Task) -> str:
         return task.metadata_path("absolute", ext=self._stac_meta_ext)
 
-    def verify_s3_credentials(self, test_uri: Optional[str] = None) -> bool:
+    def verify_s3_credentials(self, test_uri: str | None = None) -> bool:
         if test_uri is None:
             return True
         rr = self._write_blob(b"verifying S3 permissions", test_uri).compute()
@@ -188,7 +188,7 @@ class S3COGSink:
 
     # pylint: disable=invalid-name
     def _write_blob(
-        self, data, url: str, ContentType: Optional[str] = None, with_deps=None
+        self, data, url: str, ContentType: str | None = None, with_deps=None
     ) -> Delayed:
         """
         Returns Delayed WriteResult[path, sha1, error=None]
@@ -217,7 +217,7 @@ class S3COGSink:
             raise ValueError(f"Don't know how to save to '{url}'")
 
     # pylint: enable=invalid-name
-    def _ds_to_cog(self, ds: xr.Dataset, paths: Dict[str, str]) -> List[Delayed]:
+    def _ds_to_cog(self, ds: xr.Dataset, paths: dict[str, str]) -> list[Delayed]:
         out = []
         for band, dv in ds.data_vars.items():
             band = str(band)
@@ -258,7 +258,7 @@ class S3COGSink:
             ContentType="image/jpeg",
         )
 
-    def _ds_to_thumbnail_cog(self, ds: xr.Dataset, task: Task) -> List[Delayed]:
+    def _ds_to_thumbnail_cog(self, ds: xr.Dataset, task: Task) -> list[Delayed]:
         odc_file_path = task.metadata_path("absolute", ext=self._odc_meta_ext)
 
         thumbnail_cogs = []
@@ -296,7 +296,7 @@ class S3COGSink:
 
         return thumbnail_cogs
 
-    def cog_opts(self, band_name: str = "") -> Dict[str, Any]:
+    def cog_opts(self, band_name: str = "") -> dict[str, Any]:
         opts = dict(self._cog_opts)
         opts.update(self._cog_opts_per_band.get(band_name, {}))
         return opts
@@ -305,7 +305,7 @@ class S3COGSink:
         cog_bytes = to_cog(da, **self.cog_opts(str(da.name)))
         return self._write_blob(cog_bytes, url, ContentType="image/tiff")
 
-    def exists(self, task: Union[Task, str]) -> bool:
+    def exists(self, task: Task | str) -> bool:
         if isinstance(task, str):
             uri = task
         else:
@@ -347,7 +347,7 @@ class S3COGSink:
         )  # stac_meta is Python str, but content is 'Dict format'
 
     def dump_with_pystac(
-        self, task: Task, ds: Dataset, aux: Optional[Dataset] = None
+        self, task: Task, ds: Dataset, aux: Dataset | None = None
     ) -> Delayed:
         """
         Dump files with STAC metadata file, which generated from PySTAC
@@ -389,7 +389,7 @@ class S3COGSink:
         self,
         task: Task,
         ds: Dataset,
-        aux: Optional[Dataset] = None,
+        aux: Dataset | None = None,
         proc: StatsPluginInterface = None,
     ) -> Delayed:
         """
@@ -532,9 +532,9 @@ class S3COGSink:
         self,
         task: Task,
         ds: Dataset,
-        aux: Optional[Dataset] = None,
+        aux: Dataset | None = None,
         proc: StatsPluginInterface = None,
-        apply_eodatasets3: Optional[bool] = False,
+        apply_eodatasets3: bool | None = False,
     ) -> Delayed:
         if apply_eodatasets3:
             return self.dump_with_eodatasets3(task, ds, aux, proc)

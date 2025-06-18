@@ -1,7 +1,7 @@
 import math
 from copy import deepcopy
 import toolz
-from typing import Tuple, Dict, Any
+from typing import Any
 from datetime import timedelta
 
 from odc.geo.gridspec import GridSpec
@@ -11,7 +11,7 @@ from odc.dscache.tools import solar_offset
 from .model import TileIdx_xy, TileIdx_txy
 
 
-def gs_bounds(gs: GridSpec, tiles: Tuple[Tuple[int, int], Tuple[int, int]]) -> Geometry:
+def gs_bounds(gs: GridSpec, tiles: tuple[tuple[int, int], tuple[int, int]]) -> Geometry:
     """
     Compute Polygon for a selection of tiles.
 
@@ -36,8 +36,8 @@ def timedelta_to_hours(td: timedelta) -> float:
 
 
 def compute_grid_info(
-    cells: Dict[TileIdx_xy, Any], resolution: float = math.inf, title_width: int = 0
-) -> Dict[TileIdx_xy, Any]:
+    cells: dict[TileIdx_xy, Any], resolution: float = math.inf, title_width: int = 0
+) -> dict[TileIdx_xy, Any]:
     """
     Compute geojson feature for every cell in ``cells``.
     Where ``cells`` is produced by ``bin_dataset_stream``
@@ -75,8 +75,8 @@ def compute_grid_info(
 
 
 def gjson_from_tasks(
-    tasks: Dict[TileIdx_txy, Any], grid_info: Dict[TileIdx_xy, Any]
-) -> Dict[str, Dict[str, Any]]:
+    tasks: dict[TileIdx_txy, Any], grid_info: dict[TileIdx_xy, Any]
+) -> dict[str, dict[str, Any]]:
     """
     Group tasks by time period and compute geosjon describing every tile covered by each time period.
 
@@ -96,14 +96,14 @@ def gjson_from_tasks(
         dss = tasks[idx]
         utc_offset = timedelta(hours=geo["properties"]["utc_offset"])
 
-        ndays = len(set((ds.time + utc_offset).date() for ds in dss))
+        ndays = len({(ds.time + utc_offset).date() for ds in dss})
         geo["properties"]["total"] = len(dss)
         geo["properties"]["days"] = ndays
 
         return geo
 
     def process(idxs):
-        return dict(type="FeatureCollection", features=[_get(idx) for idx in idxs])
+        return {"type": "FeatureCollection", "features": [_get(idx) for idx in idxs]}
 
     return {
         t: process(idxs)

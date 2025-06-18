@@ -2,8 +2,6 @@
 Plugin of Module A1 in LandCover PipeLine
 """
 
-from typing import Optional, Dict
-
 import numpy as np
 import xarray as xr
 from odc.algo import expr_eval
@@ -53,12 +51,12 @@ class StatsVegClassL1(StatsPluginInterface):
     def __init__(
         self,
         *,
-        output_classes: Dict,
-        dem_threshold: Optional[int] = None,
-        mudflat_threshold: Optional[int] = None,
-        saltpan_threshold: Optional[int] = None,
-        water_threshold: Optional[float] = None,
-        veg_threshold: Optional[int] = None,
+        output_classes: dict,
+        dem_threshold: int | None = None,
+        mudflat_threshold: int | None = None,
+        saltpan_threshold: int | None = None,
+        water_threshold: float | None = None,
+        veg_threshold: int | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -233,7 +231,7 @@ class StatsVegClassL1(StatsPluginInterface):
             k: xr.DataArray(v, dims=xx["veg_frequency"].dims[1:], attrs=attrs)
             for k, v in zip(self.measurements, [l3_mask])
         }
-        coords = dict((dim, xx.coords[dim]) for dim in xx["veg_frequency"].dims[1:])
+        coords = {dim: xx.coords[dim] for dim in xx["veg_frequency"].dims[1:]}
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)
 
 

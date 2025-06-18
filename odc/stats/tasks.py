@@ -1,5 +1,6 @@
 import random
-from typing import Optional, Tuple, Union, Callable, Any, Dict, List, Iterable, Iterator
+from typing import Any
+from collections.abc import Callable, Iterable, Iterator
 from types import SimpleNamespace
 from collections import namedtuple
 from datetime import datetime
@@ -44,7 +45,7 @@ from .utils import (
 )
 from ._stac_fetch import s3_fetch_dss
 
-TilesRange2d = Tuple[Tuple[int, int], Tuple[int, int]]
+TilesRange2d = tuple[tuple[int, int], tuple[int, int]]
 CompressedDataset = namedtuple("CompressedDataset", ["id", "time"])
 _log = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ def compress_ds(ds: Dataset) -> CompressedDataset:
     return CompressedDataset(ds.id, dt)
 
 
-def is_tile_in(tidx: Tuple[int, int], tiles: TilesRange2d) -> bool:
+def is_tile_in(tidx: tuple[int, int], tiles: TilesRange2d) -> bool:
     (x0, x1), (y0, y1) = tiles
     x, y = tidx
     return (x0 <= x < x1) and (y0 <= y < y1)
@@ -94,7 +95,7 @@ def parse_task(s: str) -> TileIdx_txy:
     return (t, int(x.lstrip("x")), int(y.lstrip("y")))
 
 
-def render_sqs(tidx: TileIdx_txy, filedb: str) -> Dict[str, str]:
+def render_sqs(tidx: TileIdx_txy, filedb: str) -> dict[str, str]:
     """
     Add extra layer to render task. Convert it to JSON for SQS message body.
     """
@@ -102,7 +103,7 @@ def render_sqs(tidx: TileIdx_txy, filedb: str) -> Dict[str, str]:
     return {"filedb": filedb, "tile_idx": f"{period}/{xi:02d}/{yi:02d}"}
 
 
-def parse_sqs(s: str) -> Tuple[TileIdx_txy, str]:
+def parse_sqs(s: str) -> tuple[TileIdx_txy, str]:
     """
     Add extra layer to parse task. Convert it from JSON for SQS message body.
     """
@@ -159,6 +160,7 @@ class SaveTasks:
         self,
         output: str,
         grid: str,
+        *,
         frequency: str = "annual",
         overwrite: bool = False,
         complevel: int = 6,
@@ -183,8 +185,9 @@ class SaveTasks:
         cls,
         dss: Iterable,
         group_size: int,
-        dss_extra: Optional[Iterable] = None,
-        optional_products: Optional[Iterable] = None,
+        *,
+        dss_extra: Iterable | None = None,
+        optional_products: Iterable | None = None,
         fuse_dss: bool = True,
     ):
         def pack_dss(grouped_dss, group_size):
@@ -282,13 +285,14 @@ class SaveTasks:
         cls,
         dc: Datacube,
         products: str,
-        query: Dict[str, Any],
-        cfg: Dict[str, Any],
+        query: dict[str, Any],
+        cfg: dict[str, Any],
+        *,
         dataset_filter=None,
         predicate=None,
         fuse_dss: bool = True,
-        ignore_time: Optional[Iterable] = None,
-        optional_products: Optional[Iterable] = None,
+        ignore_time: Iterable | None = None,
+        optional_products: Iterable | None = None,
     ):
         """
         query and filter the datasets with a string composed by products name
@@ -369,7 +373,11 @@ class SaveTasks:
 
         if group_size > 0:
             dss = cls.ds_align(
-                dss, group_size + 1, dss_extra, optional_products, fuse_dss
+                dss,
+                group_size + 1,
+                dss_extra=dss_extra,
+                optional_products=optional_products,
+                fuse_dss=fuse_dss,
             )
 
         if predicate is not None:
@@ -380,12 +388,11 @@ class SaveTasks:
     @classmethod
     def create_dss_by_stac(
         cls,
-        s3_path: List[str],
+        s3_path: list[str],
         pattern: str = "*.stac-item.json",
         tiles=None,
         temporal_range=None,
     ):
-
         if tiles is not None:
             glob_path = [
                 "x" + str(x) + "/" + "y" + str(y) + "/" + "*"
@@ -429,12 +436,13 @@ class SaveTasks:
         dc: Datacube,
         products: str,
         msg: Callable[[str], Any],
+        *,
         dataset_filter=None,
         predicate=None,
-        temporal_range: Optional[DateTimeRange] = None,
-        tiles: Optional[TilesRange2d] = None,
-        ignore_time: Optional[Iterable] = None,
-        optional_products: Optional[Iterable] = None,
+        temporal_range: DateTimeRange | None = None,
+        tiles: TilesRange2d | None = None,
+        ignore_time: Iterable | None = None,
+        optional_products: Iterable | None = None,
     ):
         """
         This returns a tuple containing:
@@ -444,7 +452,7 @@ class SaveTasks:
         """
 
         # pylint:disable=too-many-locals
-        cfg: Dict[str, Any] = {
+        cfg: dict[str, Any] = {
             "grid": self._grid,
             "freq": self._frequency,
         }
@@ -469,8 +477,8 @@ class SaveTasks:
             products,
             query,
             cfg,
-            dataset_filter,
-            predicate,
+            dataset_filter=dataset_filter,
+            predicate=predicate,
             ignore_time=ignore_time,
             optional_products=optional_products,
         )
@@ -485,13 +493,14 @@ class SaveTasks:
         self,
         dc: Datacube,
         products: str,
+        *,
         dataset_filter=None,
-        temporal_range: Union[str, DateTimeRange, None] = None,
-        tiles: Optional[TilesRange2d] = None,
-        predicate: Optional[Callable[[Dataset], bool]] = None,
-        ignore_time: Optional[Iterable] = None,
-        optional_products: Optional[Iterable] = None,
-        msg: Optional[Callable[[str], Any]] = None,
+        temporal_range: str | DateTimeRange | None = None,
+        tiles: TilesRange2d | None = None,
+        predicate: Callable[[Dataset], bool] | None = None,
+        ignore_time: Iterable | None = None,
+        optional_products: Iterable | None = None,
+        msg: Callable[[str], Any] | None = None,
         debug: bool = False,
     ) -> bool:
         """
@@ -535,12 +544,12 @@ class SaveTasks:
             dc,
             products,
             msg,
-            dataset_filter,
-            predicate,
-            temporal_range,
-            tiles,
-            ignore_time,
-            optional_products,
+            dataset_filter=dataset_filter,
+            predicate=predicate,
+            temporal_range=temporal_range,
+            tiles=tiles,
+            ignore_time=ignore_time,
+            optional_products=optional_products,
         )
 
         dss_slice = list(islice(dss, 0, 100))
@@ -567,7 +576,7 @@ class SaveTasks:
         cache.add_grid(self._gridspec, self._grid)
         cache.append_info_dict("stats/", {"config": cfg})
 
-        cells: Dict[Tuple[int, int], Any] = {}
+        cells: dict[tuple[int, int], Any] = {}
         dss = cache.tee(dss)
         dss = bin_dataset_stream(self._gridspec, dss, cells, persist=persist)
 
@@ -649,13 +658,13 @@ class SaveTasks:
         # pylint:disable=too-many-locals
         csv_path = self.out_path(".csv")
         msg(f"Writing summary to {csv_path}")
-        with open(csv_path, "wt", encoding="utf8") as f:
+        with open(csv_path, "w", encoding="utf8") as f:
             f.write('"T","X","Y","datasets","days"\n')
 
             for p, x, y in sorted(tasks):
                 dss = tasks[(p, x, y)]
                 n_dss = len(dss)
-                n_days = len(set(ds.time.date() for ds in dss))
+                n_days = len({ds.time.date() for ds in dss})
                 line = f'"{p}", {x:+05d}, {y:+05d}, {n_dss:4d}, {n_days:4d}\n'
                 f.write(line)
 
@@ -667,7 +676,7 @@ class SaveTasks:
         for temporal_range, gjson in tasks_geo.items():
             fname = self.out_path(f"-{temporal_range}.geojson")
             msg(f"..writing to {fname}")
-            with open(fname, "wt", encoding="utf8") as f:
+            with open(fname, "w", encoding="utf8") as f:
                 json.dump(gjson, f)
 
         if debug:
@@ -687,9 +696,9 @@ class SaveTasks:
 class TaskReader:
     def __init__(
         self,
-        cache: Union[str, DatasetCache],
-        product: Optional[OutputProduct] = None,
-        resolution: Optional[Tuple[float, float]] = None,
+        cache: str | DatasetCache,
+        product: OutputProduct | None = None,
+        resolution: tuple[float, float] | None = None,
     ):
         self._cache_path = None
         self.s3_client = S3Client()
@@ -717,7 +726,7 @@ class TaskReader:
         self._dscache = cache
         self._cfg = cfg
 
-    def is_compatible_resolution(self, resolution: Tuple[float, float], tol=1e-8):
+    def is_compatible_resolution(self, resolution: tuple[float, float], tol=1e-8):
         for res, sz in zip(resolution, self._gridspec.tile_size):
             res = abs(res)
             npix = int(sz / res)
@@ -725,7 +734,7 @@ class TaskReader:
                 return False
         return True
 
-    def change_resolution(self, resolution: Tuple[float, float]):
+    def change_resolution(self, resolution: tuple[float, float]):
         """
         Modify GridSpec to have different pixel resolution but still covering same tiles as the original.
         """
@@ -784,7 +793,7 @@ class TaskReader:
         grid, path, n = self._grid, str(self._dscache.path), len(self._all_tiles)
         return f"<{path}> grid:{grid} n:{n:,d}"
 
-    def _resolve_product(self, product: Optional[OutputProduct]) -> OutputProduct:
+    def _resolve_product(self, product: OutputProduct | None) -> OutputProduct:
         if product is None:
             product = self._product
 
@@ -805,10 +814,10 @@ class TaskReader:
         return self._resolve_product(None)
 
     @property
-    def all_tiles(self) -> List[TileIdx_txy]:
+    def all_tiles(self) -> list[TileIdx_txy]:
         return self._all_tiles
 
-    def datasets(self, tile_index: TileIdx_txy) -> Tuple[Dataset, ...]:
+    def datasets(self, tile_index: TileIdx_txy) -> tuple[Dataset, ...]:
         return tuple(
             ds for ds in self._dscache.stream_grid_tile(tile_index, self._grid)
         )
@@ -816,9 +825,9 @@ class TaskReader:
     def load_task(
         self,
         tile_index: TileIdx_txy,
-        product: Optional[OutputProduct] = None,
+        product: OutputProduct | None = None,
         source: Any = None,
-        ds_filters: Optional[str] = None,
+        ds_filters: str | None = None,
     ) -> Task:
         product = self._resolve_product(product)
 
@@ -840,8 +849,8 @@ class TaskReader:
     def stream(
         self,
         tiles: Iterable[TileIdx_txy],
-        product: Optional[OutputProduct] = None,
-        ds_filters: Optional[str] = None,
+        product: OutputProduct | None = None,
+        ds_filters: str | None = None,
     ) -> Iterator[Task]:
         product = self._resolve_product(product)
         for tidx in tiles:
@@ -850,9 +859,9 @@ class TaskReader:
     def stream_from_sqs(
         self,
         sqs_queue,
-        product: Optional[OutputProduct] = None,
+        product: OutputProduct | None = None,
         visibility_timeout: int = 300,
-        ds_filters: Optional[str] = None,
+        ds_filters: str | None = None,
         **kw,
     ) -> Iterator[Task]:
         from odc.aws.queue import get_messages, get_queue

@@ -119,9 +119,7 @@ def test_reduce(dataset):
 
     result = xx.compute()
 
-    assert set(xx.data_vars.keys()) == set(
-        ["band_red", "smad", "emad", "bcmad", "count"]
-    )
+    assert set(xx.data_vars.keys()) == {"band_red", "smad", "emad", "bcmad", "count"}
 
     assert result["band_red"].dtype == np.uint16
     assert result["emad"].dtype == np.uint16
@@ -157,9 +155,7 @@ def test_reduce_with_filters(dataset):
 
     result = xx.compute()
 
-    assert set(xx.data_vars.keys()) == set(
-        ["band_red", "smad", "emad", "bcmad", "count"]
-    )
+    assert set(xx.data_vars.keys()) == {"band_red", "smad", "emad", "bcmad", "count"}
 
     expected_result = np.array([[229, 36], [48, 58]])
     band_red = result["band_red"].data
@@ -190,6 +186,4 @@ def test_aux_result_bands_to_match_inputs(dataset):
     xx = gm.native_transform(dataset)
     xx = gm.reduce(xx)
 
-    assert set(xx.data_vars.keys()) == set(
-        ["band_red", "SMAD", "EMAD", "BCMAD", "COUNT"]
-    )
+    assert set(xx.data_vars.keys()) == {"band_red", "SMAD", "EMAD", "BCMAD", "COUNT"}

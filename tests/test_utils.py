@@ -72,7 +72,7 @@ def test_binning():
         dss1 = tasks[k]
         dss2 = tasks_y[k]
 
-        assert set(ds.id for ds in dss1) == set(ds.id for ds in dss2)
+        assert {ds.id for ds in dss1} == {ds.id for ds in dss2}
 
     tasks = bin_seasonal(cells, 6, 1)
     verify(tasks)
@@ -320,7 +320,7 @@ def test_fuse_products(wo_definition, fc_definition):
 
 
 def _get_msr_paths(ds):
-    return set(m["path"] for m in ds.metadata_doc["measurements"].values())
+    return {m["path"] for m in ds.metadata_doc["measurements"].values()}
 
 
 def test_fuse_dss(wo_definition, fc_definition):

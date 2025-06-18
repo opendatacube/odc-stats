@@ -3,7 +3,7 @@ Plugin of Module A0 in LandCover PipeLine
 """
 
 from functools import partial
-from typing import Tuple, Dict, Iterable, Optional
+from collections.abc import Iterable
 
 import numpy as np
 import xarray as xr
@@ -34,9 +34,9 @@ class StatsVegCount(StatsPluginInterface):
 
     def __init__(
         self,
-        ue_threshold: Optional[int] = None,
-        veg_threshold: Optional[int] = None,
-        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
+        ue_threshold: int | None = None,
+        veg_threshold: int | None = None,
+        cloud_filters: dict[str, Iterable[tuple[str, int]]] = None,
         **kwargs,
     ):
         super().__init__(input_bands=["water", "pv", "bs", "npv", "ue"], **kwargs)
@@ -137,7 +137,6 @@ class StatsVegCount(StatsPluginInterface):
         return xx
 
     def fuser(self, xx):
-
         wet_clear = xx["wet_clear"]
         wet_valid = xx["wet_valid"]
 
@@ -307,7 +306,6 @@ class StatsVegCount(StatsPluginInterface):
         return max_count
 
     def reduce(self, xx: xr.Dataset) -> xr.Dataset:
-
         xx = xx.groupby("time.month").map(median_ds, dim="spec")
 
         # consecutive observation of veg
@@ -349,7 +347,7 @@ class StatsVegCount(StatsPluginInterface):
                 self.measurements, [max_count_veg, max_count_water, wet_percent]
             )
         }
-        coords = dict((dim, xx.coords[dim]) for dim in xx["pv"].dims[1:])
+        coords = {dim: xx.coords[dim] for dim in xx["pv"].dims[1:]}
         return xr.Dataset(data_vars=data_vars, coords=coords, attrs=xx.attrs)
 
 
