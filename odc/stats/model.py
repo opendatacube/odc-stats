@@ -572,8 +572,8 @@ class Task:
 
 def product_for_plugin(  # pylint:disable=too-many-arguments,too-many-locals
     plugin: StatsPluginInterface,
-    *,
     location: str,
+    *,
     name: Optional[str] = None,
     short_name: Optional[str] = None,
     version: Optional[str] = None,
