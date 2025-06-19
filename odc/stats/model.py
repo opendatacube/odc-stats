@@ -12,6 +12,7 @@ import pandas as pd
 import pystac
 import xarray as xr
 from datacube.model import Dataset
+from datacube.model.lineage import LineageTree
 from datacube.utils.dates import normalise_dt
 from odc.geo.geobox import GeoBox
 from ._text import split_and_check
@@ -20,7 +21,7 @@ from toolz import dicttoolz
 from rasterio.crs import CRS
 import warnings
 
-from eodatasets3.assemble import DatasetAssembler, serialise
+from eodatasets3.assemble import DatasetAssembler, serialise, _validate_property_name
 from eodatasets3.images import GridSpec
 
 from .plugins import StatsPluginInterface
@@ -313,14 +314,13 @@ class Task:
         return "/".join([p1, p2, self.short_time])
 
     def _lineage(self) -> tuple[UUID, ...]:
-        ds, *_ = self.datasets
-
-        if ds.metadata_doc["properties"].get("fused", False):
-            lineage = tuple({x for ds in self.datasets for x in ds.metadata.sources})
-        else:
-            lineage = tuple(ds.id for ds in self.datasets)
-
-        return lineage
+        lineage = set()
+        for ds in self.datasets:
+            tree = LineageTree.from_eo3_doc(ds.metadata_doc)
+            lineage |= (
+                tree.child_datasets() if tree.child_datasets() else {tree.dataset_id}
+            )
+        return tuple(lineage)
 
     def _prefix(self, relative_to: str = "dataset") -> str:
         product = self.product
@@ -386,7 +386,7 @@ class Task:
         Put together metadata document for the output of this task. It needs the source_dataset to inherit
         several properties and lineages. It also needs the output_dataset to get the measurement information.
         """
-        # pylint:disable=too-many-branches
+        # pylint:disable=too-many-branches,protected-access
         dataset_assembler = DatasetAssembler(
             naming_conventions=self.product.naming_conventions_values,
             dataset_location=Path(self.product.explorer_path),
@@ -398,47 +398,30 @@ class Task:
 
         platforms, instruments = ([], [])
 
+        _validate_property_name(self.product.classifier)
         for dataset in self.datasets:
-            if dataset.metadata_doc["properties"].get("fused", False):
-                if dataset.metadata_doc["properties"].get("eo:platform") is not None:
-                    platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
-                if dataset.metadata_doc["properties"].get("eo:instrument") is not None:
-                    if isinstance(
-                        dataset.metadata_doc["properties"]["eo:instrument"], list
-                    ):
-                        instruments += dataset.metadata_doc["properties"][
-                            "eo:instrument"
-                        ]
-                    else:
-                        instruments += [
-                            dataset.metadata_doc["properties"]["eo:instrument"]
-                        ]
-                dataset_assembler.note_source_datasets(
-                    self.product.classifier, *dataset.metadata.sources
-                )
-            else:
-                dataset.metadata_doc.setdefault("$schema", "")
-                source_datasetdoc = serialise.from_doc(
-                    dataset.metadata_doc, skip_validation=True
-                )
-                dataset_assembler.add_source_dataset(
-                    source_datasetdoc,
-                    classifier=self.product.classifier,
-                    auto_inherit_properties=True,  # it will grab all useful input dataset preperties
-                    inherit_geometry=False,
-                    inherit_skip_properties=self.product.inherit_skip_properties,
-                )
+            if dataset.metadata_doc["properties"].get("eo:platform") is not None:
+                platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
+            if dataset.metadata_doc["properties"].get("eo:instrument") is not None:
+                if isinstance(
+                    dataset.metadata_doc["properties"]["eo:instrument"], list
+                ):
+                    instruments += dataset.metadata_doc["properties"]["eo:instrument"]
+                else:
+                    instruments += [dataset.metadata_doc["properties"]["eo:instrument"]]
 
-                if source_datasetdoc.properties.get("eo:platform") is not None:
-                    platforms.append(source_datasetdoc.properties["eo:platform"])
-                if source_datasetdoc.properties.get("eo:instrument") is not None:
-                    if isinstance(source_datasetdoc.properties["eo:instrument"], list):
-                        instruments += source_datasetdoc.properties["eo:instrument"]
-                    else:
-                        instruments.append(
-                            source_datasetdoc.properties["eo:instrument"]
-                        )
+            dataset.metadata_doc.setdefault("$schema", "")
+            source_datasetdoc = serialise.from_doc(
+                dataset.metadata_doc, skip_validation=True
+            )
+            # it will grab all useful input dataset preperties
+            dataset_assembler._inherit_properties_from(
+                source_datasetdoc, self.product.inherit_skip_properties
+            )
 
+        dataset_assembler.note_source_datasets(
+            self.product.classifier, *self._lineage()
+        )
         dataset_assembler.platform = ",".join(sorted(set(platforms)))
         dataset_assembler.instrument = "_".join(sorted(set(instruments)))
 

@@ -455,6 +455,5 @@ def fuse_ds(
         for key, path in {**measurement_paths(ds)}.items():
             fused_doc["measurements"][key]["path"] = path
 
-    fused_doc["properties"]["fused"] = "True"
     fused_ds = Dataset(product, prep_eo3(fused_doc), uri="fake")
     return fused_ds
