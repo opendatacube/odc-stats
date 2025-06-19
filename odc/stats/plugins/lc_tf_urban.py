@@ -2,7 +2,7 @@
 Plugin of TF urban model in LandCover PipeLine
 """
 
-from typing import Dict, Sequence
+from collections.abc import Sequence
 
 import os
 import numpy as np
@@ -12,11 +12,11 @@ import dask.array as da
 from dask.distributed import get_worker
 
 from datacube.model import Dataset
-from datacube.utils.geometry import GeoBox
+from odc.geo.geobox import GeoBox
 from odc.algo._memsink import yxbt_sink
-from odc.algo.io import load_with_native_transform
+from odc.stats.io import load_with_native_transform
 
-from odc.stats._algebra import expr_eval
+from odc.algo import expr_eval
 from ._registry import StatsPluginInterface, register
 from ._worker import TensorFlowLiteModelPlugin
 
@@ -76,7 +76,7 @@ class StatsUrbanClass(StatsPluginInterface):
 
     def __init__(
         self,
-        output_classes: Dict,
+        output_classes: dict,
         model_path: str,
         crop_size=None,
         **kwargs,
@@ -118,7 +118,7 @@ class StatsUrbanClass(StatsPluginInterface):
             ).squeeze("spec", drop=True)
             data_vars[ds.type.name] = input_array
 
-        coords = dict((dim, input_array.coords[dim]) for dim in input_array.dims)
+        coords = {dim: input_array.coords[dim] for dim in input_array.dims}
         return xr.Dataset(data_vars=data_vars, coords=coords)
 
     def urban_class(self, input_array):

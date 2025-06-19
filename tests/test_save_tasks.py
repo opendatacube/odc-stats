@@ -143,12 +143,12 @@ def test_create_dss_by_stac(s3_path):
     )
     dss = list(dss)
     assert len(dss) == 4 * 2 * len(s3_path)
-    products = list(set([d.product for d in dss]))
+    products = list({d.product for d in dss})
     assert len(products) == len(s3_path)
     for d in dss:
         with_uris = False
         for key in s3_path:
-            with_uris |= "/".join(key.split("/")[-2:]) in d.uris[0]
+            with_uris |= "/".join(key.split("/")[-2:]) in d.uri
         assert with_uris
 
 

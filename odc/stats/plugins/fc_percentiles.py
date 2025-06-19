@@ -4,7 +4,7 @@ Fractional Cover Percentiles
 
 from functools import partial
 from itertools import product
-from typing import Tuple, Dict, Iterable, Optional
+from collections.abc import Iterable
 
 import numpy as np
 import xarray as xr
@@ -23,15 +23,16 @@ class StatsFCP(StatsPluginInterface):
     VERSION = "0.0.3"
     PRODUCT_FAMILY = "fc_percentiles"
 
-    BAD_BITS_MASK = dict(cloud=(1 << 6), cloud_shadow=(1 << 5), terrain_shadow=(1 << 3))
+    BAD_BITS_MASK = {"cloud": 1 << 6, "cloud_shadow": 1 << 5, "terrain_shadow": 1 << 3}
 
     def __init__(
         self,
-        max_sum_limit: Optional[int] = None,
-        clip_range: Optional[Tuple] = None,
-        ue_threshold: Optional[int] = None,
-        count_valid: Optional[bool] = False,
-        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
+        *,
+        max_sum_limit: int | None = None,
+        clip_range: tuple | None = None,
+        ue_threshold: int | None = None,
+        count_valid: bool | None = False,
+        cloud_filters: dict[str, Iterable[tuple[str, int]]] = None,
         **kwargs,
     ):
         super().__init__(input_bands=["water", "pv", "bs", "npv", "ue"], **kwargs)
@@ -43,7 +44,7 @@ class StatsFCP(StatsPluginInterface):
         self.cloud_filters = cloud_filters if cloud_filters is not None else {}
 
     @property
-    def measurements(self) -> Tuple[str, ...]:
+    def measurements(self) -> tuple[str, ...]:
         _measurements = [
             f"{b}_pc_{p}" for b, p in product(["pv", "bs", "npv"], ["10", "50", "90"])
         ]

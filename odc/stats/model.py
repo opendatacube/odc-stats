@@ -3,7 +3,8 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any
+from collections.abc import Sequence
 from uuid import UUID, uuid5
 from pathlib import Path
 
@@ -11,22 +12,23 @@ import pandas as pd
 import pystac
 import xarray as xr
 from datacube.model import Dataset
+from datacube.model.lineage import LineageTree
 from datacube.utils.dates import normalise_dt
-from datacube.utils.geometry import GeoBox
+from odc.geo.geobox import GeoBox
 from ._text import split_and_check
 from pystac.extensions.projection import ProjectionExtension
 from toolz import dicttoolz
 from rasterio.crs import CRS
 import warnings
 
-from eodatasets3.assemble import DatasetAssembler, serialise
+from eodatasets3.assemble import DatasetAssembler, serialise, _validate_property_name
 from eodatasets3.images import GridSpec
 
 from .plugins import StatsPluginInterface
 
-TileIdx_xy = Tuple[int, int]  # pylint:disable=invalid-name
-TileIdx_txy = Tuple[str, int, int]  # pylint:disable=invalid-name
-TileIdx = Union[TileIdx_txy, TileIdx_xy]
+TileIdx_xy = tuple[int, int]  # pylint:disable=invalid-name
+TileIdx_txy = tuple[str, int, int]  # pylint:disable=invalid-name
+TileIdx = TileIdx_txy | TileIdx_xy
 
 DEFAULT_HREF_PREFIX = "https://collections.dea.ga.gov.au/product"
 EXT_TIFF = "tif"  # because "consistency"
@@ -76,7 +78,7 @@ def format_datetime(dt: datetime, with_tz=True, timespec="microseconds") -> str:
 class DateTimeRange:
     __slots__ = ("start", "end", "freq")
 
-    def __init__(self, start: Union[str, datetime], freq: Optional[str] = None):
+    def __init__(self, start: str | datetime, freq: str | None = None):
         """
 
         DateTimeRange('2019-03--P3M')
@@ -114,9 +116,7 @@ class DateTimeRange:
     def __repr__(self):
         return f"DateTimeRange({repr(self.start)}, {repr(self.freq)})"
 
-    def dc_query(
-        self, pad: Optional[Union[timedelta, float, int]] = None
-    ) -> Dict[str, Any]:
+    def dc_query(self, pad: timedelta | float | int | None = None) -> dict[str, Any]:
         """
         Transform to form understood by datacube
 
@@ -178,19 +178,19 @@ class OutputProduct:  # pylint:disable=too-many-instance-attributes
     version: str
     short_name: str
     location: str
-    properties: Dict[str, str]
-    measurements: Tuple[str, ...]
+    properties: dict[str, str]
+    measurements: tuple[str, ...]
     href: str = ""
     region_code_format: str = "x{x:02d}y{y:02d}"
     cfg: Any = None
     naming_conventions_values: str = "dea_c3"
     explorer_path: str = "https://explorer.dea.ga.gov.au/"
-    inherit_skip_properties: Optional[List[str]] = None
-    preview_image_ows_style: Optional[Dict[str, Any]] = None
+    inherit_skip_properties: list[str] | None = None
+    preview_image_ows_style: dict[str, Any] | None = None
     classifier: str = "level3"
     maturity: str = "final"
     collection_number: int = 3
-    nodata: Optional[Dict[str, int]] = None
+    nodata: dict[str, int] | None = None
 
     def __post_init__(self):
         if self.href == "":
@@ -205,7 +205,7 @@ class OutputProduct:  # pylint:disable=too-many-instance-attributes
 
     @staticmethod
     def dummy(
-        measurements: Tuple[str, ...] = ("red", "green", "blue")
+        measurements: tuple[str, ...] = ("red", "green", "blue"),
     ) -> "OutputProduct":
         version = "0.0.0"
         name = "dummy"
@@ -286,10 +286,10 @@ class Task:
     tile_index: TileIdx_xy
     geobox: GeoBox
     time_range: DateTimeRange
-    datasets: Tuple[Dataset, ...] = field(repr=False)
+    datasets: tuple[Dataset, ...] = field(repr=False)
     uuid: UUID = UUID(int=0)
     short_time: str = field(init=False, repr=False)
-    source: Optional[WorkTokenInterface] = field(init=True, repr=False, default=None)
+    source: WorkTokenInterface | None = field(init=True, repr=False, default=None)
 
     def __post_init__(self):
         self.short_time = self.time_range.short
@@ -313,24 +313,14 @@ class Task:
         p1, p2 = rc[:mid], rc[mid:]
         return "/".join([p1, p2, self.short_time])
 
-    def _lineage(self) -> Tuple[UUID, ...]:
-        ds, *_ = self.datasets
-
-        # TODO: replace this and test
-        # if 'fused' in ds.metadata._doc['properties'].keys():
-        if "fused" in ds.type.name:
-            lineage = tuple(
-                set(
-                    x
-                    for ds in self.datasets
-                    for y in ds.metadata.sources.values()
-                    for x in y.values()
-                )
+    def _lineage(self) -> tuple[UUID, ...]:
+        lineage = set()
+        for ds in self.datasets:
+            tree = LineageTree.from_eo3_doc(ds.metadata_doc)
+            lineage |= (
+                tree.child_datasets() if tree.child_datasets() else {tree.dataset_id}
             )
-        else:
-            lineage = tuple(ds.id for ds in self.datasets)
-
-        return lineage
+        return tuple(lineage)
 
     def _prefix(self, relative_to: str = "dataset") -> str:
         product = self.product
@@ -358,7 +348,7 @@ class Task:
 
     def paths(
         self, relative_to: str = "dataset", ext: str = EXT_TIFF
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Compute dictionary mapping band name to paths.
 
@@ -390,13 +380,13 @@ class Task:
         self,
         ext: str = EXT_TIFF,
         output_dataset: xr.Dataset = None,
-        processing_dt: Optional[datetime] = None,
+        processing_dt: datetime | None = None,
     ) -> DatasetAssembler:
         """
         Put together metadata document for the output of this task. It needs the source_dataset to inherit
         several properties and lineages. It also needs the output_dataset to get the measurement information.
         """
-        # pylint:disable=too-many-branches
+        # pylint:disable=too-many-branches,protected-access
         dataset_assembler = DatasetAssembler(
             naming_conventions=self.product.naming_conventions_values,
             dataset_location=Path(self.product.explorer_path),
@@ -408,48 +398,30 @@ class Task:
 
         platforms, instruments = ([], [])
 
+        _validate_property_name(self.product.classifier)
         for dataset in self.datasets:
-            if "fused" in dataset.type.name:
-                sources = [e["id"] for e in dataset.metadata.sources.values()]
-                if dataset.metadata_doc["properties"].get("eo:platform") is not None:
-                    platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
-                if dataset.metadata_doc["properties"].get("eo:instrument") is not None:
-                    if isinstance(
-                        dataset.metadata_doc["properties"]["eo:instrument"], list
-                    ):
-                        instruments += dataset.metadata_doc["properties"][
-                            "eo:instrument"
-                        ]
-                    else:
-                        instruments += [
-                            dataset.metadata_doc["properties"]["eo:instrument"]
-                        ]
-                dataset_assembler.note_source_datasets(
-                    self.product.classifier, *sources
-                )
-            else:
-                dataset.metadata_doc.setdefault("$schema", "")
-                source_datasetdoc = serialise.from_doc(
-                    dataset.metadata_doc, skip_validation=True
-                )
-                dataset_assembler.add_source_dataset(
-                    source_datasetdoc,
-                    classifier=self.product.classifier,
-                    auto_inherit_properties=True,  # it will grab all useful input dataset preperties
-                    inherit_geometry=False,
-                    inherit_skip_properties=self.product.inherit_skip_properties,
-                )
+            if dataset.metadata_doc["properties"].get("eo:platform") is not None:
+                platforms.append(dataset.metadata_doc["properties"]["eo:platform"])
+            if dataset.metadata_doc["properties"].get("eo:instrument") is not None:
+                if isinstance(
+                    dataset.metadata_doc["properties"]["eo:instrument"], list
+                ):
+                    instruments += dataset.metadata_doc["properties"]["eo:instrument"]
+                else:
+                    instruments += [dataset.metadata_doc["properties"]["eo:instrument"]]
 
-                if source_datasetdoc.properties.get("eo:platform") is not None:
-                    platforms.append(source_datasetdoc.properties["eo:platform"])
-                if source_datasetdoc.properties.get("eo:instrument") is not None:
-                    if isinstance(source_datasetdoc.properties["eo:instrument"], list):
-                        instruments += source_datasetdoc.properties["eo:instrument"]
-                    else:
-                        instruments.append(
-                            source_datasetdoc.properties["eo:instrument"]
-                        )
+            dataset.metadata_doc.setdefault("$schema", "")
+            source_datasetdoc = serialise.from_doc(
+                dataset.metadata_doc, skip_validation=True
+            )
+            # it will grab all useful input dataset preperties
+            dataset_assembler._inherit_properties_from(
+                source_datasetdoc, self.product.inherit_skip_properties
+            )
 
+        dataset_assembler.note_source_datasets(
+            self.product.classifier, *self._lineage()
+        )
         dataset_assembler.platform = ",".join(sorted(set(platforms)))
         dataset_assembler.instrument = "_".join(sorted(set(instruments)))
 
@@ -492,7 +464,7 @@ class Task:
                     path,
                     expand_valid_data=False,
                     grid=GridSpec(
-                        shape=self.geobox.shape,
+                        shape=self.geobox.shape.yx,
                         transform=self.geobox.transform,
                         crs=CRS.from_epsg(self.geobox.crs.to_epsg()),
                     ),
@@ -506,8 +478,8 @@ class Task:
         return dataset_assembler
 
     def render_metadata(
-        self, ext: str = EXT_TIFF, processing_dt: Optional[datetime] = None
-    ) -> Dict[str, Any]:
+        self, ext: str = EXT_TIFF, processing_dt: datetime | None = None
+    ) -> dict[str, Any]:
         """
         Put together STAC metadata document for the output of this task.
         """
@@ -519,7 +491,7 @@ class Task:
         region_code = product.region_code(self.tile_index)
         inputs = list(map(str, self._lineage()))
 
-        properties: Dict[str, Any] = deepcopy(product.properties)
+        properties: dict[str, Any] = deepcopy(product.properties)
 
         properties["dtr:start_datetime"] = format_datetime(self.time_range.start)
         properties["dtr:end_datetime"] = format_datetime(self.time_range.end)
@@ -544,7 +516,9 @@ class Task:
         )
         ProjectionExtension.add_to(item)
         proj_ext = ProjectionExtension.ext(item)
-        proj_ext.apply(geobox.crs.epsg, transform=geobox.transform, shape=geobox.shape)
+        proj_ext.apply(
+            epsg=geobox.crs.epsg, transform=geobox.transform, shape=list(geobox.shape)
+        )
 
         # Lineage last
         item.properties["odc:lineage"] = {"inputs": inputs}
@@ -581,22 +555,23 @@ class Task:
 def product_for_plugin(  # pylint:disable=too-many-arguments,too-many-locals
     plugin: StatsPluginInterface,
     location: str,
-    name: Optional[str] = None,
-    short_name: Optional[str] = None,
-    version: Optional[str] = None,
-    product_family: Optional[str] = None,
+    *,
+    name: str | None = None,
+    short_name: str | None = None,
+    version: str | None = None,
+    product_family: str | None = None,
     collections_site: str = "collections.dea.ga.gov.au",
     producer: str = "ga.gov.au",
-    properties: Dict[str, Any] = None,
+    properties: dict[str, Any] = None,
     region_code_format: str = "x{x:02d}y{y:02d}",
     naming_conventions_values: str = "dea_c3",
     explorer_path: str = "https://explorer.dea.ga.gov.au",
-    inherit_skip_properties: Optional[List[str]] = None,
-    preview_image_ows_style: Optional[Dict[str, Any]] = None,
+    inherit_skip_properties: list[str] | None = None,
+    preview_image_ows_style: dict[str, Any] | None = None,
     classifier: str = "level3",
-    maturity: Optional[str] = None,
+    maturity: str | None = None,
     collection_number: int = 3,
-    nodata: Optional[Dict[str, int]] = None,
+    nodata: dict[str, int] | None = None,
 ) -> OutputProduct:
     """
     :param plugin: An instance of a subclass of StatsPluginInterface, used for name defaults.
@@ -674,7 +649,7 @@ class TaskResult:
     task: Task
     result_location: str = ""
     skipped: bool = False
-    error: Optional[str] = None
+    error: str | None = None
     meta: Any = field(init=True, repr=False, default=None)
 
     def __bool__(self):
@@ -699,12 +674,12 @@ class TaskRunnerConfig:  # pylint:disable=too-many-instance-attributes
 
     # Plugin
     plugin: str = ""
-    plugin_config: Dict[str, Any] = field(init=True, repr=True, default_factory=dict)
+    plugin_config: dict[str, Any] = field(init=True, repr=True, default_factory=dict)
 
     # Output Product
     #  .{name| short_name| version| product_family|
     #    collections_site| producer| properties: Dict[str, Any]}
-    product: Dict[str, Any] = field(init=True, repr=True, default_factory=dict)
+    product: dict[str, Any] = field(init=True, repr=True, default_factory=dict)
 
     # Dask config
     threads: int = -1
@@ -712,14 +687,14 @@ class TaskRunnerConfig:  # pylint:disable=too-many-instance-attributes
 
     # S3/Output config
     output_location: str = ""
-    s3_acl: Optional[str] = None
+    s3_acl: str | None = None
     # s3_public is deprecated, use s3_acl="public-read" instead
     s3_public: bool = False
-    cog_opts: Dict[str, Any] = field(init=True, repr=True, default_factory=dict)
+    cog_opts: dict[str, Any] = field(init=True, repr=True, default_factory=dict)
     overwrite: bool = False
 
     # Heartbeat filepath
-    heartbeat_filepath: Optional[str] = None
+    heartbeat_filepath: str | None = None
 
     # Terminate task if running longer than this amount (seconds)
     max_processing_time: int = 0

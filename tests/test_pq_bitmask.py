@@ -179,7 +179,7 @@ def test_reduce(dataset):
     xx = pq.reduce(xx)
     reduce_result = xx.compute()
 
-    assert set(reduce_result.data_vars.keys()) == set(["total", "clear"])
+    assert set(reduce_result.data_vars.keys()) == {"total", "clear"}
 
     expected_result = np.array([[2, 3], [3, 2]])
     total = reduce_result["total"].data
@@ -201,9 +201,12 @@ def test_reduce_with_filter(dataset):
     xx = pq.reduce(xx)
     reduce_result = xx.compute()
 
-    assert set(reduce_result.data_vars.keys()) == set(
-        ["total", "clear", "clear_1_1", "clear_2_1_1"]
-    )
+    assert set(reduce_result.data_vars.keys()) == {
+        "total",
+        "clear",
+        "clear_1_1",
+        "clear_2_1_1",
+    }
 
     expected_result = np.array([[2, 3], [3, 2]])
     total = reduce_result["total"].data
@@ -265,9 +268,7 @@ def test_reduce_for_aerosol(dataset_with_aerosol_band):
     xx = pq.reduce(xx)
     reduce_result = xx.compute()
 
-    assert set(reduce_result.data_vars.keys()) == set(
-        ["total", "clear", "clear_aerosol"]
-    )
+    assert set(reduce_result.data_vars.keys()) == {"total", "clear", "clear_aerosol"}
 
     expected_result = np.array([[2, 2], [1, 2]])
     clear = reduce_result["clear"].data
@@ -294,9 +295,13 @@ def test_reduce_for_aerosol_with_filter(dataset_with_aerosol_band):
     xx = pq.reduce(xx)
     reduce_result = xx.compute()
 
-    assert set(reduce_result.data_vars.keys()) == set(
-        ["total", "clear", "clear_0_1_1", "clear_aerosol", "clear_0_1_1_aerosol"]
-    )
+    assert set(reduce_result.data_vars.keys()) == {
+        "total",
+        "clear",
+        "clear_0_1_1",
+        "clear_aerosol",
+        "clear_0_1_1_aerosol",
+    }
 
     expected_result = np.array([[2, 3], [3, 2]])
     clear_1_1_0 = reduce_result["clear_0_1_1"].data
@@ -350,9 +355,7 @@ def test_reduce_for_atmos_opacity(dataset_with_atmos_opacity_band):
     xx = pq.reduce(xx)
     reduce_result = xx.compute()
 
-    assert set(reduce_result.data_vars.keys()) == set(
-        ["total", "clear", "clear_aerosol"]
-    )
+    assert set(reduce_result.data_vars.keys()) == {"total", "clear", "clear_aerosol"}
 
     expected_result = np.array([[2, 2], [1, 2]])
     clear = reduce_result["clear"].data

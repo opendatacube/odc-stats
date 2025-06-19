@@ -115,20 +115,18 @@ def test_result_bands_to_match_inputs(dataset):
     xx = stats_gmls.native_transform(dataset)
     result = stats_gmls.reduce(xx)
 
-    assert set(result.data_vars.keys()) == set(
-        [
-            "nbart_red",
-            "nbart_green",
-            "nbart_blue",
-            "nbart_nir",
-            "nbart_swir_1",
-            "nbart_swir_2",
-            "sdev",
-            "edev",
-            "bcdev",
-            "count",
-        ]
-    )
+    assert set(result.data_vars.keys()) == {
+        "nbart_red",
+        "nbart_green",
+        "nbart_blue",
+        "nbart_nir",
+        "nbart_swir_1",
+        "nbart_swir_2",
+        "sdev",
+        "edev",
+        "bcdev",
+        "count",
+    }
 
 
 def test_result_aux_bands_to_match_inputs(dataset):
@@ -152,20 +150,18 @@ def test_result_aux_bands_to_match_inputs(dataset):
     xx = stats_gmls.native_transform(dataset)
     result = stats_gmls.reduce(xx)
 
-    assert set(result.data_vars.keys()) == set(
-        [
-            "nbart_red",
-            "nbart_green",
-            "nbart_blue",
-            "nbart_nir",
-            "nbart_swir_1",
-            "nbart_swir_2",
-            "SDEV",
-            "EDEV",
-            "BCDEV",
-            "COUNT",
-        ]
-    )
+    assert set(result.data_vars.keys()) == {
+        "nbart_red",
+        "nbart_green",
+        "nbart_blue",
+        "nbart_nir",
+        "nbart_swir_1",
+        "nbart_swir_2",
+        "SDEV",
+        "EDEV",
+        "BCDEV",
+        "COUNT",
+    }
 
 
 def test_resampling(dataset):

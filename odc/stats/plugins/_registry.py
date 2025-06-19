@@ -1,5 +1,5 @@
 import pydoc
-from typing import Callable, Dict, Type
+from collections.abc import Callable
 from functools import partial
 
 from ._base import StatsPluginInterface
@@ -7,7 +7,7 @@ from ._base import StatsPluginInterface
 
 PluginFactory = Callable[..., StatsPluginInterface]
 
-_plugins: Dict[str, PluginFactory] = {}
+_plugins: dict[str, PluginFactory] = {}
 
 
 def _new(plugin_class, *args, **kwargs) -> StatsPluginInterface:
@@ -30,7 +30,7 @@ def resolve(name: str) -> PluginFactory:
     return maker
 
 
-def register(name: str, plugin_class: Type[StatsPluginInterface]):
+def register(name: str, plugin_class: type[StatsPluginInterface]):
     _plugins[name] = partial(_new, plugin_class)
 
 

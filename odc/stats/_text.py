@@ -1,28 +1,28 @@
 from pathlib import Path
-from typing import Union, Optional, Tuple, Dict, Any
+from typing import Any
 
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 # Copied from odc.io.text
 
 
-def read_int(path: PathLike, default=None, base=10) -> Optional[int]:
+def read_int(path: PathLike, default=None, base=10) -> int | None:
     """
     Read single integer from a text file.
 
     Useful for things like parsing content of /sys/ or /proc.
     """
     try:
-        with open(path, "rt", encoding="utf8") as f:
+        with open(path, encoding="utf8") as f:
             return int(f.read(), base)
     except (FileNotFoundError, ValueError):
         return default
 
 
 def split_and_check(
-    s: str, separator: str, n: Union[int, Tuple[int, ...]]
-) -> Tuple[str, ...]:
+    s: str, separator: str, n: int | tuple[int, ...]
+) -> tuple[str, ...]:
     """Turn string into tuple, checking that there are exactly as many parts as expected.
     :param s: String to parse
     :param separator: Separator character
@@ -44,7 +44,7 @@ def parse_slice(s: str) -> slice:
     Examples "::4", "2:5", "2::10", "3:100:5"
     """
 
-    def parse(part: str) -> Optional[int]:
+    def parse(part: str) -> int | None:
         if part == "":
             return None
         return int(part)
@@ -57,32 +57,32 @@ def parse_slice(s: str) -> slice:
     return slice(*parts)
 
 
-def parse_yaml(s: str) -> Dict[str, Any]:
+def parse_yaml(s: str) -> dict[str, Any]:
     # pylint: disable=import-outside-toplevel
     import yaml
 
     return yaml.load(s, Loader=getattr(yaml, "CSafeLoader", yaml.SafeLoader))
 
 
-def parse_yaml_file_or_inline(s: str) -> Dict[str, Any]:
+def parse_yaml_file_or_inline(s: str) -> dict[str, Any]:
     """
     Accept on input either a path to yaml file or yaml text, return parsed yaml document.
     """
     try:
         # if file
         path = Path(s)
-        with open(path, "rt", encoding="utf8") as f:
+        with open(path, encoding="utf8") as f:
             txt = f.read()
             assert isinstance(txt, str)
-    except (FileNotFoundError, IOError, ValueError):
+    except (FileNotFoundError, OSError, ValueError):
         txt = s
     result = parse_yaml(txt)
     if isinstance(result, str):
-        raise IOError(f"No such file: {s}")
+        raise OSError(f"No such file: {s}")
     return result
 
 
-def load_yaml_remote(yaml_url: str) -> Dict[str, Any]:
+def load_yaml_remote(yaml_url: str) -> dict[str, Any]:
     """
     Open a yaml file remotely and return the parsed yaml document
     """
@@ -97,7 +97,7 @@ def load_yaml_remote(yaml_url: str) -> Dict[str, Any]:
         raise
 
 
-def parse_range2d_int(s: str) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+def parse_range2d_int(s: str) -> tuple[tuple[int, int], tuple[int, int]]:
     """Parse string like "0:3,4:5" -> ((0,3), (4,5))"""
     try:
         return tuple(

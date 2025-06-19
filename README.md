@@ -334,6 +334,6 @@ The dockerfile for the docker image used in the ochastration, which can be used 
 
 ## Integration test
 
-The integration test for the summary products is located under [tests](./tests). Currently the test is performed on all the official summary products published by DEA. The "golden files" to test against are stored on the public accessible [S3 bucket](s3://dea-public-data-dev/stats-golden-files). The "golder files" should be achived but not deleted in the case that we decide to amend or upgrade any product. It will help with tracking the changes that we intend and alerting those that we do not.
+The integration test for the summary products is located under [tests](./tests). Currently the test is performed on all the official summary products published by DEA. The "golden files" to test against are stored on the public accessible [S3 bucket](s3://dea-public-data-dev/stats-golden-files). The "golden files" should be archived but not deleted in the case that we decide to amend or upgrade any product. It will help with tracking the changes that we intend and alerting those that we do not.
 
 The test is meant to be regressive, i.e., the new version of `odc-stats` need to pass the test on the last version of docker image. The new version of docker image needs to pass the test on the current released version of `odc-stats`.

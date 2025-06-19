@@ -1,16 +1,17 @@
 import math
 from copy import deepcopy
 import toolz
-from typing import Tuple, Dict, Any
+from typing import Any
 from datetime import timedelta
 
-from datacube.model import GridSpec
-from datacube.utils.geometry import polygon_from_transform, Geometry
+from odc.geo.gridspec import GridSpec
+from odc.geo import Geometry, wh_
+from odc.geo.geom import polygon_from_transform
 from odc.dscache.tools import solar_offset
 from .model import TileIdx_xy, TileIdx_txy
 
 
-def gs_bounds(gs: GridSpec, tiles: Tuple[Tuple[int, int], Tuple[int, int]]) -> Geometry:
+def gs_bounds(gs: GridSpec, tiles: tuple[tuple[int, int], tuple[int, int]]) -> Geometry:
     """
     Compute Polygon for a selection of tiles.
 
@@ -20,14 +21,14 @@ def gs_bounds(gs: GridSpec, tiles: Tuple[Tuple[int, int], Tuple[int, int]]) -> G
     X,Y ranges are inclusive on the left and exclusive on the right, same as numpy slicing.
     """
     ((x0, x1), (y0, y1)) = tiles
-    if gs.resolution[0] < 0:
+    if gs.resolution.y < 0:
         gb = gs.tile_geobox((x0, y1 - 1))
     else:
         gb = gs.tile_geobox((x0, y0))
 
-    nx = (x1 - x0) * gb.shape[1]
-    ny = (y1 - y0) * gb.shape[0]
-    return polygon_from_transform(nx, ny, gb.affine, gb.crs)
+    nx = (x1 - x0) * gb.shape.x
+    ny = (y1 - y0) * gb.shape.y
+    return polygon_from_transform(wh_(nx, ny), gb.affine, gb.crs)
 
 
 def timedelta_to_hours(td: timedelta) -> float:
@@ -35,8 +36,8 @@ def timedelta_to_hours(td: timedelta) -> float:
 
 
 def compute_grid_info(
-    cells: Dict[TileIdx_xy, Any], resolution: float = math.inf, title_width: int = 0
-) -> Dict[TileIdx_xy, Any]:
+    cells: dict[TileIdx_xy, Any], resolution: float = math.inf, title_width: int = 0
+) -> dict[TileIdx_xy, Any]:
     """
     Compute geojson feature for every cell in ``cells``.
     Where ``cells`` is produced by ``bin_dataset_stream``
@@ -74,8 +75,8 @@ def compute_grid_info(
 
 
 def gjson_from_tasks(
-    tasks: Dict[TileIdx_txy, Any], grid_info: Dict[TileIdx_xy, Any]
-) -> Dict[str, Dict[str, Any]]:
+    tasks: dict[TileIdx_txy, Any], grid_info: dict[TileIdx_xy, Any]
+) -> dict[str, dict[str, Any]]:
     """
     Group tasks by time period and compute geosjon describing every tile covered by each time period.
 
@@ -95,14 +96,14 @@ def gjson_from_tasks(
         dss = tasks[idx]
         utc_offset = timedelta(hours=geo["properties"]["utc_offset"])
 
-        ndays = len(set((ds.time + utc_offset).date() for ds in dss))
+        ndays = len({(ds.time + utc_offset).date() for ds in dss})
         geo["properties"]["total"] = len(dss)
         geo["properties"]["days"] = ndays
 
         return geo
 
     def process(idxs):
-        return dict(type="FeatureCollection", features=[_get(idx) for idx in idxs])
+        return {"type": "FeatureCollection", "features": [_get(idx) for idx in idxs]}
 
     return {
         t: process(idxs)

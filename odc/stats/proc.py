@@ -1,15 +1,8 @@
 import logging
-from typing import (
-    Iterable,
-    Iterator,
-    Optional,
-    List,
-    Any,
-    Tuple,
-    Union,
-)
+from typing import Any
+from collections.abc import Iterable, Iterator
 from dask.distributed import Client, WorkerPlugin
-from datetime import datetime
+from datetime import datetime, timezone
 import xarray as xr
 import math
 import psutil
@@ -41,8 +34,8 @@ class TaskRunner:
     def __init__(
         self,
         cfg: TaskRunnerConfig,
-        resolution: Optional[Tuple[float, float]] = None,
-        from_sqs: Optional[str] = "",
+        resolution: tuple[float, float] | None = None,
+        from_sqs: str | None = "",
     ):
         """ """
         _log = logging.getLogger(__name__)
@@ -91,7 +84,7 @@ class TaskRunner:
         if nthreads <= 0:
             nthreads = get_max_cpu()
 
-        memory_limit: Union[str, int] = cfg.memory_limit
+        memory_limit: str | int = cfg.memory_limit
         if memory_limit == "":
             mem_1g = 1 << 30
             memory_limit = get_max_mem()
@@ -137,8 +130,8 @@ class TaskRunner:
     # pylint: disable=import-outside-toplevel
     def tasks(
         self,
-        tasks: List[str],
-        ds_filters: Optional[str] = None,
+        tasks: list[str],
+        ds_filters: str | None = None,
     ) -> Iterator[Task]:
         from ._cli_common import parse_all_tasks
 
@@ -153,9 +146,9 @@ class TaskRunner:
     # pylint: enable=import-outside-toplevel
     def dry_run(
         self,
-        tasks: List[str],
+        tasks: list[str],
         check_exists: bool = True,
-        ds_filters: Optional[str] = None,
+        ds_filters: str | None = None,
     ) -> Iterator[TaskResult]:
         sink = self.sink
         overwrite = self._cfg.overwrite
@@ -176,7 +169,7 @@ class TaskRunner:
             skipped = (overwrite is False) and (exists is True)
             nds = len(task.datasets)
             # TODO: take care of utc offset for day boundaries when computing ndays
-            ndays = len(set(ds.center_time.date() for ds in task.datasets))
+            ndays = len({ds.center_time.date() for ds in task.datasets})
             flag = flag_mapping.get(exists, "")
             msg = f"{task.location} days={ndays:03} ds={nds:04} {uri}{flag}"
 
@@ -221,7 +214,7 @@ class TaskRunner:
             if tk is not None:
                 t0 = tk.start_time
             else:
-                t0 = datetime.utcnow()
+                t0 = datetime.now(timezone.utc)
             if not cfg.overwrite:
                 path = sink.uri(task)
                 _log.debug("Checking if can skip %s", path)
@@ -241,13 +234,14 @@ class TaskRunner:
                     task.geobox,
                     transform_code=proc.transform_code,
                     area_of_interest=proc.area_of_interest,
+                    **{"XSCALE": None, "YSCALE": None},
                 )
             )
 
             _log.debug("Submitting to Dask (%s)", task.location)
             ds = client.persist(ds, fifo_timeout="1ms")
 
-            aux: Optional[xr.Dataset] = None
+            aux: xr.Dataset | None = None
 
             # if no rgba setting in cog_ops:overrides, no rgba tif as ouput
             if "overrides" in cfg.cog_opts and "rgba" in cfg.cog_opts["overrides"]:
@@ -297,10 +291,10 @@ class TaskRunner:
     # pylint: enable=too-many-locals, too-many-branches, too-many-statements
     def run(
         self,
-        tasks: Optional[List[str]] = None,
-        sqs: Optional[str] = None,
-        ds_filters: Optional[str] = None,
-        apply_eodatasets3: Optional[bool] = False,
+        tasks: list[str] | None = None,
+        sqs: str | None = None,
+        ds_filters: str | None = None,
+        apply_eodatasets3: bool | None = False,
     ) -> Iterator[TaskResult]:
         cfg = self._cfg
         _log = self._log
@@ -354,7 +348,7 @@ def get_max_cpu() -> int:
     return psutil.cpu_count()
 
 
-def get_cpu_quota() -> Optional[float]:
+def get_cpu_quota() -> float | None:
     """
     :returns: ``None`` if unconstrained or there is an error
     :returns: maximum amount of CPU this pod is allowed to use
@@ -368,7 +362,7 @@ def get_cpu_quota() -> Optional[float]:
     return quota / period
 
 
-def get_mem_quota() -> Optional[int]:
+def get_mem_quota() -> int | None:
     """
     :returns: ``None`` if there was some error
     :returns: maximum RAM, in bytes, this pod can use according to Linux cgroups

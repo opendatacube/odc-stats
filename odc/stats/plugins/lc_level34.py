@@ -2,8 +2,6 @@
 Plugin of Module A3 in LandCover PipeLine
 """
 
-from typing import Optional, Dict, List
-
 import xarray as xr
 import s3fs
 import os
@@ -13,7 +11,7 @@ import logging
 
 from ._registry import StatsPluginInterface, register
 from ._utils import rasterize_vector_mask, generate_numexpr_expressions
-from odc.stats._algebra import expr_eval
+from odc.algo import expr_eval
 from osgeo import gdal
 
 NODATA = 255
@@ -28,12 +26,13 @@ class StatsLccsLevel4(StatsPluginInterface):
 
     def __init__(
         self,
+        *,
         class_def_path: str = None,
-        class_condition: Dict[str, List] = None,
+        class_condition: dict[str, list] = None,
         urban_mask: str = None,
         filter_expression: str = None,
-        mask_threshold: Optional[float] = None,
-        data_var_condition: Optional[Dict] = None,
+        mask_threshold: float | None = None,
+        data_var_condition: dict | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -129,7 +128,7 @@ class StatsLccsLevel4(StatsPluginInterface):
         # 215 -> 216 if urban_mask == 0
         urban_mask = rasterize_vector_mask(
             self.urban_mask,
-            xx.geobox.transform,
+            xx.odc.geobox.transform,
             xx.artificial_surface.shape,
             filter_expression=self.filter_expression,
             threshold=self.mask_threshold,
@@ -147,7 +146,7 @@ class StatsLccsLevel4(StatsPluginInterface):
         attrs = xx.attrs.copy()
         attrs["nodata"] = NODATA
         dims = xx.level_3_4.dims[1:]
-        coords = dict((dim, xx.coords[dim]) for dim in dims)
+        coords = {dim: xx.coords[dim] for dim in dims}
         xx["level3"] = xr.DataArray(
             level3.squeeze(), dims=dims, attrs=attrs, coords=coords
         )

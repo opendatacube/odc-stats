@@ -2,7 +2,6 @@
 
 import logging
 import sys
-from typing import List, Tuple
 import click
 
 
@@ -12,7 +11,7 @@ from ._text import parse_yaml_file_or_inline, parse_range2d_int, load_yaml_remot
 from urllib.parse import urlparse
 
 
-TileIdx_txy = Tuple[str, int, int]  # pylint: disable=invalid-name
+TileIdx_txy = tuple[str, int, int]  # pylint: disable=invalid-name
 
 
 def parse_task(s: str) -> TileIdx_txy:
@@ -27,8 +26,8 @@ def parse_task(s: str) -> TileIdx_txy:
 
 
 def parse_all_tasks(
-    inputs: List[str], all_possible_tasks: List[TileIdx_txy]
-) -> List[TileIdx_txy]:
+    inputs: list[str], all_possible_tasks: list[TileIdx_txy]
+) -> list[TileIdx_txy]:
     """
     Select a subset of all possible tasks given user input on cli.
 
@@ -43,7 +42,7 @@ def parse_all_tasks(
        x+10/y-3/2019--P1Y
     """
 
-    out: List[TileIdx_txy] = []
+    out: list[TileIdx_txy] = []
     full_set = set(all_possible_tasks)
 
     for s in inputs:
@@ -68,7 +67,7 @@ def parse_all_tasks(
     return out
 
 
-def parse_resolution(s: str, separator: str = ",") -> Tuple[float, float]:
+def parse_resolution(s: str, separator: str = ",") -> tuple[float, float]:
     parts = [float(v) for v in split_and_check(s, separator, (1, 2))]
 
     if len(parts) == 1:

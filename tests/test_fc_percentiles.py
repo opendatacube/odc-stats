@@ -179,9 +179,13 @@ def test_reduce(dataset):
     print(result)
     assert (result == expected_result).all()
 
-    assert set(xx.data_vars.keys()) == set(
-        ["band_1_pc_10", "band_1_pc_50", "band_1_pc_90", "qa", "count_valid"]
-    )
+    assert set(xx.data_vars.keys()) == {
+        "band_1_pc_10",
+        "band_1_pc_50",
+        "band_1_pc_90",
+        "qa",
+        "count_valid",
+    }
 
     for band_name in xx.data_vars.keys():
         if band_name not in ["count_valid"]:

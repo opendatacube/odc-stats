@@ -3,7 +3,7 @@ Base class for treelite models in LandCover PipeLine
 """
 
 from abc import abstractmethod
-from typing import Dict, Sequence, Optional
+from collections.abc import Sequence
 
 import os
 import sys
@@ -14,11 +14,11 @@ import dask.array as da
 from dask.distributed import get_worker
 
 from datacube.model import Dataset
-from datacube.utils.geometry import GeoBox
+from odc.geo.geobox import GeoBox
 from odc.algo._memsink import yxbt_sink, yxt_sink
-from odc.algo.io import load_with_native_transform
+from odc.stats.io import load_with_native_transform
 
-from odc.stats._algebra import expr_eval
+from odc.algo import expr_eval
 from odc.stats.model import DateTimeRange
 from ._registry import StatsPluginInterface
 from ._worker import TreeliteModelPlugin
@@ -64,10 +64,10 @@ class StatsMLTree(StatsPluginInterface):
 
     def __init__(
         self,
-        output_classes: Dict,
+        output_classes: dict,
         model_path: str,
-        mask_bands: Optional[Dict] = None,
-        temporal_coverage: Optional[Dict] = None,
+        mask_bands: dict | None = None,
+        temporal_coverage: dict | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -122,7 +122,7 @@ class StatsMLTree(StatsPluginInterface):
                         name=ds.type.name + "_yxt",
                     ).squeeze("spec")
 
-        coords = dict((dim, input_array.coords[dim]) for dim in input_array.dims)
+        coords = {dim: input_array.coords[dim] for dim in input_array.dims}
         return xr.Dataset(data_vars=data_vars, coords=coords)
 
     def impute_missing_values(self, xx: xr.Dataset, image):
