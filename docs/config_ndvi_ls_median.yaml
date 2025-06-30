@@ -1,4 +1,4 @@
-plugin: ndvi-median # import path to plugin
+plugin: odc.stats.plugins.ls_ndvi_median.StatsNDVI # import path to plugin
 plugin_config: #variables for the plugin
   input_bands: ["nbart_red", "nbart_nir"]
   output_bands: 'ndvi_median'
