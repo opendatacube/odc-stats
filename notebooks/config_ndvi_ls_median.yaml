@@ -1,0 +1,33 @@
+plugin: s2_gm_tools.ndvi_ls_median.StatsNDVI # import path to plugin
+plugin_config: #variables for the plugin
+  input_bands: ["nbart_red", "nbart_nir"]
+  output_bands: 'ndvi_median'
+  mask_band: "oa_fmask"
+  contiguity_band: "nbart_contiguity"
+product: #name and key metadata of the product
+  name: ndvi_ls_median
+  short_name: ndvi_ls_median 
+  version: 0.0.1
+  product_family: ndvi 
+  # -- EO Dataset3 relative section --
+  naming_conventions_values: dea_c3
+  explorer_path: https://explorer.dea.ga.gov.au/
+  classifier: ard
+  maturity: final
+  collection_number: 3
+
+## -parameters for k8s 
+max_processing_time: 3600
+job_queue_max_lease: 3600
+renew_safety_margin: 60
+future_poll_interval: 2
+s3_acl: public-read
+
+# Generic product attributes
+cog_opts:
+  zlevel: 9
+  overrides:
+    # If you're making an RGBA image, compress better
+    rgba:
+      compress: JPEG
+      jpeg_quality: 90
