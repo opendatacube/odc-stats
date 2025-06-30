@@ -111,4 +111,4 @@ class StatsNDVI(StatsPluginInterface):
         return ndvi.to_dataset()
 
 # now lets 'register' the function with odc-stats
-register("NDVI-median", StatsNDVI)
+register("ndvi-median", StatsNDVI)

@@ -1,12 +1,12 @@
-plugin: s2_gm_tools.ndvi_ls_median.StatsNDVI # import path to plugin
+plugin: ndvi-median # import path to plugin
 plugin_config: #variables for the plugin
   input_bands: ["nbart_red", "nbart_nir"]
   output_bands: 'ndvi_median'
   mask_band: "oa_fmask"
   contiguity_band: "nbart_contiguity"
 product: #name and key metadata of the product
-  name: ndvi_ls_median
-  short_name: ndvi_ls_median 
+  name: ls_ndvi_median
+  short_name: ls_ndvi_median 
   version: 0.0.1
   product_family: ndvi 
   # -- EO Dataset3 relative section --
