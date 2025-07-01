@@ -17,8 +17,6 @@ from odc.algo._masking import (
     mask_cleanup,
 )
 
-NODATA = -999
-
 class StatsNDVI(StatsPluginInterface):
     """
     Define a class for summarising time 
@@ -97,7 +95,6 @@ class StatsNDVI(StatsPluginInterface):
         Calculate NDVI and summarise time series with a median.
         """
         # convert to float by and convert nodata to NaN
-        # xx = xx.where(xx>1)
         xx = mask_invalid_data(xx)
         
         ndvi = (xx['nbart_nir'] - xx['nbart_red']) / (xx['nbart_nir'] + xx['nbart_red'])
