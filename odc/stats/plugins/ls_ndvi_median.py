@@ -1,20 +1,17 @@
 """
 Simple odc-stats plugin example, with excessive
-documentation. Creates temporal mean NDVI
+documentation. Creates temporal median NDVI
 from DEA Landsat Collection 3
     
 """
 
-from typing import Optional, Sequence, Tuple
-
-import numpy as np
 import xarray as xr
+from typing import Sequence, Tuple
 from datacube.utils.masking import mask_invalid_data
 from odc.stats.plugins._registry import register, StatsPluginInterface
 from odc.algo._masking import (
     erase_bad,
-    enum_to_bool,
-    mask_cleanup,
+    enum_to_bool
 )
 
 class StatsNDVI(StatsPluginInterface):
@@ -43,8 +40,8 @@ class StatsNDVI(StatsPluginInterface):
         self.contiguity_band = contiguity_band
         self.group_by = group_by
 
-        ## These params get passed to the upstream 
-        #  base StatsPluginInterface class
+        # These params get passed to the upstream 
+        # base class StatsPluginInterface
         super().__init__(
             input_bands=tuple(input_bands)+(mask_band,)+(contiguity_band,),
             **kwargs
@@ -85,7 +82,7 @@ class StatsNDVI(StatsPluginInterface):
         # drop masking bands
         xx = xx.drop_vars([self.mask_band] + [self.contiguity_band])
         
-        ## Mask the bad data (clouds etc)
+        # Mask the bad data (clouds etc)
         xx = erase_bad(xx, bad)
 
         return xx
@@ -99,10 +96,8 @@ class StatsNDVI(StatsPluginInterface):
         
         ndvi = (xx['nbart_nir'] - xx['nbart_red']) / (xx['nbart_nir'] + xx['nbart_red'])
 
-        # calculate temporal median NDVI. 
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!! 
-        # Note that we use 'spec' and not 'time', this is an odc-stats thing
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # calculate temporal median NDVI. Note that we use
+        # 'spec' and not 'time', this is an odc-stats thing
         ndvi = ndvi.median('spec').rename(self.output_bands)
         
         return ndvi.to_dataset()

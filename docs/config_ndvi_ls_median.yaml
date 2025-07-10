@@ -6,9 +6,9 @@ plugin_config: #variables for the plugin
   contiguity_band: "nbart_contiguity"
 product: #name and key metadata of the product
   name: ls_ndvi_median
-  short_name: ls_ndvi_median 
+  short_name: ls_ndvi_median
   version: 0.0.1
-  product_family: ndvi 
+  product_family: ndvi
   # -- EO Dataset3 relative section --
   naming_conventions_values: dea_c3
   explorer_path: https://explorer.dea.ga.gov.au/
@@ -16,7 +16,7 @@ product: #name and key metadata of the product
   maturity: final
   collection_number: 3
 
-## -parameters for k8s 
+# -parameters for k8s
 max_processing_time: 3600
 job_queue_max_lease: 3600
 renew_safety_margin: 60
