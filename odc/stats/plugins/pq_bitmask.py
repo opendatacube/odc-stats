@@ -34,7 +34,7 @@ resampling = "nearest"
 """
 
 from functools import partial
-from typing import Dict, Optional, Tuple, Iterable
+from collections.abc import Iterable
 
 import dask.array as da
 import xarray as xr
@@ -54,23 +54,21 @@ class StatsPQLSBitmask(StatsPluginInterface):
 
     def __init__(
         self,
+        *,
         pq_band: str = "QA_PIXEL",
-        aerosol_band: Optional[str] = None,
+        aerosol_band: str | None = None,
         # provide flags with high cloud bits definition
         flags=None,
         nodata_flags=None,
-        filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
-        aerosol_filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
+        filters: dict[str, Iterable[tuple[str, int]]] | None = None,
+        aerosol_filters: dict[str, Iterable[tuple[str, int]]] | None = None,
         resampling: str = "nearest",
         **kwargs,
     ):
         if nodata_flags is None:
-            nodata_flags = dict(nodata=False)
+            nodata_flags = {"nodata": False}
         if flags is None:
-            flags = dict(
-                cloud="high_confidence",
-                cirrus="high_confidence",
-            )
+            flags = {"cloud": "high_confidence", "cirrus": "high_confidence"}
         self.pq_band = pq_band
         self.aerosol_band = aerosol_band
         input_bands = [self.pq_band]
@@ -83,7 +81,7 @@ class StatsPQLSBitmask(StatsPluginInterface):
         self.aerosol_filters = aerosol_filters or {}
 
     @property
-    def measurements(self) -> Tuple[str, ...]:
+    def measurements(self) -> tuple[str, ...]:
         """
         Output product measurements
         """

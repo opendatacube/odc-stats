@@ -17,7 +17,7 @@ of time summary from existing annual summaries.
 
 """
 
-from typing import Dict, Tuple, Iterable
+from collections.abc import Iterable
 import numpy as np
 import xarray as xr
 from odc.algo import safe_div, apply_numexpr, keep_good_only
@@ -53,13 +53,13 @@ class StatsWofs(StatsPluginInterface):
     }  # Cloud/Shadow + Terrain Shadow
 
     def __init__(
-        self, cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None, **kwargs
+        self, cloud_filters: dict[str, Iterable[tuple[str, int]]] = None, **kwargs
     ):
         super().__init__(input_bands=["water"], **kwargs)
         self.cloud_filters = cloud_filters if cloud_filters is not None else {}
 
     @property
-    def measurements(self) -> Tuple[str, ...]:
+    def measurements(self) -> tuple[str, ...]:
         return "count_wet", "count_clear", "frequency"
 
     def native_transform(self, xx):
@@ -176,7 +176,7 @@ class StatsWofsFullHistory(StatsPluginInterface):
         super().__init__(input_bands=["count_wet", "count_clear"])
 
     @property
-    def measurements(self) -> Tuple[str, ...]:
+    def measurements(self) -> tuple[str, ...]:
         return "count_wet", "count_clear", "frequency"
 
     def fuser(self, xx):

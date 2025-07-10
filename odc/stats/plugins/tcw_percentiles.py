@@ -3,7 +3,7 @@ Tasseled cap index Percentiles
 """
 
 from functools import partial
-from typing import Sequence, Tuple, Iterable, Dict
+from collections.abc import Sequence, Iterable
 import xarray as xr
 import numpy as np
 import logging
@@ -29,10 +29,10 @@ class StatsTCWPC(StatsPluginInterface):
 
     def __init__(
         self,
-        coefficients: Dict[str, Dict[str, float]] = None,
+        coefficients: dict[str, dict[str, float]] = None,
         input_bands: Sequence[str] = None,
         output_bands: Sequence[str] = None,
-        cloud_filters: Dict[str, Iterable[Tuple[str, int]]] = None,
+        cloud_filters: dict[str, Iterable[tuple[str, int]]] = None,
         **kwargs,
     ):
         self.cloud_filters = cloud_filters
@@ -101,7 +101,7 @@ class StatsTCWPC(StatsPluginInterface):
         )
 
     @property
-    def measurements(self) -> Tuple[str, ...]:
+    def measurements(self) -> tuple[str, ...]:
         _measurments = []
         for band in self.output_bands:
             _measurments += [f"{band}_pc_10", f"{band}_pc_50", f"{band}_pc_90"]

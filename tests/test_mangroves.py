@@ -7,7 +7,9 @@ import tempfile
 import json
 import fiona
 from fiona.crs import CRS
-from datacube.utils.geometry import GeoBox
+from odc.geo import wh_
+from odc.geo.geobox import GeoBox
+from odc.geo.xr import xr_coords
 from affine import Affine
 import pytest
 
@@ -117,9 +119,9 @@ def dataset():
         (20 - 10) / band_1.shape[2], (5 - 0) / band_1.shape[1]
     )
     geobox = GeoBox(
-        crs="epsg:3577", affine=affine, width=band_1.shape[2], height=band_1.shape[1]
+        crs="epsg:3577", affine=affine, shape=wh_(band_1.shape[2], band_1.shape[1])
     )
-    coords = geobox.xr_coords()
+    coords = xr_coords(geobox)
     coords.update({"time": index})
 
     data_vars = {

@@ -1,11 +1,10 @@
 import json
 import sys
-from typing import List, Optional
 
 import click
 import fsspec
 import toolz
-from datacube.utils.geometry import Geometry
+from odc.geo import Geometry
 from odc.aws.queue import get_queue, publish_messages
 from odc.dscache.tools.tiling import GRIDS
 from odc.stats.model import TileIdx_txy
@@ -28,7 +27,7 @@ def get_geometry(geojson_file: str) -> Geometry:
     )
 
 
-def filter_tasks(tasks: List[TileIdx_txy], geometry: Geometry, grid_name: str):
+def filter_tasks(tasks: list[TileIdx_txy], geometry: Geometry, grid_name: str):
     for task in tasks:
         task_geometry = GRIDS[grid_name].tile_geobox((task[1], task[2])).extent
         if task_geometry.intersects(geometry):
@@ -36,7 +35,7 @@ def filter_tasks(tasks: List[TileIdx_txy], geometry: Geometry, grid_name: str):
 
 
 def publish_tasks(
-    db: str, task_filter: str, geojson_filter: Optional[str], dryrun: bool, queue: str
+    db: str, task_filter: str, geojson_filter: str | None, dryrun: bool, queue: str
 ):
     reader = TaskReader(db)
     if len(task_filter) == 0:
@@ -67,7 +66,7 @@ def publish_tasks(
 
     # We assume the db files are always be the S3 uri. If they are not, there is no need to use SQS queue to process.
     messages = (
-        dict(Id=str(idx), MessageBody=json.dumps(render_sqs(tidx, db)))
+        {"Id": str(idx), "MessageBody": json.dumps(render_sqs(tidx, db))}
         for idx, tidx in enumerate(tasks)
     )
 

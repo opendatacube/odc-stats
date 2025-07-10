@@ -2,7 +2,8 @@
 Sentinel 2 pixel quality stats
 """
 
-from typing import Dict, Iterable, Optional, Tuple, cast
+from typing import cast
+from collections.abc import Iterable
 
 import xarray as xr
 from odc.algo import enum_to_bool, mask_cleanup
@@ -33,9 +34,9 @@ class StatsPQ(StatsPluginInterface):
 
     def __init__(
         self,
-        filters: Optional[Dict[str, Iterable[Tuple[str, int]]]] = None,
+        filters: dict[str, Iterable[tuple[str, int]]] | None = None,
         resampling: str = "nearest",
-        **kwargs
+        **kwargs,
     ):
         super().__init__(input_bands=["SCL"], resampling=resampling, **kwargs)
         if filters is None:
@@ -43,7 +44,7 @@ class StatsPQ(StatsPluginInterface):
         self.filters = filters
 
     @property
-    def measurements(self) -> Tuple[str, ...]:
+    def measurements(self) -> tuple[str, ...]:
         measurements = ["total", "clear", *list(self.filters)]
 
         return tuple(measurements)
@@ -83,7 +84,7 @@ class StatsPQ(StatsPluginInterface):
         valid = scl != scl.nodata
         erased = enum_to_bool(scl, cloud_classes)
         return xr.Dataset(
-            dict(valid=valid, erased=erased),
+            {"valid": valid, "erased": erased},
             attrs={"native": True},  # <- native flag needed for fuser
         )
 
@@ -96,7 +97,7 @@ class StatsPQ(StatsPluginInterface):
         valid = xx.valid
         erased_bands = [str(n) for n in xx.data_vars if str(n).startswith("erased")]
         total = valid.sum(axis=0, dtype="uint16")
-        pq = xr.Dataset(dict(total=total))
+        pq = xr.Dataset({"total": total})
 
         for band in erased_bands:
             erased: xr.DataArray = cast(xr.DataArray, xx[band])

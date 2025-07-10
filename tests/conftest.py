@@ -1,6 +1,6 @@
 import pathlib
 import pytest
-from mock import MagicMock
+from unittest.mock import MagicMock
 import boto3
 from moto import mock_aws
 from odc.stats.plugins import register

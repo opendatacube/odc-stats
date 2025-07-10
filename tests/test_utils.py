@@ -5,7 +5,7 @@ from copy import deepcopy
 import pystac
 import pytest
 from datacube import Datacube
-from datacube.model import Dataset, DatasetType, metadata_from_doc
+from datacube.model import Dataset, Product, metadata_from_doc
 from datacube.index.eo3 import prep_eo3
 from datacube.index.abstract import default_metadata_type_docs
 from odc.stats.model import DateTimeRange
@@ -72,7 +72,7 @@ def test_binning():
         dss1 = tasks[k]
         dss2 = tasks_y[k]
 
-        assert set(ds.id for ds in dss1) == set(ds.id for ds in dss2)
+        assert {ds.id for ds in dss1} == {ds.id for ds in dss2}
 
     tasks = bin_seasonal(cells, 6, 1)
     verify(tasks)
@@ -292,19 +292,19 @@ def test_fuse_products(wo_definition, fc_definition):
     }
     eo3 = standard_metadata_types["eo3"]
 
-    wo_product = DatasetType(eo3, wo_definition)
-    fc_product = DatasetType(eo3, fc_definition)
+    wo_product = Product(eo3, wo_definition)
+    fc_product = Product(eo3, fc_definition)
     fuse_products(wo_product, fc_product)
 
     bad_definition = deepcopy(wo_definition)
     bad_definition["metadata"]["properties"]["odc:file_format"] = "bad"
-    bad_product = DatasetType(eo3, bad_definition)
+    bad_product = Product(eo3, bad_definition)
     with pytest.raises(ValueError):
         fuse_products(bad_product, fc_product)
 
     bad_definition = deepcopy(wo_definition)
     bad_definition["measurements"].append(fc_definition["measurements"][1])
-    bad_product = DatasetType(eo3, bad_definition)
+    bad_product = Product(eo3, bad_definition)
     with pytest.raises(ValueError):
         fuse_products(bad_product, fc_product)
 
@@ -314,13 +314,13 @@ def test_fuse_products(wo_definition, fc_definition):
     fc_no_ff = deepcopy(fc_definition)
     del fc_no_ff["metadata"]["properties"]["odc:file_format"]
 
-    wo_product = DatasetType(eo3, wo_no_ff)
-    fc_product = DatasetType(eo3, fc_no_ff)
+    wo_product = Product(eo3, wo_no_ff)
+    fc_product = Product(eo3, fc_no_ff)
     fuse_products(wo_product, fc_product)
 
 
 def _get_msr_paths(ds):
-    return set(m["path"] for m in ds.metadata_doc["measurements"].values())
+    return {m["path"] for m in ds.metadata_doc["measurements"].values()}
 
 
 def test_fuse_dss(wo_definition, fc_definition):
@@ -329,8 +329,8 @@ def test_fuse_dss(wo_definition, fc_definition):
     }
     eo3 = standard_metadata_types["eo3"]
 
-    wo_product = DatasetType(eo3, wo_definition)
-    fc_product = DatasetType(eo3, fc_definition)
+    wo_product = Product(eo3, wo_definition)
+    fc_product = Product(eo3, fc_definition)
     fused_product = fuse_products(wo_product, fc_product)
 
     wo_metadata = {
@@ -477,16 +477,12 @@ def test_fuse_dss(wo_definition, fc_definition):
 
     # paths get made absolute here
     # TODO: force paths to stay relative
-    wo_uris = [
-        "s3://dea-public-data/derivative/ga_ls_wo_3/1-6-0/091/086/2020/04/04/\
-                ga_ls_wo_3_091086_2020-04-04_final.stac-item.json"
-    ]
-    wo_ds = Dataset(wo_product, prep_eo3(wo_metadata), uris=wo_uris)
-    fc_uris = [
-        "s3://dea-public-data/derivative/ga_ls_fc_3/2-5-0/091/086/2020/04/04/\
-                ga_ls_fc_3_091086_2020-04-04_final.stac-item.json"
-    ]
-    fc_ds = Dataset(fc_product, prep_eo3(fc_metadata), uris=fc_uris)
+    wo_uri = "s3://dea-public-data/derivative/ga_ls_wo_3/1-6-0/091/086/2020/04/04/\
+        ga_ls_wo_3_091086_2020-04-04_final.stac-item.json"
+    wo_ds = Dataset(wo_product, prep_eo3(wo_metadata), uri=wo_uri)
+    fc_uri = "s3://dea-public-data/derivative/ga_ls_fc_3/2-5-0/091/086/2020/04/04/\
+        ga_ls_fc_3_091086_2020-04-04_final.stac-item.json"
+    fc_ds = Dataset(fc_product, prep_eo3(fc_metadata), uri=fc_uri)
 
     fused_ds = fuse_ds(wo_ds, fc_ds, product=fused_product)
     assert _get_msr_paths(fused_ds) == _get_msr_paths(fc_ds).union(
@@ -499,25 +495,25 @@ def test_fuse_dss(wo_definition, fc_definition):
 
     bad_metadata = deepcopy(fc_metadata)
     bad_metadata["properties"]["datetime"] = "2020-04-03T23:33:10.644420Z"
-    bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uris=fc_uris)
+    bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uri=fc_uri)
     with pytest.raises(ValueError):
         fused_ds = fuse_ds(wo_ds, bad_ds, product=fused_product)
 
     bad_metadata = deepcopy(fc_metadata)
     bad_metadata["crs"] = "epsg:32656"
-    bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uris=fc_uris)
+    bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uri=fc_uri)
     with pytest.raises(ValueError):
         fused_ds = fuse_ds(wo_ds, bad_ds, product=fused_product)
 
     bad_metadata = deepcopy(fc_metadata)
     bad_metadata["grids"]["default"]["shape"] = [7212, 8311]
-    bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uris=fc_uris)
+    bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uri=fc_uri)
     with pytest.raises(ValueError):
         fused_ds = fuse_ds(wo_ds, bad_ds, product=fused_product)
 
     bad_metadata = deepcopy(fc_metadata)
     bad_metadata["label"] += "a"
-    bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uris=fc_uris)
+    bad_ds = Dataset(fc_product, prep_eo3(bad_metadata), uri=fc_uri)
     with pytest.raises(ValueError):
         fused_ds = fuse_ds(wo_ds, bad_ds, product=fused_product)
 
@@ -526,6 +522,6 @@ def test_fuse_dss(wo_definition, fc_definition):
     fc_no_ff = deepcopy(fc_metadata)
     del wo_no_ff["properties"]["odc:file_format"]
     del fc_no_ff["properties"]["odc:file_format"]
-    wo_ds = Dataset(wo_product, prep_eo3(wo_no_ff), uris=wo_uris)
-    fc_ds = Dataset(fc_product, prep_eo3(fc_no_ff), uris=fc_uris)
+    wo_ds = Dataset(wo_product, prep_eo3(wo_no_ff), uri=wo_uri)
+    fc_ds = Dataset(fc_product, prep_eo3(fc_no_ff), uri=fc_uri)
     fuse_ds(wo_ds, fc_ds, product=fused_product)

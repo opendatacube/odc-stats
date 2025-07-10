@@ -1,17 +1,18 @@
 
 --extra-index-url https://packages.dea.ga.gov.au/
-datacube-ows<1.9
-datacube[performance,s3]<1.9
-eodatasets3<1.9
+datacube-ows>=1.9
+datacube[performance,s3]>=1.9.5
+eodatasets3>1.9
 hdstats==0.1.8.post1
-numexpr @ git+https://github.com/pydata/numexpr@a99412e
-odc-algo @ git+https://github.com/opendatacube/odc-algo@adb1856
+numexpr>=2.11
+odc-algo>=1.0.1
 odc-apps-cloud>=0.2.2
 # For testing
 odc-apps-dc-tools>=0.2.12
 odc-cloud>=0.2.5
-odc-dscache>=0.2.3
-odc-stac @ git+https://github.com/opendatacube/odc-stac@69bdf64
+odc-dscache>=1.9
+odc-geo>=0.5.0rc1
+odc-stac>=0.4.0
 
 # odc-stac is in PyPI
 odc-stats[ows]
