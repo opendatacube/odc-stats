@@ -2,7 +2,7 @@
 Long-term percentiles of S2Cloudless probabilities.
 
 Useful for locating regions persistently misclassified as
-cloud by S2Cloudless, which is known to have a high false 
+cloud by S2Cloudless, which is known to have a high false
 positive rate.
 
 """
