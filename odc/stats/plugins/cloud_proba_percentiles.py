@@ -2,12 +2,11 @@
 Long-term percentiles of S2Cloudless probabilities.
 
 Useful for locating regions persistently misclassified as
-cloud by S2Cloudless, which is known to have a high false
+cloud by S2Cloudless, which is known to have a high false 
 positive rate.
 
 """
 
-from functools import partial
 from typing import Sequence, Tuple, Mapping
 
 import numpy as np
