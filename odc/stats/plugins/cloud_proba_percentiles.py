@@ -2,7 +2,7 @@
 Long-term percentiles of S2Cloudless probabilities.
 
 Useful for locating regions persistently misclassified as
-cloud by S2Cloudless, which is known to have a high false
+cloud by S2Cloudless, which is known to have a high false 
 positive rate.
 
 """
@@ -19,7 +19,7 @@ from odc.algo._masking import erase_bad, enum_to_bool
 class S2Cloudless_percentiles(StatsPluginInterface):
     NAME = "S2Cloudless_percentiles"
     SHORT_NAME = NAME
-    VERSION = "1.0.0"
+    VERSION = "0.0.1"
     PRODUCT_FAMILY = "percentiles"
 
     def __init__(
