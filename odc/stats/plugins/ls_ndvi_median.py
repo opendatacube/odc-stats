@@ -11,6 +11,7 @@ from datacube.utils.masking import mask_invalid_data
 from odc.stats.plugins._registry import register, StatsPluginInterface
 from odc.algo._masking import erase_bad, enum_to_bool
 
+
 class StatsNDVI(StatsPluginInterface):
     """
     Define a class for summarising time
