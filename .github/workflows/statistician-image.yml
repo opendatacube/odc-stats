@@ -2,6 +2,7 @@ name: Statistician Test and Push
 
 env:
   IMAGE_NAME: opendatacube/datacube-statistician
+  DOCKER_IMAGE: opendatacube/odc-stats
 
 on:
   pull_request:
@@ -116,6 +117,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          image_name: ${{ github.repository }}
+          image_name: ${{ env.DOCKER_IMAGE }}
           image_tag: latest,${{ needs.set_tags.outputs.image_tag }}
           build_extra_args: '{"--build-arg": "UPDATE_VERSION=${{ needs.set_tags.outputs.image_tag }}"}'
