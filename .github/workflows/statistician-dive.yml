@@ -26,10 +26,10 @@ jobs:
     name: Analyze image efficiency
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: lint
-        uses: luke142367/Docker-Lint-Action@v1.1.1
+        uses: luke142367/Docker-Lint-Action@5c4c86226f39785a66827bbc2e322600c9afa3a9 # v1.1.1
         with:
           target: Dockerfile
         env:
@@ -47,7 +47,7 @@ jobs:
           wagoodman/dive:v0.12.0  --ci-config /.dive-ci ${ORG}/${IMAGE}:_build
 
       - name: Docker image size check
-        uses: wemake-services/docker-image-size-limit@2.0.0
+        uses: wemake-services/docker-image-size-limit@f5970eb0c2180ac296475bfd22c5a58955370051 # 2.2.0
         with:
           image: ${{ env.ORG }}/${{ env.IMAGE}}:_build
           size: "3 GiB"
