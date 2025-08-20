@@ -25,10 +25,10 @@ class StatsNDVI(StatsPluginInterface):
 
     def __init__(
         self,
-        input_bands: Sequence[str] = None,
-        output_bands: Sequence[str] = None,
-        mask_band: Sequence[str] = None,
-        contiguity_band: Sequence[str] = None,
+        input_bands: Sequence[str] | None,
+        output_bands: Sequence[str] | None,
+        mask_band: Sequence[str] | None,
+        contiguity_band: Sequence[str] | None,
         group_by: str = "solar_day",
         **kwargs,
     ):
