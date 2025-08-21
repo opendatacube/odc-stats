@@ -47,9 +47,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --upgrade \
-            setuptools \
-            setuptools-scm
+          pyton -m pip install --upgrade build
           python -m pip install --upgrade \
            toml \
            wheel \
@@ -60,8 +58,8 @@ jobs:
       - name: Build Clean Packages
         run: |
           mkdir -p ./wheels/clean
-          python setup.py bdist_wheel --dist-dir ./wheels/clean/
-          python setup.py sdist --dist-dir ./wheels/clean/
+          python -m build
+          mv dist/* ./wheels/clean/
           find ./wheels/clean -type f
 
   test-wheels:
