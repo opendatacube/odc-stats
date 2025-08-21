@@ -40,6 +40,7 @@ from .utils import (
     bin_generic,
     bin_seasonal,
     bin_rolling_seasonal,
+    bin_rolling_annual,
     fuse_ds,
     fuse_products,
 )
@@ -617,6 +618,10 @@ class SaveTasks:
         elif self._frequency == "rolling-3months":
             tasks = bin_rolling_seasonal(
                 cells, temporal_range=temporal_range, months=3, interval=1
+            )
+        elif self._frequency == "rolling-3years":
+            tasks = bin_rolling_annual(
+                cells, temporal_range=temporal_range, years=3, interval=1
             )
         elif self._frequency == "nov-mar":
             tasks = bin_seasonal(cells, months=5, anchor=11, extract_single_season=True)

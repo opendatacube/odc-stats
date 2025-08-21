@@ -29,6 +29,7 @@ SUPPORTED_FREQUENCY = [
     "quartely",
     "3month-seasons",
     "rolling-3months",
+    "rolling-3years",
     "nov-mar",
     "apr-oct",
     "monthly",

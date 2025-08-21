@@ -132,6 +132,36 @@ def bin_annual(
     return tasks
 
 
+def bin_rolling_annual(
+    cells: dict[tuple[int, int], Cell],
+    temporal_range,
+    years: int,
+    interval: int,
+) -> dict[tuple[str, int, int], list[CompressedDataset]]:
+    binner = rolling_season_binner(
+        mk_rolling_years_rules(temporal_range, years, interval)
+    )
+
+    tasks = {}
+    for tidx, cell in cells.items():
+        # This is a great pylint warning, but doesn't apply here because we
+        # only call the lambda from inside each iteration of the loop
+        # pylint:disable=cell-var-from-loop
+        utc_offset = cell.utc_offset
+        _grouped = toolz.groupby(lambda ds: binner(ds.time + utc_offset), cell.dss)
+
+        grouped = defaultdict(list)
+        for key, value in _grouped.items():
+            for k in key:
+                grouped[k].extend(value)
+
+        for temporal_k, dss in grouped.items():
+            if temporal_k != "":
+                tasks[(temporal_k,) + tidx] = dss
+
+    return tasks
+
+
 def mk_single_season_rules(months: int, anchor: int) -> dict[int, str]:
     """
     Construct rules for a each year single season summary
@@ -207,6 +237,35 @@ def mk_rolling_season_rules(temporal_range, months, interval):
     ):
         rules[f"{season_start.strftime('%Y-%m')}--P{months}M"] = DateTimeRange(
             f"{season_start.strftime('%Y-%m-%d')}--P{months}M"
+        )
+        season_start += season_start_interval
+
+    return rules
+
+
+def mk_rolling_years_rules(temporal_range, years, interval):
+    """
+    Construct rules for rolling years
+    :param temporal_range: Time range for which datasets have been loaded.
+    :param years: Length of a single season in years
+    :param interval: Length in years between the start years for 2 consecutive seasons.
+    """
+    assert 1 <= years
+    assert 0 < interval < years
+
+    season_start_interval = relativedelta(years=interval)
+
+    start_date = temporal_range.start
+    end_date = temporal_range.end
+
+    rules = {}
+    season_start = start_date
+    while (
+        DateTimeRange(f"{season_start.strftime('%Y-%m-%d')}--P{years}Y").end
+        <= end_date
+    ):
+        rules[f"{season_start.strftime('%Y')}--P{years}Y"] = DateTimeRange(
+            f"{season_start.strftime('%Y-%m-%d')}--P{years}Y"
         )
         season_start += season_start_interval
 
