@@ -261,8 +261,7 @@ def mk_rolling_years_rules(temporal_range, years, interval):
     rules = {}
     season_start = start_date
     while (
-        DateTimeRange(f"{season_start.strftime('%Y-%m-%d')}--P{years}Y").end
-        <= end_date
+        DateTimeRange(f"{season_start.strftime('%Y-%m-%d')}--P{years}Y").end <= end_date
     ):
         rules[f"{season_start.strftime('%Y')}--P{years}Y"] = DateTimeRange(
             f"{season_start.strftime('%Y-%m-%d')}--P{years}Y"

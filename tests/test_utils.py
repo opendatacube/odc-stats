@@ -226,9 +226,7 @@ def test_rolling_years_binner():
         "2003--P3Y": DateTimeRange(datetime(2003, 1, 1, 0, 0), "3Y"),
     }
 
-    assert (
-        mk_rolling_years_rules(temporal_range, years=3, interval=1) == seasons_rules
-    )
+    assert mk_rolling_years_rules(temporal_range, years=3, interval=1) == seasons_rules
 
     dss = list(gen_compressed_dss_2(temporal_range=temporal_range, step=1))
 
