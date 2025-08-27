@@ -170,6 +170,16 @@ class DateTimeRange:
     def __sub__(self, v: int) -> "DateTimeRange":
         p = self.to_pandas() - v
         return DateTimeRange(p.start_time.to_pydatetime(warn=False), self.freq)
+    
+    @property
+    def center(self) -> "DateTimeRange":
+        dt = self.start + (self.end - self.start) // 2
+        if self.freq.endswith("Y"):
+            return DateTimeRange(str(dt.year), "1Y")
+        elif self.freq.endswith("M"):
+            return DateTimeRange(f"{dt.year}-{dt.month}", "1M")
+        else:
+            return DateTimeRange(f"{dt.year}-{dt.month}-{dt.day:02d}", "1D")
 
 
 @dataclass
@@ -381,6 +391,7 @@ class Task:
         ext: str = EXT_TIFF,
         output_dataset: xr.Dataset = None,
         processing_dt: datetime | None = None,
+        use_center_time: bool = False,
     ) -> DatasetAssembler:
         """
         Put together metadata document for the output of this task. It needs the source_dataset to inherit
@@ -427,13 +438,19 @@ class Task:
 
         dataset_assembler.geometry = self.geobox.extent.geom
 
-        dataset_assembler.datetime = format_datetime(self.time_range.start)
-        dataset_assembler.properties["dtr:start_datetime"] = format_datetime(
-            self.time_range.start
-        )
-        dataset_assembler.properties["dtr:end_datetime"] = format_datetime(
-            self.time_range.end
-        )
+        if use_center_time:
+            center_time = self.time_range.center
+            dataset_assembler.datetime = format_datetime(center_time.start)
+            dataset_assembler.properties["dtr:start_datetime"] = format_datetime(center_time.start)
+            dataset_assembler.properties["dtr:end_datetime"] = format_datetime(center_time.end)
+        else:
+            dataset_assembler.datetime = format_datetime(self.time_range.start)
+            dataset_assembler.properties["dtr:start_datetime"] = format_datetime(
+                self.time_range.start
+            )
+            dataset_assembler.properties["dtr:end_datetime"] = format_datetime(
+                self.time_range.end
+            )
 
         # inherit properties from cfg
         for (
@@ -478,7 +495,7 @@ class Task:
         return dataset_assembler
 
     def render_metadata(
-        self, ext: str = EXT_TIFF, processing_dt: datetime | None = None
+        self, ext: str = EXT_TIFF, processing_dt: datetime | None = None, use_center_time: bool = False
     ) -> dict[str, Any]:
         """
         Put together STAC metadata document for the output of this task.
@@ -493,8 +510,13 @@ class Task:
 
         properties: dict[str, Any] = deepcopy(product.properties)
 
-        properties["dtr:start_datetime"] = format_datetime(self.time_range.start)
-        properties["dtr:end_datetime"] = format_datetime(self.time_range.end)
+        if use_center_time:
+            center_time = self.time_range.center
+            properties["dtr:start_datetime"] = format_datetime(center_time.start)
+            properties["dtr:end_datetime"] = format_datetime(center_time.end)
+        else:
+            properties["dtr:start_datetime"] = format_datetime(self.time_range.start)
+            properties["dtr:end_datetime"] = format_datetime(self.time_range.end)
         properties["odc:processing_datetime"] = format_datetime(
             processing_dt, timespec="seconds"
         )
