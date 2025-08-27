@@ -347,13 +347,19 @@ class S3COGSink:
         )  # stac_meta is Python str, but content is 'Dict format'
 
     def dump_with_pystac(
-        self, task: Task, ds: xr.Dataset, aux: xr.Dataset | None = None, proc: StatsPluginInterface = None
+        self,
+        task: Task,
+        ds: xr.Dataset,
+        aux: xr.Dataset | None = None,
+        proc: StatsPluginInterface = None,
     ) -> Delayed:
         """
         Dump files with STAC metadata file, which generated from PySTAC
         """
         json_url = task.metadata_path("absolute", ext=self._stac_meta_ext)
-        meta = task.render_metadata(ext=self._band_ext, use_center_time=hasattr(proc, "CENTER_TIMERANGE"))
+        meta = task.render_metadata(
+            ext=self._band_ext, use_center_time=hasattr(proc, "CENTER_TIMERANGE")
+        )
         json_data = dump_json(meta).encode("utf8")
 
         # fake write result for metadata output, we want metadata file to be
@@ -400,7 +406,9 @@ class S3COGSink:
         sha1_url = task.metadata_path("absolute", ext="sha1")
         proc_info_url = task.metadata_path("absolute", ext=self._proc_info_ext)
         dataset_assembler = task.render_assembler_metadata(
-            ext=self._band_ext, output_dataset=ds, use_center_time=hasattr(proc, "CENTER_TIMERANGE")
+            ext=self._band_ext,
+            output_dataset=ds,
+            use_center_time=hasattr(proc, "CENTER_TIMERANGE"),
         )
 
         dataset_assembler.extend_user_metadata(

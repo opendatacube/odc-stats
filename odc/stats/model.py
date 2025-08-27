@@ -170,7 +170,7 @@ class DateTimeRange:
     def __sub__(self, v: int) -> "DateTimeRange":
         p = self.to_pandas() - v
         return DateTimeRange(p.start_time.to_pydatetime(warn=False), self.freq)
-    
+
     @property
     def center(self) -> "DateTimeRange":
         dt = self.start + (self.end - self.start) // 2
@@ -441,8 +441,12 @@ class Task:
         if use_center_time:
             center_time = self.time_range.center
             dataset_assembler.datetime = format_datetime(center_time.start)
-            dataset_assembler.properties["dtr:start_datetime"] = format_datetime(center_time.start)
-            dataset_assembler.properties["dtr:end_datetime"] = format_datetime(center_time.end)
+            dataset_assembler.properties["dtr:start_datetime"] = format_datetime(
+                center_time.start
+            )
+            dataset_assembler.properties["dtr:end_datetime"] = format_datetime(
+                center_time.end
+            )
         else:
             dataset_assembler.datetime = format_datetime(self.time_range.start)
             dataset_assembler.properties["dtr:start_datetime"] = format_datetime(
@@ -495,7 +499,10 @@ class Task:
         return dataset_assembler
 
     def render_metadata(
-        self, ext: str = EXT_TIFF, processing_dt: datetime | None = None, use_center_time: bool = False
+        self,
+        ext: str = EXT_TIFF,
+        processing_dt: datetime | None = None,
+        use_center_time: bool = False,
     ) -> dict[str, Any]:
         """
         Put together STAC metadata document for the output of this task.
