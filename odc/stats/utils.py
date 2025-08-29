@@ -69,8 +69,7 @@ def bin_seasonal(
 
 
 def _rolling_tasks(
-    cells: dict[tuple[int, int], Cell],
-    binner: Callable[[datetime], list]
+    cells: dict[tuple[int, int], Cell], binner: Callable[[datetime], list]
 ) -> dict[tuple[str, int, int], list[CompressedDataset]]:
     tasks = defaultdict(list)
     for tidx, cell in cells.items():
@@ -80,7 +79,7 @@ def _rolling_tasks(
             for k in key:
                 if k != "":
                     tasks[(k,) + tidx].extend(value)
-    
+
     return dict(tasks)
 
 

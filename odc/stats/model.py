@@ -440,12 +440,8 @@ class Task:
 
         time = self.time_range.center if use_center_time else self.time_range
         dataset_assembler.datetime = format_datetime(time.start)
-        dataset_assembler.properties["dtr:start_datetime"] = format_datetime(
-            time.start
-        )
-        dataset_assembler.properties["dtr:end_datetime"] = format_datetime(
-            time.end
-        )
+        dataset_assembler.properties["dtr:start_datetime"] = format_datetime(time.start)
+        dataset_assembler.properties["dtr:end_datetime"] = format_datetime(time.end)
 
         # inherit properties from cfg
         for (
