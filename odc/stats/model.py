@@ -438,23 +438,14 @@ class Task:
 
         dataset_assembler.geometry = self.geobox.extent.geom
 
-        if use_center_time:
-            center_time = self.time_range.center
-            dataset_assembler.datetime = format_datetime(center_time.start)
-            dataset_assembler.properties["dtr:start_datetime"] = format_datetime(
-                center_time.start
-            )
-            dataset_assembler.properties["dtr:end_datetime"] = format_datetime(
-                center_time.end
-            )
-        else:
-            dataset_assembler.datetime = format_datetime(self.time_range.start)
-            dataset_assembler.properties["dtr:start_datetime"] = format_datetime(
-                self.time_range.start
-            )
-            dataset_assembler.properties["dtr:end_datetime"] = format_datetime(
-                self.time_range.end
-            )
+        time = self.time_range.center if use_center_time else self.time_range
+        dataset_assembler.datetime = format_datetime(time.start)
+        dataset_assembler.properties["dtr:start_datetime"] = format_datetime(
+            time.start
+        )
+        dataset_assembler.properties["dtr:end_datetime"] = format_datetime(
+            time.end
+        )
 
         # inherit properties from cfg
         for (
@@ -517,13 +508,9 @@ class Task:
 
         properties: dict[str, Any] = deepcopy(product.properties)
 
-        if use_center_time:
-            center_time = self.time_range.center
-            properties["dtr:start_datetime"] = format_datetime(center_time.start)
-            properties["dtr:end_datetime"] = format_datetime(center_time.end)
-        else:
-            properties["dtr:start_datetime"] = format_datetime(self.time_range.start)
-            properties["dtr:end_datetime"] = format_datetime(self.time_range.end)
+        time = self.time_range.center if use_center_time else self.time_range
+        properties["dtr:start_datetime"] = format_datetime(time.start)
+        properties["dtr:end_datetime"] = format_datetime(time.end)
         properties["odc:processing_datetime"] = format_datetime(
             processing_dt, timespec="seconds"
         )
@@ -540,7 +527,7 @@ class Task:
             id=str(self.uuid),
             geometry=geobox_wgs84.json,
             bbox=[bbox.left, bbox.bottom, bbox.right, bbox.top],
-            datetime=self.time_range.start.replace(tzinfo=timezone.utc),
+            datetime=time.start.replace(tzinfo=timezone.utc),
             properties=properties,
         )
         ProjectionExtension.add_to(item)

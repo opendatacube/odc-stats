@@ -237,6 +237,13 @@ def save_tasks(
         else:
             output = f"{input_products}_all.db"
 
+    if temporal_range is None and _cfg.get("frequency") in ["3month-seasons", "rolling-3months", "rolling-3years"]:
+        print(
+            f"--temporal-range or --year must be supplied for {_cfg.get('frequency')} frequency",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     try:
         tasks = SaveTasks(output, **_cfg)
     except ValueError as e:

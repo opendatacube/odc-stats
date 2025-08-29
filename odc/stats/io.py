@@ -349,9 +349,9 @@ class S3COGSink:
     def dump_with_pystac(
         self,
         task: Task,
+        proc: StatsPluginInterface,
         ds: xr.Dataset,
         aux: xr.Dataset | None = None,
-        proc: StatsPluginInterface = None,
     ) -> Delayed:
         """
         Dump files with STAC metadata file, which generated from PySTAC
@@ -394,9 +394,9 @@ class S3COGSink:
     def dump_with_eodatasets3(
         self,
         task: Task,
+        proc: StatsPluginInterface,
         ds: xr.Dataset,
         aux: xr.Dataset | None = None,
-        proc: StatsPluginInterface = None,
     ) -> Delayed:
         """
         Dump files with metadata files, which generated from eodatasets3
@@ -539,15 +539,15 @@ class S3COGSink:
     def dump(
         self,
         task: Task,
+        proc: StatsPluginInterface,
         ds: xr.Dataset,
         aux: xr.Dataset | None = None,
-        proc: StatsPluginInterface = None,
         apply_eodatasets3: bool | None = False,
     ) -> Delayed:
         if apply_eodatasets3:
-            return self.dump_with_eodatasets3(task, ds, aux, proc)
+            return self.dump_with_eodatasets3(task, proc, ds, aux)
         else:
-            return self.dump_with_pystac(task, ds, aux, proc)
+            return self.dump_with_pystac(task, proc, ds, aux)
 
 
 def compute_native_load_geobox(
