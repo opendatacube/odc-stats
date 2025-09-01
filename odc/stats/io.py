@@ -358,7 +358,7 @@ class S3COGSink:
         """
         json_url = task.metadata_path("absolute", ext=self._stac_meta_ext)
         meta = task.render_metadata(
-            ext=self._band_ext, use_center_time=hasattr(proc, "CENTER_TIMERANGE")
+            ext=self._band_ext, use_center_time=getattr(proc, "CENTER_TIMERANGE", False)
         )
         json_data = dump_json(meta).encode("utf8")
 
@@ -408,7 +408,7 @@ class S3COGSink:
         dataset_assembler = task.render_assembler_metadata(
             ext=self._band_ext,
             output_dataset=ds,
-            use_center_time=hasattr(proc, "CENTER_TIMERANGE"),
+            use_center_time=getattr(proc, "CENTER_TIMERANGE", False),
         )
 
         dataset_assembler.extend_user_metadata(
