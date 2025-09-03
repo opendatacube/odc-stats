@@ -347,13 +347,19 @@ class S3COGSink:
         )  # stac_meta is Python str, but content is 'Dict format'
 
     def dump_with_pystac(
-        self, task: Task, ds: Dataset, aux: Dataset | None = None
+        self,
+        task: Task,
+        proc: StatsPluginInterface,
+        ds: xr.Dataset,
+        aux: xr.Dataset | None = None,
     ) -> Delayed:
         """
         Dump files with STAC metadata file, which generated from PySTAC
         """
         json_url = task.metadata_path("absolute", ext=self._stac_meta_ext)
-        meta = task.render_metadata(ext=self._band_ext)
+        meta = task.render_metadata(
+            ext=self._band_ext, use_center_time=getattr(proc, "CENTER_TIMERANGE", False)
+        )
         json_data = dump_json(meta).encode("utf8")
 
         # fake write result for metadata output, we want metadata file to be
@@ -388,9 +394,9 @@ class S3COGSink:
     def dump_with_eodatasets3(
         self,
         task: Task,
-        ds: Dataset,
-        aux: Dataset | None = None,
-        proc: StatsPluginInterface = None,
+        proc: StatsPluginInterface,
+        ds: xr.Dataset,
+        aux: xr.Dataset | None = None,
     ) -> Delayed:
         """
         Dump files with metadata files, which generated from eodatasets3
@@ -400,7 +406,9 @@ class S3COGSink:
         sha1_url = task.metadata_path("absolute", ext="sha1")
         proc_info_url = task.metadata_path("absolute", ext=self._proc_info_ext)
         dataset_assembler = task.render_assembler_metadata(
-            ext=self._band_ext, output_dataset=ds
+            ext=self._band_ext,
+            output_dataset=ds,
+            use_center_time=getattr(proc, "CENTER_TIMERANGE", False),
         )
 
         dataset_assembler.extend_user_metadata(
@@ -531,15 +539,15 @@ class S3COGSink:
     def dump(
         self,
         task: Task,
-        ds: Dataset,
-        aux: Dataset | None = None,
-        proc: StatsPluginInterface = None,
+        proc: StatsPluginInterface,
+        ds: xr.Dataset,
+        aux: xr.Dataset | None = None,
         apply_eodatasets3: bool | None = False,
     ) -> Delayed:
         if apply_eodatasets3:
-            return self.dump_with_eodatasets3(task, ds, aux, proc)
+            return self.dump_with_eodatasets3(task, proc, ds, aux)
         else:
-            return self.dump_with_pystac(task, ds, aux)
+            return self.dump_with_pystac(task, proc, ds, aux)
 
 
 def compute_native_load_geobox(

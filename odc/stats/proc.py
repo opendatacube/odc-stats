@@ -249,7 +249,7 @@ class TaskRunner:
                 if rgba is not None:
                     aux = xr.Dataset({"rgba": rgba})
 
-            cog = sink.dump(task, ds, aux, proc, apply_eodatasets3)
+            cog = sink.dump(task, proc, ds, aux, apply_eodatasets3)
             cog = client.compute(cog, fifo_timeout="1ms")
 
             _log.debug("Waiting for completion")

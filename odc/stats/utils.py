@@ -59,11 +59,7 @@ def bin_seasonal(
 
     tasks = {}
     for tidx, cell in cells.items():
-        # This is a great pylint warning, but doesn't apply here because we
-        # only call the lambda from inside each iteration of the loop
-        # pylint:disable=cell-var-from-loop
-        utc_offset = cell.utc_offset
-        grouped = toolz.groupby(lambda ds: binner(ds.time + utc_offset), cell.dss)
+        grouped = toolz.groupby(lambda ds: binner(ds.time + cell.utc_offset), cell.dss)
 
         for temporal_k, dss in grouped.items():
             if temporal_k != "":
@@ -72,9 +68,24 @@ def bin_seasonal(
     return tasks
 
 
+def _rolling_tasks(
+    cells: dict[tuple[int, int], Cell], binner: Callable[[datetime], list]
+) -> dict[tuple[str, int, int], list[CompressedDataset]]:
+    tasks = defaultdict(list)
+    for tidx, cell in cells.items():
+        grouped = toolz.groupby(lambda ds: binner(ds.time + cell.utc_offset), cell.dss)
+
+        for key, value in grouped.items():
+            for k in key:
+                if k != "":
+                    tasks[(k,) + tidx].extend(value)
+
+    return dict(tasks)
+
+
 def bin_rolling_seasonal(
     cells: dict[tuple[int, int], Cell],
-    temporal_range,
+    temporal_range: DateTimeRange,
     months: int,
     interval: int,
 ) -> dict[tuple[str, int, int], list[CompressedDataset]]:
@@ -82,24 +93,7 @@ def bin_rolling_seasonal(
         mk_rolling_season_rules(temporal_range, months, interval)
     )
 
-    tasks = {}
-    for tidx, cell in cells.items():
-        # This is a great pylint warning, but doesn't apply here because we
-        # only call the lambda from inside each iteration of the loop
-        # pylint:disable=cell-var-from-loop
-        utc_offset = cell.utc_offset
-        _grouped = toolz.groupby(lambda ds: binner(ds.time + utc_offset), cell.dss)
-
-        grouped = defaultdict(list)
-        for key, value in _grouped.items():
-            for k in key:
-                grouped[k].extend(value)
-
-        for temporal_k, dss in grouped.items():
-            if temporal_k != "":
-                tasks[(temporal_k,) + tidx] = dss
-
-    return tasks
+    return _rolling_tasks(cells, binner)
 
 
 def bin_full_history(
@@ -119,17 +113,26 @@ def bin_annual(
     """
     tasks = {}
     for tidx, cell in cells.items():
-        # This is a great pylint warning, but doesn't apply here because we
-        # only call the lambda from inside each iteration of the loop
-        # pylint:disable=cell-var-from-loop
-        utc_offset = cell.utc_offset
-        grouped = toolz.groupby(lambda ds: (ds.time + utc_offset).year, cell.dss)
+        grouped = toolz.groupby(lambda ds: (ds.time + cell.utc_offset).year, cell.dss)
 
         for year, dss in grouped.items():
             temporal_k = (f"{year}--P1Y",)
             tasks[temporal_k + tidx] = dss
 
     return tasks
+
+
+def bin_rolling_annual(
+    cells: dict[tuple[int, int], Cell],
+    temporal_range: DateTimeRange,
+    years: int,
+    interval: int,
+) -> dict[tuple[str, int, int], list[CompressedDataset]]:
+    binner = rolling_season_binner(
+        mk_rolling_years_rules(temporal_range, years, interval)
+    )
+
+    return _rolling_tasks(cells, binner)
 
 
 def mk_single_season_rules(months: int, anchor: int) -> dict[int, str]:
@@ -184,7 +187,7 @@ def mk_season_rules(months: int, anchor: int) -> dict[int, str]:
     return rules
 
 
-def mk_rolling_season_rules(temporal_range, months, interval):
+def mk_rolling_season_rules(temporal_range: DateTimeRange, months: int, interval: int):
     """
     Construct rules for rolling seasons
     :param temporal_range: Time range for which datasets have been loaded.
@@ -207,6 +210,34 @@ def mk_rolling_season_rules(temporal_range, months, interval):
     ):
         rules[f"{season_start.strftime('%Y-%m')}--P{months}M"] = DateTimeRange(
             f"{season_start.strftime('%Y-%m-%d')}--P{months}M"
+        )
+        season_start += season_start_interval
+
+    return rules
+
+
+def mk_rolling_years_rules(temporal_range: DateTimeRange, years: int, interval: int):
+    """
+    Construct rules for rolling years
+    :param temporal_range: Time range for which datasets have been loaded.
+    :param years: Length of a single season in years
+    :param interval: Length in years between the start years for 2 consecutive seasons.
+    """
+    assert 1 <= years
+    assert 0 < interval < years
+
+    season_start_interval = relativedelta(years=interval)
+
+    start_date = temporal_range.start
+    end_date = temporal_range.end
+
+    rules = {}
+    season_start = start_date
+    while (
+        DateTimeRange(f"{season_start.strftime('%Y-%m-%d')}--P{years}Y").end <= end_date
+    ):
+        rules[f"{season_start.strftime('%Y')}--P{years}Y"] = DateTimeRange(
+            f"{season_start.strftime('%Y-%m-%d')}--P{years}Y"
         )
         season_start += season_start_interval
 

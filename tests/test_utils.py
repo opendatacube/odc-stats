@@ -16,8 +16,10 @@ from odc.stats.utils import (
     bin_generic,
     bin_seasonal,
     bin_rolling_seasonal,
+    bin_rolling_annual,
     mk_season_rules,
     mk_rolling_season_rules,
+    mk_rolling_years_rules,
     season_binner,
     fuse_products,
     fuse_ds,
@@ -209,6 +211,41 @@ def test_rolling_season_binner():
         ("2020-07--P6M", 0, 1),
         ("2020-08--P6M", 0, 1),
         ("2020-09--P6M", 0, 1),
+    ]
+
+    assert task_keys == list(tasks_s.keys())
+
+
+def test_rolling_years_binner():
+    temporal_range = DateTimeRange("2000--P6Y")
+
+    seasons_rules = {
+        "2000--P3Y": DateTimeRange(datetime(2000, 1, 1, 0, 0), "3Y"),
+        "2001--P3Y": DateTimeRange(datetime(2001, 1, 1, 0, 0), "3Y"),
+        "2002--P3Y": DateTimeRange(datetime(2002, 1, 1, 0, 0), "3Y"),
+        "2003--P3Y": DateTimeRange(datetime(2003, 1, 1, 0, 0), "3Y"),
+    }
+
+    assert mk_rolling_years_rules(temporal_range, years=3, interval=1) == seasons_rules
+
+    dss = list(gen_compressed_dss_2(temporal_range=temporal_range, step=1))
+
+    cells = {
+        (0, 1): SimpleNamespace(
+            dss=dss, geobox=None, idx=None, utc_offset=timedelta(seconds=0)
+        )
+    }
+
+    tasks_s = bin_rolling_annual(
+        cells=cells, temporal_range=temporal_range, years=2, interval=1
+    )
+
+    task_keys = [
+        ("2000--P2Y", 0, 1),
+        ("2001--P2Y", 0, 1),
+        ("2002--P2Y", 0, 1),
+        ("2003--P2Y", 0, 1),
+        ("2004--P2Y", 0, 1),
     ]
 
     assert task_keys == list(tasks_s.keys())

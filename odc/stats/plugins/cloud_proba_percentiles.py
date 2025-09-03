@@ -21,6 +21,7 @@ class S2Cloudless_percentiles(StatsPluginInterface):
     SHORT_NAME = NAME
     VERSION = "0.0.1"
     PRODUCT_FAMILY = "percentiles"
+    CENTER_TIMERANGE = True
 
     def __init__(
         self,
