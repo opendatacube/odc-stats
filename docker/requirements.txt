@@ -1,9 +1,10 @@
 
---extra-index-url https://packages.dea.ga.gov.au/
+# For ML
+ai-edge-litert
 datacube-ows>=1.9
 datacube[performance,s3]>=1.9.5
 eodatasets3>1.9
-hdstats==0.1.8.post1
+geomad<=1.0.0
 numexpr>=2.11
 odc-algo>=1.0.1
 odc-apps-cloud>=0.2.2
@@ -16,7 +17,4 @@ odc-stac>=0.4.0
 
 # odc-stac is in PyPI
 odc-stats[ows]
-
-# For ML
-tflite-runtime
 tl2cgen

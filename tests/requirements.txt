@@ -1,4 +1,4 @@
---extra-index-url https://packages.dea.ga.gov.au/
+ai-edge-litert
 datacube>=1.9.5
 datacube-ows>=1.9
 # for pytest-depends
@@ -22,7 +22,6 @@ pytest-cov
 pytest-httpserver
 pytest-timeout
 s3fs
-tflite-runtime
 tl2cgen
 
 # patch image
