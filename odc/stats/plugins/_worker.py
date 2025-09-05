@@ -5,7 +5,7 @@ or to be cached for all plugins
 """
 
 from dask.distributed import WorkerPlugin, get_worker
-import tflite_runtime.interpreter as tflite
+from ai_edge_litert.interpreter import Interpreter
 import tl2cgen
 import threading
 import logging
@@ -25,7 +25,7 @@ class TensorFlowLiteModelPlugin(WorkerPlugin):
         worker = get_worker()
         thread_id = threading.get_ident()
         if thread_id not in worker.interpreters:
-            interpreter = tflite.Interpreter(model_path=self.model_path)
+            interpreter = Interpreter(model_path=self.model_path)
             interpreter.allocate_tensors()
             worker.interpreters[thread_id] = interpreter
             self._log.info(
