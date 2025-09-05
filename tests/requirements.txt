@@ -6,6 +6,7 @@ deepdiff
 distributed>=2025.4
 eodatasets3>=1.9
 future_fstrings
+geomad
 mock
 moto
 networkx
