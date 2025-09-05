@@ -82,7 +82,7 @@ def dataset():
 
 
 def test_native_transform(dataset):
-    _ = pytest.importorskip("hdstats")
+    _ = pytest.importorskip("geomad")
 
     dataset = dataset.copy()
     stats_gmls = StatsGMLS(nodata_classes=(0,))
@@ -104,7 +104,7 @@ def test_native_transform(dataset):
 
 
 def test_result_bands_to_match_inputs(dataset):
-    _ = pytest.importorskip("hdstats")
+    _ = pytest.importorskip("geomad")
     mask_filters = {
         "cloud": [("closing", 2), ("dilation", 1)],
         "shadow": [("closing", 0), ("dilation", 5)],
@@ -130,7 +130,7 @@ def test_result_bands_to_match_inputs(dataset):
 
 
 def test_result_aux_bands_to_match_inputs(dataset):
-    _ = pytest.importorskip("hdstats")
+    _ = pytest.importorskip("geomad")
     mask_filters = {
         "cloud": [("closing", 2), ("dilation", 1)],
         "shadow": [("closing", 0), ("dilation", 5)],
@@ -165,7 +165,7 @@ def test_result_aux_bands_to_match_inputs(dataset):
 
 
 def test_resampling(dataset):
-    _ = pytest.importorskip("hdstats")
+    _ = pytest.importorskip("geomad")
     mask_filters = {
         "cloud": [("closing", 2), ("dilation", 1)],
         "shadow": [("closing", 0), ("dilation", 5)],
