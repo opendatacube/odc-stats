@@ -109,7 +109,7 @@ def test_fuser(dataset):
 
 
 def test_reduce(dataset):
-    _ = pytest.importorskip("hdstats")
+    _ = pytest.importorskip("geomad")
     gm = StatsGMLSBitmask(
         bands=["band_red"], offset=-0.2, scale=0.00975, output_scale=100
     )
@@ -140,7 +140,7 @@ def test_reduce(dataset):
 
 
 def test_reduce_with_filters(dataset):
-    _ = pytest.importorskip("hdstats")
+    _ = pytest.importorskip("geomad")
     mask_filters = [("closing", 2), ("dilation", 1)]
     gm = StatsGMLSBitmask(
         bands=["band_red"],
@@ -173,7 +173,7 @@ def test_reduce_with_filters(dataset):
 
 
 def test_aux_result_bands_to_match_inputs(dataset):
-    _ = pytest.importorskip("hdstats")
+    _ = pytest.importorskip("geomad")
     aux_names = dict(smad="SMAD", emad="EMAD", bcmad="BCMAD", count="COUNT")
     gm = StatsGMLSBitmask(
         bands=["band_red"],
