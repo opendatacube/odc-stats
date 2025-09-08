@@ -3,6 +3,7 @@
 set -e
 set -o pipefail
 
+
 odc-stats --version
 # echo "Checking save tasks"
 # odc-stats save-tasks --grid africa-20 --year 2019 --overwrite --input-products s2_l2a test-run.db
@@ -11,37 +12,37 @@ odc-stats --version
 
 echo "Test LS GeoMAD"
 
-odc-stats save-tasks --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/709daaee176c04e33de4cc9600462717cca5b34d/dev/services/odc-stats/geomedian/ga_ls8c_nbart_gm_cyear_3.yaml --year=2015 --tiles 49:50,24:25 --overwrite ls-geomad-cyear.db
-odc-stats run  --memory-limit=13GiB --threads=1 --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/709daaee176c04e33de4cc9600462717cca5b34d/dev/services/odc-stats/geomedian/ga_ls8c_nbart_gm_cyear_3.yaml --location file:///tmp --overwrite ls-geomad-cyear.db
+odc-stats save-tasks --config ./tests/test_configs/ga_ls8c_nbart_gm_cyear_3.yaml --year=2015 --tiles 49:50,24:25 --overwrite ls-geomad-cyear.db
+odc-stats run  --memory-limit=13GiB --threads=1 --config ./tests/test_configs/ga_ls8c_nbart_gm_cyear_3.yaml --location file:///tmp --overwrite ls-geomad-cyear.db
 
 ./tests/compare_data.sh /tmp/x49/y24/ ga_ls8c_nbart_gm_cyear_3_x49y24_2015--P1Y_final*.tif
 
 echo "Test LS WO summary"
 
-odc-stats save-tasks --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/709daaee176c04e33de4cc9600462717cca5b34d/dev/services/odc-stats/wofs_summary/ga_ls_wo_fq_cyear_3.yaml --year=2015 --tiles 49:50,24:25 --overwrite ls-wofs-cyear.db
-odc-stats run  --threads=1 --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/709daaee176c04e33de4cc9600462717cca5b34d/dev/services/odc-stats/wofs_summary/ga_ls_wo_fq_cyear_3.yaml --location file:///tmp --overwrite ls-wofs-cyear.db
+odc-stats save-tasks --config ./tests/test_configs/ga_ls_wo_fq_cyear_3.yaml --year=2015 --tiles 49:50,24:25 --overwrite ls-wofs-cyear.db
+odc-stats run  --threads=1 --config ./tests/test_configs/ga_ls_wo_fq_cyear_3.yaml --location file:///tmp --overwrite ls-wofs-cyear.db
 
 ./tests/compare_data.sh /tmp/x49/y24/ ga_ls_wo_fq_cyear_3_x49y24_2015--P1Y_fina*.tif
 
 echo "Test LS FC percentile"
 
-odc-stats save-tasks --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/709daaee176c04e33de4cc9600462717cca5b34d/dev/services/odc-stats/fc_percentile/ga_ls_fc_pc_cyear_3.yaml --year=2015 --tiles 49:50,24:25 --overwrite ls-fcp-cyear.db
-odc-stats run  --threads=1 --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/709daaee176c04e33de4cc9600462717cca5b34d/dev/services/odc-stats/fc_percentile/ga_ls_fc_pc_cyear_3.yaml --location file:///tmp --overwrite ls-fcp-cyear.db
+odc-stats save-tasks --config ./tests/test_configs/ga_ls_fc_pc_cyear_3.yaml --year=2015 --tiles 49:50,24:25 --overwrite ls-fcp-cyear.db
+odc-stats run  --threads=1 --config ./tests/test_configs/ga_ls_fc_pc_cyear_3.yaml --location file:///tmp --overwrite ls-fcp-cyear.db
 
 ./tests/compare_data.sh /tmp/x49/y24/ ga_ls_fc_pc_cyear_3_x49y24_2015--P1Y_final*.tif
 
 echo "Test LS TC percentile"
-odc-stats save-tasks --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/709daaee176c04e33de4cc9600462717cca5b34d/dev/services/odc-stats/tc_percentile/ga_ls_tc_pc_cyear_3.yaml --year=2015 --tiles 49:50,24:25 --overwrite ls-tcp-cyear.db
-odc-stats run  --threads=1 --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/709daaee176c04e33de4cc9600462717cca5b34d/dev/services/odc-stats/tc_percentile/ga_ls_tc_pc_cyear_3.yaml --location file:///tmp --overwrite ls-tcp-cyear.db
+odc-stats save-tasks --config ./tests/test_configs/ga_ls_tc_pc_cyear_3.yaml --year=2015 --tiles 49:50,24:25 --overwrite ls-tcp-cyear.db
+odc-stats run  --threads=1 --config ./tests/test_configs/ga_ls_tc_pc_cyear_3.yaml --location file:///tmp --overwrite ls-tcp-cyear.db
 
 ./tests/compare_data.sh /tmp/x49/y24/ ga_ls_tc_pc_cyear_3_x49y24_2015--P1Y_final*.tif
 
 echo "Test Indexing"
 
-datacube product add https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/5681c4bdced2fa5262554feac66e732d8bb824f9/products/baseline_satellite_data/geomedian-au/ga_ls8c_nbart_gm_cyear_3.odc-product.yaml
-datacube product add https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/5681c4bdced2fa5262554feac66e732d8bb824f9/products/inland_water/wofs/ga_ls_wo_fq_cyear_3.odc-product.yaml
-datacube product add https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/5681c4bdced2fa5262554feac66e732d8bb824f9/products/land_and_vegetation/fc/ga_ls_fc_pc_cyear_3.odc-product.yaml
-datacube product add https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/5681c4bdced2fa5262554feac66e732d8bb824f9/products/inland_water/c3_tc/ga_ls_tc_pc_cyear_3.odc-product.yaml
+datacube product add ./tests/test_configs/ga_ls8c_nbart_gm_cyear_3.odc-product.yaml
+datacube product add ./tests/test_configs/ga_ls_wo_fq_cyear_3.odc-product.yaml
+datacube product add ./tests/test_configs/ga_ls_fc_pc_cyear_3.odc-product.yaml
+datacube product add ./tests/test_configs/ga_ls_tc_pc_cyear_3.odc-product.yaml
 
 fs-to-dc  --stac /tmp/x49/y24/
 
