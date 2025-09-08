@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-docker compose up -d
+docker compose up -d --quiet-pull
 sleep 5
 
 docker compose exec -T stats odc-stats --version
