@@ -1,3 +1,20 @@
 [flake8]
-ignore = E731, E226, E203, W503
-max-line-length = 88
+extend-ignore =
+    # See https://github.com/PyCQA/pycodestyle/issues/373
+    E203,
+    # Allow individual bit of pytest to be imported: sometimes conciseness is nice.
+    PT013,
+
+per-file-ignores =
+    # Jupyter notebooks display  the final expression in cells
+    # Statement seems to have no effect (pointless-statement)
+    notebooks/s2-GM-stats.py: W0104
+    # Apparently unused imports are setting up the full CLI
+    odc/stats/cli.py: F401
+
+# Note that Black will enforce all code to line-length of 88.
+#
+# But we have many old comments in the codebase that are longer than this and
+# not worth dirtying the history to clean up, so we make Flake8's line length
+# check lenient.
+max-line-length = 120
