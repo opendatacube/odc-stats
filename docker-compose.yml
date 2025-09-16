@@ -22,5 +22,8 @@ services:
     depends_on:
       - postgres
     command: tail -f /dev/null
+   # Uncomment to port forward dask dashboard.
+   # ports:
+   #   - "8787:8787"
     volumes:
       - ./tests:/tmp/tests
