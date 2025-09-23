@@ -19,8 +19,8 @@ Running statistician requires a few steps, to prepare and cache the input data, 
 Some information for running odc-stats is discussed below. 
 
 > [!TIP]
-> Additionally, an example end-to-end notebook is provided
-> in the docs folder that outline how to create and test an odc-stats plugin: [odc-stats-explained](https://github.com/opendatacube/odc-stats/blob/develop/docs/odc-stats-explained.ipynb)
+> An example end-to-end notebook is provided in the docs folder that outlines how to create and test 
+> an `odc-stats` plugin: [odc-stats-explained](https://github.com/opendatacube/odc-stats/blob/develop/docs/odc-stats-explained.ipynb)
 
 ### Steps to run statistician
 
