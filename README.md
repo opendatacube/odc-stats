@@ -1,8 +1,8 @@
 # ODC Statistician
 
-Statistician is a framework of tools for generating statistical summaries of
-large collections of Earth Observation Imagery managed in an Open
-Datacube Instance. It is a spiritual successor to [datacube-stats](https://github.com/opendatacube/datacube-stats/),
+Statistician is a framework of powerful and flexible tools for generating statistical summaries of
+large collections of Earth Observation imagery managed in an Open
+Datacube instance. It is a spiritual successor to [datacube-stats](https://github.com/opendatacube/datacube-stats/),
 but intended to run in a cloud environment rather than on a HPC.
 
 ## Installation
@@ -12,9 +12,6 @@ pip install odc-stats
 ```
 
 ## Usage
-Statistician offers a set of powerful and flexible tools to generate statistical summaries (usually across time) of large
-collections of Earth Observation imagery managed in an Open Datacube Instance.
-
 Running statistician requires a few steps, to prepare and cache the input data, set up the configuration file.
 Some information for running odc-stats is discussed below. 
 
