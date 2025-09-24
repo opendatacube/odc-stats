@@ -12,7 +12,7 @@ pip install odc-stats
 ```
 
 ## Usage
-Running statistician requires a few steps, to prepare and cache the input data, and set up the configuration file.
+Running statistician requires a few steps, to prepare and cache the input data, and to set up the configuration file.
 Some information for running odc-stats is discussed below. 
 
 > [!TIP]
