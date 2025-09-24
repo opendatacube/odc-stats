@@ -12,12 +12,12 @@ pip install odc-stats
 ```
 
 ## Usage
-Running statistician requires a few steps, to prepare and cache the input data, set up the configuration file.
+Running statistician requires a few steps, to prepare and cache the input data, and set up the configuration file.
 Some information for running odc-stats is discussed below. 
 
 > [!TIP]
-> An example end-to-end notebook is provided in the docs folder that outlines how to create and test 
-> an `odc-stats` plugin: [odc-stats-explained](https://github.com/opendatacube/odc-stats/blob/develop/docs/odc-stats-explained.ipynb)
+> An example end-to-end notebook that outlines how to create and test an `odc-stats` plugin is provided
+> in the docs folder: [odc-stats-explained](https://github.com/opendatacube/odc-stats/blob/develop/docs/odc-stats-explained.ipynb)
 
 ### Steps to run statistician
 
