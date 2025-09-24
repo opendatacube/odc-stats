@@ -3,7 +3,7 @@ datacube>=1.9.5
 datacube-ows>=1.9
 # for pytest-depends
 deepdiff
-distributed>=2025.4
+distributed>=2025.4,<2025.9
 eodatasets3>=1.9
 future_fstrings
 mock
