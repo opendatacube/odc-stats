@@ -1,14 +1,9 @@
 # ODC Statistician
 
-Statistician is a framework of tools for generating statistical summaries of
-large collections of Earth Observation Imagery managed in an Open
-Datacube Instance. It is a spiritual successor to [datacube-stats](https://github.com/opendatacube/datacube-stats/),
+Statistician is a framework of powerful and flexible tools for generating statistical summaries of
+large collections of Earth Observation imagery managed in an Open
+Datacube instance. It is a spiritual successor to [datacube-stats](https://github.com/opendatacube/datacube-stats/),
 but intended to run in a cloud environment rather than on a HPC.
-
-It has already run at continental scale to produce annual geomedian summaries of all of Africa based on Sentinel-2 data.
-
-It is still under development, including adding support for processing sibling products, eg. Water Observations together with Surface Reflectance Quality classifications.
-
 
 ## Installation
 
@@ -17,11 +12,12 @@ pip install odc-stats
 ```
 
 ## Usage
+Running statistician requires a few steps, to prepare and cache the input data, and to set up the configuration file.
+Some information for running odc-stats is discussed below. 
 
-Statistician offers a set of tools to generate clear pixel count and geometric median on Sentinel-2 and Landsat satellite images.
-Running statistician requires a few steps, to prepare and cache the input data, set up the configuration file
-
-
+> [!TIP]
+> An example end-to-end notebook that outlines how to create and test an `odc-stats` plugin is provided
+> in the docs folder: [odc-stats-explained](https://github.com/opendatacube/odc-stats/blob/develop/docs/odc-stats-explained.ipynb)
 
 ### Steps to run statistician
 
