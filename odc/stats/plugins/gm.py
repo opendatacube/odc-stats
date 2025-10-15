@@ -30,6 +30,7 @@ class StatsGM(StatsPluginInterface):
         basis_band=None,
         aux_names: dict[str, str] = None,
         work_chunks: tuple[int, int] = (400, 400),
+        reshape_strategy : str = "mem",
         **kwargs,
     ):
         aux_names = (
@@ -68,6 +69,7 @@ class StatsGM(StatsPluginInterface):
         )
 
         self._work_chunks = work_chunks
+        self._reshape_strategy = reshape_strategy
 
     @property
     def measurements(self) -> tuple[str, ...]:
@@ -111,7 +113,7 @@ class StatsGM(StatsPluginInterface):
             "num_threads": 1,
             "scale": scale,
             "offset": -1 * scale,
-            "reshape_strategy": "mem",
+            "reshape_strategy": self._reshape_strategy,
             "out_chunks": (-1, -1, -1),
             "work_chunks": self._work_chunks,
             "compute_count": True,
