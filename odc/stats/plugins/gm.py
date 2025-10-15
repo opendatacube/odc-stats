@@ -30,7 +30,7 @@ class StatsGM(StatsPluginInterface):
         basis_band=None,
         aux_names: dict[str, str] = None,
         work_chunks: tuple[int, int] = (400, 400),
-        reshape_strategy : str = "mem",
+        reshape_strategy: str = "mem",
         **kwargs,
     ):
         aux_names = (
