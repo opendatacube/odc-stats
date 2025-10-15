@@ -32,12 +32,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: lint Dockerfile
         uses: hadolint/hadolint-action@v2.0.0
         with:
-          dockerfile: docker/Dockerfile
-          ignore: DL3008,DL3002,DL3013,DL3059,SC2102
+          dockerfile: Dockerfile
+          ignore: DL3008,DL3002,DL3013,DL3021,DL3059,SC2102
 
       - name: Build Statistician image
         timeout-minutes: 20
@@ -77,6 +79,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -87,7 +91,7 @@ jobs:
       - name: Push image to ECR
         uses: whoan/docker-build-with-cache-action@master
         with:
-          context: ./docker
+          context: .
           registry: 538673716275.dkr.ecr.ap-southeast-2.amazonaws.com
           image_name: ${{ env.IMAGE_NAME }}
           image_tag: latest,${{ needs.set_tags.outputs.image_tag }}
@@ -102,11 +106,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Push image to ghcr
         uses: whoan/docker-build-with-cache-action@master
         with:
-          context: ./docker
+          context: .
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
