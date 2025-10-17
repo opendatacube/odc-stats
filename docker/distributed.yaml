@@ -1,8 +1,13 @@
 # Note that this file is used by Dask configuration
 distributed:
+  scheduler:
+    active-memory-manager:  # See https://distributed.dask.org/en/stable/worker-memory.html#ignore-process-memory
+      measure: managed
   worker:
     memory:
+      rebalance:
+        measure: managed
       target: false
       spill: false
-      pause: 0.95
-      terminate: 0.97
+      pause: false
+      terminate: false
