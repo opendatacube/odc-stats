@@ -1,5 +1,8 @@
 # Note that this file is used by Dask configuration
 distributed:
+  nanny:
+    pre-spawn-environ:
+      MALLOC_TRIM_THRESHOLD_: 0
   scheduler:
     active-memory-manager:  # See https://distributed.dask.org/en/stable/worker-memory.html#ignore-process-memory
       measure: managed
