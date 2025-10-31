@@ -10,7 +10,6 @@ from datetime import timedelta
 from typing import Any, TYPE_CHECKING
 
 import numpy as np
-import pandas as pd
 import xarray as xr
 from datacube.model import Dataset
 from datacube.utils.dates import normalise_dt
@@ -72,12 +71,6 @@ def group_by_nothing(
     """
     dss = sorted(dss, key=lambda ds: (normalise_dt(ds.center_time), ds.id))  # type: ignore
     time = [normalise_dt(ds.center_time) for ds in dss]  # type: ignore
-    solar_day = None
-
-    if solar_day_offset is not None:
-        solar_day = np.asarray(
-            [(dt + solar_day_offset).date() for dt in time], dtype="datetime64[D]"
-        )
 
     idx = np.arange(0, len(dss), dtype="uint32")
     uuids = np.empty(len(dss), dtype="O")
@@ -89,14 +82,19 @@ def group_by_nothing(
         data[i] = (ds,)
         uuids[i] = ds.id
 
-    coords = [np.asarray(time, dtype="datetime64[ms]"), idx, uuids, grid]
-    names = ["time", "idx", "uuid", "grid"]
-    if solar_day is not None:
-        coords.append(solar_day)
-        names.append("solar_day")
-
-    coord = pd.MultiIndex.from_arrays(coords, names=names)
+    coords = {
+        'time': np.asarray(time, dtype="datetime64[ns]"), 
+        'idx': ("time", idx), 
+        "uuid": ("time", uuids), 
+        "grid": ("time", grid),
+        }
+    
+    if solar_day_offset is not None:
+        solar_day = np.asarray(
+            [(dt + solar_day_offset).date() for dt in time], dtype="datetime64[D]"
+        )
+        coords["solar_day"] = ("time", solar_day)
 
     return xr.DataArray(
-        data=data, coords={"spec": coord}, attrs={"grid2crs": grid2crs}, dims=("spec",)
+        data=data, coords=coords, attrs={"grid2crs": grid2crs}, dims=("time",)
     )

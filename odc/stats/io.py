@@ -653,7 +653,8 @@ def _native_load_1(
             else:
                 mm.update(om)
 
-    xx = Datacube.load_data(sources, load_geobox, mm, dask_chunks=load_chunks)
+    xx = Datacube.load_data(sources, load_geobox, mm, dask_chunks=load_chunks, driver='rio')
+    xx = xx.assign_coords(sources.coords)
     return xx
 
 
@@ -783,7 +784,7 @@ def load_with_native_transform(
         pad=pad,
     ):
         extra_args = choose_transform_path(
-            xx.crs,
+            xx.odc.crs,
             geobox.crs,
             kw.pop("transform_code", None),
             kw.pop("area_of_interest", None),
