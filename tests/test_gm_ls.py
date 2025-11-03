@@ -85,7 +85,7 @@ def test_native_transform(dataset):
     _ = pytest.importorskip("hdstats")
 
     dataset = dataset.copy()
-    stats_gmls = StatsGMLS(nodata_classes=(0,))
+    stats_gmls = StatsGMLS(nodata_classes=(0,), mask_band="fmask")
     xx = stats_gmls.native_transform(dataset)
     result = xx.compute()
 
@@ -111,7 +111,7 @@ def test_result_bands_to_match_inputs(dataset):
     }
 
     dataset = dataset.copy()
-    stats_gmls = StatsGMLS(cloud_filters=mask_filters, nodata_classes=(-999,))
+    stats_gmls = StatsGMLS(cloud_filters=mask_filters, nodata_classes=(-999,), mask_band="fmask")
     xx = stats_gmls.native_transform(dataset)
     result = stats_gmls.reduce(xx)
 
@@ -144,7 +144,7 @@ def test_result_aux_bands_to_match_inputs(dataset):
         count="COUNT",
     )
     stats_gmls = StatsGMLS(
-        cloud_filters=mask_filters, nodata_classes=(-999,), aux_names=aux_names
+        cloud_filters=mask_filters, nodata_classes=(-999,), aux_names=aux_names, mask_band="fmask"
     )
 
     xx = stats_gmls.native_transform(dataset)
