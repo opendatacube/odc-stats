@@ -653,7 +653,9 @@ def _native_load_1(
             else:
                 mm.update(om)
 
-    xx = Datacube.load_data(sources, load_geobox, mm, dask_chunks=load_chunks, driver='rio')
+    xx = Datacube.load_data(
+        sources, load_geobox, mm, dask_chunks=load_chunks, driver="rio"
+    )
     xx = xx.assign_coords(sources.coords)
     return xx
 

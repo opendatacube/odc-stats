@@ -100,7 +100,7 @@ class TaskRunner:
         aws_unsigned = self._cfg.aws_unsigned
         for c in (None, client):
             configure_s3_access(
-                aws_unsigned=aws_unsigned, cloud_defaults=True, client=c, driver='rio'
+                aws_unsigned=aws_unsigned, cloud_defaults=True, client=c, driver="rio"
             )
         plugin = S3ClientPlugin()
         client.register_plugin(plugin)

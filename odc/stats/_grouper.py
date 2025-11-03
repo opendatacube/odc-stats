@@ -83,12 +83,12 @@ def group_by_nothing(
         uuids[i] = ds.id
 
     coords = {
-        'time': np.asarray(time, dtype="datetime64[ns]"), 
-        'idx': ("time", idx), 
-        "uuid": ("time", uuids), 
+        "time": np.asarray(time, dtype="datetime64[ns]"),
+        "idx": ("time", idx),
+        "uuid": ("time", uuids),
         "grid": ("time", grid),
-        }
-    
+    }
+
     if solar_day_offset is not None:
         solar_day = np.asarray(
             [(dt + solar_day_offset).date() for dt in time], dtype="datetime64[D]"
