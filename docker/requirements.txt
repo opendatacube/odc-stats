@@ -2,7 +2,7 @@
 --extra-index-url https://packages.dea.ga.gov.au/
 # For ML
 ai-edge-litert
-datacube-ows>=1.9
+datacube-ows>=1.9.10
 datacube[performance,s3]>=1.9.5
 eodatasets3>1.9
 hdstats==0.1.8.post1
