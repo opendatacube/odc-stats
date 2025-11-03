@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
+cd ..
 docker compose up -d --quiet-pull
 sleep 5
 
