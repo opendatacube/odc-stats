@@ -1,7 +1,7 @@
 import json
 
 from odc.aio import S3Fetcher, s3_find_glob
-from datacube.metadata import stac2ds
+from odc.stac.eo3 import stac2ds
 from pystac.item import Item
 
 
