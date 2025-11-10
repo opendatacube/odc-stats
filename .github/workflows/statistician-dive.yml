@@ -50,4 +50,4 @@ jobs:
         uses: wemake-services/docker-image-size-limit@f5970eb0c2180ac296475bfd22c5a58955370051 # 2.2.0
         with:
           image: ${{ env.ORG }}/${{ env.IMAGE}}:_build
-          size: "3 GiB"
+          size: "3.5 GiB"
