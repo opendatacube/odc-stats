@@ -206,7 +206,7 @@ class StatsGMLS(StatsGM):
         self,
         *,
         bands: tuple[str, ...] | None = None,
-        mask_band: str = "fmask",
+        mask_band: str = "oa_fmask",
         contiguity_band: str = "nbart_contiguity",
         nodata_classes: tuple[str, ...] | None = ("nodata",),
         cloud_filters: dict[str | tuple[str, ...], Iterable[tuple[str, int]]] = None,
