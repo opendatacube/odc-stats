@@ -84,7 +84,10 @@ CONFIG_ITEMS = [
 )
 @click_yaml_cfg("--cog-config", help="Configure COG options")
 @click.option("--resampling", type=str, help="Input resampling strategy, e.g. average")
-@click_resolution("--resolution", help="Override output resolution")
+@click_resolution(
+    "--resolution",
+    help="Override output resolution (in x,y order if different) in CRS units eg 0.00025 or 30,-25",
+)
 @click.argument("filedb", type=str, nargs=1, default="")
 @click.argument("tasks", type=str, nargs=-1)
 # pylint: disable=too-many-arguments, too-many-locals, logging-fstring-interpolation
