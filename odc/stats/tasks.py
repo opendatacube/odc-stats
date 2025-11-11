@@ -732,7 +732,7 @@ class TaskReader:
         self._cfg = cfg
 
     def is_compatible_resolution(self, resolution: tuple[float, float], tol=1e-8):
-        for res, sz in zip(resolution, self._gridspec.tile_size):
+        for res, sz in zip(resolution, self._gridspec.tile_size.xy):
             res = abs(res)
             npix = int(sz / res)
             if abs(npix * res - sz) > tol:
