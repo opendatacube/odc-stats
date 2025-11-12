@@ -92,6 +92,8 @@ jobs:
           apt update
           DEBIAN_FRONTEND=noninteractive apt-get install -y \
           --fix-missing --no-install-recommends \
+          curl \
+          gpg \
           nodejs \
           zstd
           python -m pip install --upgrade --no-cache pip
