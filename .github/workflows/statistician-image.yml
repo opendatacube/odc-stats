@@ -6,15 +6,13 @@ env:
 
 on:
   pull_request:
-    paths:
+    paths: &paths
       - 'docker/**'
       - '!docker/readme.md'
   push:
     branches:
       - develop
-    paths:
-      - 'docker/**'
-      - '!docker/readme.md'
+    paths: *paths
   workflow_run:
     workflows: ["Publish to S3 and PyPI"]
     branches: [develop]
