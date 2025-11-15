@@ -3,16 +3,13 @@ name: Statistician docker check
 
 on:
   pull_request:
-    paths:
+    paths: &paths
       - '.github/workflows/statistician-dive.yml'
       - 'docker/**'
       - '!docker/readme.md'
 
   push:
-    paths:
-      - '.github/workflows/statistician-dive.yml'
-      - 'docker/**'
-      - '!docker/readme.md'
+    paths: *paths
 
 env:
   ORG: odc
