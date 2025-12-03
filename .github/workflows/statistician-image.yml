@@ -16,7 +16,7 @@ on:
       - 'docker/**'
       - '!docker/readme.md'
   workflow_run:
-    workflows: ["Publish to S3 and PyPI"]
+    workflows: ["Publish to PyPI"]
     branches: [develop]
     types:
       - completed
