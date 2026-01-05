@@ -498,12 +498,10 @@ class Task:
         if processing_dt is None:
             processing_dt = datetime.utcnow()
 
-        product = self.product
         geobox = self.geobox
-        region_code = product.region_code(self.tile_index)
         inputs = list(map(str, self._lineage()))
 
-        properties: dict[str, Any] = deepcopy(product.properties)
+        properties: dict[str, Any] = deepcopy(self.product.properties)
 
         time = self.time_range.center if use_center_time else self.time_range
         properties["dtr:start_datetime"] = format_datetime(time.start)
@@ -511,9 +509,9 @@ class Task:
         properties["odc:processing_datetime"] = format_datetime(
             processing_dt, timespec="seconds"
         )
-        properties["odc:region_code"] = region_code
-        properties["odc:product"] = product.name
-        properties["odc:dataset_version"] = product.version
+        properties["odc:region_code"] = self.product.region_code(self.tile_index)
+        properties["odc:product"] = self.product.name
+        properties["odc:dataset_version"] = self.product.version
 
         geobox_wgs84 = geobox.extent.to_crs(
             "epsg:4326", resolution=math.inf, wrapdateline=True
@@ -529,7 +527,7 @@ class Task:
         )
         ProjectionExtension.add_to(item)
         proj_ext = ProjectionExtension.ext(item)
-        
+
         # odc-geo changed to store affine in a different way
         transform = geobox.transform
         if isinstance(transform, Affine):
@@ -557,7 +555,7 @@ class Task:
             pystac.Link(
                 rel="product_overview",
                 media_type="application/json",
-                target=product.href,
+                target=self.product.href,
             )
         )
         item.links.append(
