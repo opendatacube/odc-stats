@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from uuid import UUID, uuid5
 from pathlib import Path
 
+from affine import Affine
 import pandas as pd
 import pystac
 import xarray as xr
@@ -528,8 +529,14 @@ class Task:
         )
         ProjectionExtension.add_to(item)
         proj_ext = ProjectionExtension.ext(item)
+        
+        # odc-geo changed to store affine in a different way
+        transform = geobox.transform
+        if isinstance(transform, Affine):
+            transform = geobox.transform.to_gdal()
+
         proj_ext.apply(
-            epsg=geobox.crs.epsg, transform=geobox.transform, shape=list(geobox.shape)
+            epsg=geobox.crs.epsg, transform=transform, shape=list(geobox.shape)
         )
 
         # Lineage last
