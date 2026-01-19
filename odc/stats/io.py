@@ -283,8 +283,7 @@ class S3COGSink:
                 )
             except ImportError as e:
                 raise type(e)(
-                    str(e)
-                    + '. Please run python -m pip install "odc-stats[ows]" to \
+                    str(e) + '. Please run python -m pip install "odc-stats[ows]" to \
                     setup environment to generate thumbnail.'
                 )
             else:
@@ -447,8 +446,7 @@ class S3COGSink:
                 )
             except ImportError as e:
                 raise type(e)(
-                    str(e)
-                    + '. Please run python -m pip install "odc-stats[ows]" \
+                    str(e) + '. Please run python -m pip install "odc-stats[ows]" \
                             to setup environment to generate thumbnail.'
                 )
 

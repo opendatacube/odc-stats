@@ -9,7 +9,6 @@ from datacube.storage import measurement_paths
 from datacube.model import Dataset, Product
 from datacube.index.eo3 import prep_eo3
 
-
 CompressedDataset = namedtuple("CompressedDataset", ["id", "time"])
 Cell = Any
 
