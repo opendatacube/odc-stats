@@ -17,7 +17,6 @@ from odc.algo import wait_for_future
 from datacube.utils.dask import start_local_dask
 from datacube.utils.rio import configure_s3_access
 
-
 Future = Any
 
 

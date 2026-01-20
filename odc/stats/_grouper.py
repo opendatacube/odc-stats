@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 def mid_longitude(geom: Geometry) -> float:
     """Return longitude of the middle point of the geomtry."""
-    ((lon,), _) = geom.centroid.to_crs("epsg:4326").xy
+    (lon,), _ = geom.centroid.to_crs("epsg:4326").xy
     return lon
 
 

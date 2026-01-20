@@ -15,33 +15,27 @@ def test_read_int():
 
 
 def test_parse_yaml():
-    o = parse_yaml(
-        """
+    o = parse_yaml("""
 a: 3
 b: foo
-"""
-    )
+""")
 
     assert o["a"] == 3 and o["b"] == "foo"
     assert set(o) == {"a", "b"}
-    o = parse_yaml_file_or_inline(
-        """
+    o = parse_yaml_file_or_inline("""
 a: 3
 b: foo
-"""
-    )
+""")
 
     assert o["a"] == 3 and o["b"] == "foo"
     assert set(o) == {"a", "b"}
 
 
 def test_load_yaml_remote(httpserver):
-    httpserver.expect_request("/ga_ls_fc_pc_cyear_3.yaml").respond_with_data(
-        """
+    httpserver.expect_request("/ga_ls_fc_pc_cyear_3.yaml").respond_with_data("""
     a: 3
     b: foo
-    """
-    )
+    """)
     content = load_yaml_remote(httpserver.url_for("/ga_ls_fc_pc_cyear_3.yaml"))
     assert content["a"] == 3 and content["b"] == "foo"
     with pytest.raises(FileNotFoundError, match=r".*something_non_exist.yaml"):

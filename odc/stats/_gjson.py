@@ -20,7 +20,7 @@ def gs_bounds(gs: GridSpec, tiles: tuple[tuple[int, int], tuple[int, int]]) -> G
 
     X,Y ranges are inclusive on the left and exclusive on the right, same as numpy slicing.
     """
-    ((x0, x1), (y0, y1)) = tiles
+    (x0, x1), (y0, y1) = tiles
     if gs.resolution.y < 0:
         gb = gs.tile_geobox((x0, y1 - 1))
     else:
