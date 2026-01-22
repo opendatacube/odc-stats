@@ -828,7 +828,7 @@ def load_with_native_transform(
     else:
         sample_band = basis if basis is not None else bands[0]
         concat_dim = _xx[0][sample_band].dims[0]
-        xx = xr.concat(_xx, dim=concat_dim)  # type: ignore
+        xx = xr.concat(_xx, dim=concat_dim)  # type: ignore[assign]
         if groupby != "idx":
             xx = xx.groupby(groupby).map(fuser)
     # TODO: probably want to replace spec MultiIndex with just `time` component
