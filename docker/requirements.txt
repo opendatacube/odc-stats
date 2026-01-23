@@ -14,7 +14,7 @@ odc-apps-dc-tools>=0.2.12
 odc-cloud>=0.2.5
 odc-dscache>=1.9
 odc-geo>=0.5.0rc1
-odc-stac>=0.4.0
+odc-stac==0.4.0 # 0.4.1 removes stac2ds, not moved to datacube until 1.9.6
 
 # odc-stac is in PyPI
 tl2cgen
