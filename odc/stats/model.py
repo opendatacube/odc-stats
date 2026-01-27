@@ -531,7 +531,9 @@ class Task:
         # odc-geo changed to store affine in a different way
         transform = geobox.transform
         if isinstance(transform, Affine):
-            transform = geobox.transform.to_gdal()
+            transform = (
+                geobox.transform.to_shapely()
+            )  # Should return Ordered: a, b, d, e, c, f as Rasterio expects
 
         proj_ext.apply(
             epsg=geobox.crs.epsg, transform=transform, shape=list(geobox.shape)
