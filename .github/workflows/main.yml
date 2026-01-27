@@ -74,7 +74,7 @@ jobs:
 
     services:
       postgres:
-        image: postgis/postgis:10-2.5
+        image: postgis/postgis:18-3.6
         env:
           POSTGRES_DB: opendatacube
           POSTGRES_PASSWORD: opendatacubepassword

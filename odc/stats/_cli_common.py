@@ -10,7 +10,6 @@ from ._text import parse_slice
 from ._text import parse_yaml_file_or_inline, parse_range2d_int, load_yaml_remote
 from urllib.parse import urlparse
 
-
 TileIdx_txy = tuple[str, int, int]  # pylint: disable=invalid-name
 
 

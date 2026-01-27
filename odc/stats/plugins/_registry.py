@@ -4,7 +4,6 @@ from functools import partial
 
 from ._base import StatsPluginInterface
 
-
 PluginFactory = Callable[..., StatsPluginInterface]
 
 _plugins: dict[str, PluginFactory] = {}

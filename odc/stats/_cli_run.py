@@ -6,7 +6,6 @@ from .proc import TaskRunner
 from .plugins import import_all
 from ._cli_common import main, setup_logging, click_resolution, click_yaml_cfg
 
-
 CONFIG_ITEMS = [
     "product",
     "filedb",
@@ -183,10 +182,8 @@ def run(
     if (
         from_sqs
     ):  # if config or CLI has filedb, but run from sqs, throw this warning message.
-        _log.warning(
-            "The `filedb` from config or CLI will be a placeholder value. \
-                    Actual filedb saved in SQS message"
-        )
+        _log.warning("The `filedb` from config or CLI will be a placeholder value. \
+                    Actual filedb saved in SQS message")
     elif not _cfg.get("filedb"):
         _log.error("Must supply `filedb` either through config or CLI")
         sys.exit(1)
@@ -249,10 +246,8 @@ def run(
 
         _log.info(f"T:{total:,d}, OK:{finished:,d}, S:{skipped:,d}, E:{errored:,d}")
 
-    _log.info(
-        f"""Completed processing {total:,d} tasks, OK:{finished:,d},
-        S:{skipped:,d}, E:{errored:,d}"""
-    )
+    _log.info(f"""Completed processing {total:,d} tasks, OK:{finished:,d},
+        S:{skipped:,d}, E:{errored:,d}""")
 
     _log.info("Shutting down Dask cluster")
     del runner

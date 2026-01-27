@@ -13,7 +13,6 @@ from botocore import UNSIGNED
 from botocore.config import Config
 from datacube.utils.dask import start_local_dask
 
-
 project_root = Path(__file__).parents[1]
 data_dir = f"{project_root}/tests/data/"
 
