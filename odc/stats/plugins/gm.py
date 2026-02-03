@@ -8,6 +8,7 @@ from odc.algo import geomedian_with_mads
 from ._registry import StatsPluginInterface, register
 from odc.algo import enum_to_bool, erase_bad
 from odc.algo import mask_cleanup
+from odc.geo.xr import assign_crs
 import logging
 
 _log = logging.getLogger(__name__)
@@ -122,6 +123,21 @@ class StatsGM(StatsPluginInterface):
 
         gm = geomedian_with_mads(xx, **cfg)
         gm = gm.rename(self._renames)
+
+        # geomedian_with_mads drops spatial_ref; re-attach from input
+        crs = getattr(xx.odc, "crs", None)  # type: ignore[attr-defined]
+        if crs is not None:
+            gm = gm.copy()
+            
+            # Remove stale CRS metadata
+            gm.attrs.pop("crs", None)
+            gm.attrs.pop("grid_mapping", None)
+            for v in gm.data_vars:
+                gm[v].attrs.pop("crs", None)
+                gm[v].attrs.pop("grid_mapping", None)
+            
+            gm = gm.drop_vars(["spatial_ref", "crs"], errors="ignore")
+            gm = assign_crs(gm, crs=crs)
 
         return gm
 

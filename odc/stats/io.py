@@ -33,7 +33,7 @@ from pyproj import aoi, transformer
 
 from odc.geo.geobox import GeoBox
 from odc.geo.geobox import pad as gbox_pad
-from odc.geo.xr import xr_reproject
+from odc.geo.xr import xr_reproject, assign_crs
 
 from ._grouper import group_by_nothing, solar_offset
 from odc.algo._masking import (
@@ -813,6 +813,9 @@ def load_with_native_transform(
             chunks=_chunks,
             **extra_args,
         )
+
+        # Ensure output advertises the destination CRS consistently
+        _yy = assign_crs(_yy, crs=geobox.crs)
 
         if isinstance(_yy, xr.DataArray) and vars_to_scale:
             _yy = _yy > 64
