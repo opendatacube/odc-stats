@@ -485,7 +485,7 @@ class Task:
 
         return dataset_assembler
 
-    def render_metadata(
+    def render_metadata(  # pylint: disable=too-many-locals
         self,
         ext: str = EXT_TIFF,
         processing_dt: datetime | None = None,
@@ -530,9 +530,9 @@ class Task:
         proj_ext = ProjectionExtension.ext(item)
 
         proj_ext.apply(
-            epsg=geobox.crs.epsg, 
+            epsg=geobox.crs.epsg,
             transform=list(geobox.transform),  # ensure transform is JSON serializable
-            shape=list(geobox.shape)
+            shape=list(geobox.shape),
         )
 
         # Lineage last
