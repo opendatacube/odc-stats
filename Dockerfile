@@ -21,7 +21,7 @@ RUN micromamba run -p /env pip install --no-cache-dir \
 
 WORKDIR /build
 # Copy statements sorted from least likely to most likely to have changed.
-COPY --link pyproject.toml setup.py setup.cfg /build/
+COPY --link pyproject.toml /build/
 COPY --link ./odc /build/odc
 COPY --link ./.git /build/.git
 RUN micromamba run -p /env pip install --no-cache-dir \
@@ -31,10 +31,7 @@ FROM ubuntu:jammy-20240212
 COPY --link --from=stats-conda /env /env
 COPY --link docker/distributed.yaml  /etc/dask/
 
-ENV GDAL_DRIVER_PATH=/env/lib/gdalplugins \ 
-    PROJ_LIB=/env/share/proj \
-    GDAL_DATA=/env/share/gdal \
-    PATH=/env/bin:$PATH
+ENV PATH=/env/bin:$PATH
 
 WORKDIR /tmp
 

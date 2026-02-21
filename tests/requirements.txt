@@ -1,7 +1,7 @@
 --extra-index-url https://packages.dea.ga.gov.au/
 ai-edge-litert
-datacube>=1.9.5
 datacube-ows>=1.9
+datacube[performance,s3]==1.9.5
 # for pytest-depends
 deepdiff
 distributed>=2025.4,<2025.9
@@ -15,14 +15,14 @@ odc-algo>=1.0.1,<1.1 # No geomad yet
 odc-cloud>=0.2.5
 odc-dscache>=1.9
 odc-geo>=0.5.0rc1
-odc-stac>=0.4.0
+odc-stac==0.4.0 # 0.4.1 removes stac2ds, not moved to datacube until 1.9.6
 
 # For tests
 pytest
 pytest-cov
 pytest-httpserver
 pytest-timeout
-s3fs
+s3fs>2023.6.0
 tl2cgen
 
 # patch image

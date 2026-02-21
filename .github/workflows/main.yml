@@ -13,10 +13,6 @@ on:
       - '!README.md'
     tags:
       - '**'
-  workflow_run:
-    workflows: ["Create a new tag"]
-    types:
-      - completed
 
 permissions:
   contents: read
@@ -48,12 +44,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --upgrade build
-          python -m pip install --upgrade \
-           toml \
-           wheel \
-           twine \
-           packaging
+          python -m pip install build
           python -m pip freeze
 
       - name: Build Clean Packages
@@ -92,7 +83,7 @@ jobs:
       - name: Install Dependencies
         shell: bash
         run: |
-          apt update
+          apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y \
           --fix-missing --no-install-recommends \
           curl \
@@ -100,7 +91,7 @@ jobs:
           nodejs \
           zstd
           python -m pip install --upgrade --no-cache pip
-          pip install --upgrade --no-cache -r \
+          pip install --no-cache -r \
           tests/requirements.txt
           pip freeze
 
