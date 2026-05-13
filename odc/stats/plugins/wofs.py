@@ -25,6 +25,17 @@ from ._registry import StatsPluginInterface, register
 from odc.algo._masking import _or_fuser, mask_cleanup
 
 
+DRY = np.uint8(0)
+NODATA = np.uint8(1)
+NONCONT = np.uint8(1 << 1)
+LOW_ANG = np.uint8(1 << 2)
+T_SHADOW = np.uint8(1 << 3)
+T_SLOPE = np.uint8(1 << 4)
+C_SHADOW = np.uint8(1 << 5)
+CLOUD = np.uint8(1 << 6)
+WATER = np.uint8(1 << 7)
+
+
 class StatsWofs(StatsPluginInterface):
     """
     Generate a Summary of Water Observations data from individual observations
@@ -47,13 +58,15 @@ class StatsWofs(StatsPluginInterface):
 
     # these get padded out if dilation was requested
     BAD_BITS_MASK = {
-        "cloud": (1 << 6),
-        "cloud_shadow": (1 << 5),
-        "terrain_shadow": (1 << 3),
+        "cloud": CLOUD,
+        "cloud_shadow": C_SHADOW,
+        "terrain_shadow": T_SHADOW,
     }  # Cloud/Shadow + Terrain Shadow
 
     def __init__(
-        self, cloud_filters: dict[str, Iterable[tuple[str, int]]] = None, **kwargs
+        self, 
+        cloud_filters: dict[str, Iterable[tuple[str, int]]] | None = None, 
+        **kwargs
     ):
         super().__init__(input_bands=["water"], **kwargs)
         self.cloud_filters = cloud_filters if cloud_filters is not None else {}
@@ -90,8 +103,8 @@ class StatsWofs(StatsPluginInterface):
           .dry<Bool>   - pixel has dry classification and is not ``bad``
           .wet<Bool>   - pixel has wet classification and is not ``bad``
         """
-        xx["bad"] = (xx.water & 1) == 0
-        xx["bad"] &= (xx.water & (~(1 << 7) | 1)) > 0  # bad
+        xx["bad"] = (xx.water & NODATA) == 0  # start with valid data (not NODATA)
+        xx["bad"] &= (xx.water & ~(WATER | NODATA)) > 0  # bad if any other non-water flag is set
 
         # dilate 'bad'
         for key, val in self.BAD_BITS_MASK.items():
@@ -102,8 +115,8 @@ class StatsWofs(StatsPluginInterface):
                 )
                 xx["bad"] |= raw_mask
 
-        xx["dry"] = (xx.water == 0) & ~xx["bad"]
-        xx["wet"] = (xx.water == 128) & ~xx["bad"]
+        xx["dry"] = (xx.water == DRY) & ~xx["bad"]
+        xx["wet"] = (xx.water == WATER) & ~xx["bad"]
         xx = xx.drop_vars("water")
         for dv in xx.data_vars.values():
             dv.attrs.pop("nodata", None)
