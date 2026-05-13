@@ -585,7 +585,7 @@ def choose_transform_path(
     dst_crs: str,
     transform_code: str | None = None,
     area_of_interest: Sequence[float] | None = None,
-) -> str:
+) -> dict[str, str]:
     # leave gdal to choose the best option if nothing is specified
     if transform_code is None and area_of_interest is None:
         return {}
