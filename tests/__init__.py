@@ -2,7 +2,7 @@
 Utilities for unit tests
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import time
 from uuid import UUID
 import xarray as xr
@@ -104,7 +104,7 @@ def mk_dask_xx(
     if chunks is None:
         chunks = {"x": -1, "y": -1}
     if timestamps is None:
-        timestamps = [datetime.utcnow()]
+        timestamps = [datetime.now(UTC)]
 
     dtype = np.dtype(dtype)
     _chunks = (chunks.get("time", 1), chunks.get("y", -1), chunks.get("x", -1))

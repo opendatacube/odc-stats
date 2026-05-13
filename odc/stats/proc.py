@@ -2,7 +2,7 @@ import logging
 from typing import Any
 from collections.abc import Iterable, Iterator
 from dask.distributed import Client, WorkerPlugin
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 import xarray as xr
 import math
 import psutil
@@ -195,7 +195,7 @@ class TaskRunner:
         Records the timestamp at which a hearbeat was detected
 
         """
-        t_now = datetime.utcnow()
+        t_now = datetime.now(UTC)
         with open(f"{hearbeat_filepath}", "w", encoding="utf-8") as file_obj:
             file_obj.write(t_now.strftime("%Y-%m-%d %H:%M:%S"))
 

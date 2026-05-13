@@ -2,7 +2,7 @@ import math
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from typing import Any
 from collections.abc import Sequence
 from uuid import UUID, uuid5
@@ -236,7 +236,7 @@ class WorkTokenInterface(ABC):
         """
         Implementations should use this method internally
         """
-        return datetime.utcnow()
+        return datetime.now(UTC)
 
     @property
     @abstractmethod
@@ -458,7 +458,7 @@ class Task:
         warnings.filterwarnings("default")
 
         if processing_dt is None:
-            processing_dt = datetime.utcnow()
+            processing_dt = datetime.now(tz=UTC)
         dataset_assembler.processed = processing_dt
 
         dataset_assembler.maturity = self.product.maturity
@@ -495,7 +495,7 @@ class Task:
         Put together STAC metadata document for the output of this task.
         """
         if processing_dt is None:
-            processing_dt = datetime.utcnow()
+            processing_dt = datetime.now(UTC)
 
         product = self.product
         geobox = self.geobox
