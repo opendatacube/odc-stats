@@ -82,3 +82,4 @@ docs/notebooks/
 
 # used to cache dev install cache
 .run/
+odc/stats/_version.py

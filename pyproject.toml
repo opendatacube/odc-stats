@@ -1,4 +1,88 @@
 [build-system]
 requires = ["setuptools>=69", "wheel", "setuptools_scm[toml]>=8,!=9.2.0"]
 build-backend = "setuptools.build_meta"
+
 [tool.setuptools_scm]
+fallback_version = "0.0.0"
+local_scheme = "no-local-version"
+version_file = "odc/stats/_version.py"
+
+[project]
+name = "odc-stats"
+description = "Statistical Product Generation Framework"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.8"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Open Data Cube" }]
+maintainers = [{ name = "Open Data Cube" }]
+dynamic = ["version"]
+
+dependencies = [
+  "botocore",
+  "click>=8.0.0",
+  "dask",
+  "datacube",
+  "distributed",
+  "numpy",
+  "odc-cloud[ASYNC]>=0.2.5",
+  "odc_algo>=1.1",
+  "odc_dscache>=1.9",
+  "odc_io",
+  "odc-geo>=0.5.0rc1",
+  "pandas",
+  "pystac>=1.1.0",
+  "eodatasets3>=1.9",
+  "toolz",
+  "tqdm",
+  "xarray>=2023.1.0",
+  "ciso8601",
+  "gdal",
+  "fsspec>=2022.1.0",
+  "fiona",
+  "rasterio>=1.3.2",
+  "s3fs",
+  "ai-edge-litert",
+  "tl2cgen",
+]
+
+[project.urls]
+Homepage = "https://github.com/opendatacube/odc-stats/"
+
+[project.scripts]
+odc-stats = "odc.stats.cli:main"
+
+[project.optional-dependencies]
+# From setup.cfg's extras_require
+ows = [
+  "datacube_ows>=1.9",
+  "matplotlib-base",
+  "sentry-sdk",
+  "blinker",
+]
+
+# From setup.cfg's tests_require (legacy → optional dependency group)
+test = [
+  "pytest",
+  "moto",
+]
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+include = ["odc*"]
+namespaces = true
+
+[tool.flake8]
+extend-ignore = [
+  "E203",  # See https://github.com/PyCQA/pycodestyle/issues/373
+  "PT013", # Allow individual bit of pytest to be imported: sometimes conciseness is nice.
+]
+
+per-file-ignores = [
+  "notebooks/s2-GM-stats.py: W0104",
+  "odc/stats/cli.py: F401",
+]
+
+max-line-length = 120
