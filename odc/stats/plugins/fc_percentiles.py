@@ -23,7 +23,11 @@ class StatsFCP(StatsPluginInterface):
     VERSION = "0.0.3"
     PRODUCT_FAMILY = "fc_percentiles"
 
-    BAD_BITS_MASK = {"cloud": 1 << 6, "cloud_shadow": 1 << 5, "terrain_shadow": 1 << 3}
+    BAD_BITS_MASK = {
+        "cloud": np.uint8(1 << 6),
+        "cloud_shadow": np.uint8(1 << 5),
+        "terrain_shadow": np.uint8(1 << 3),
+    }
 
     def __init__(
         self,
@@ -32,7 +36,7 @@ class StatsFCP(StatsPluginInterface):
         clip_range: tuple | None = None,
         ue_threshold: int | None = None,
         count_valid: bool | None = False,
-        cloud_filters: dict[str, Iterable[tuple[str, int]]] = None,
+        cloud_filters: dict[str, Iterable[tuple[str, int]]] | None = None,
         **kwargs,
     ):
         super().__init__(input_bands=["water", "pv", "bs", "npv", "ue"], **kwargs)
@@ -66,8 +70,8 @@ class StatsFCP(StatsPluginInterface):
 
         # not mask against bit 4: terrain high slope
         # Pick out the dry and wet pixels
-        valid = (xx["water"] & ~(1 << 4)) == 0
-        wet = (xx["water"] & ~(1 << 4)) == 128
+        valid = (xx["water"] & ~np.uint8(1 << 4)) == 0
+        wet = (xx["water"] & ~np.uint8(1 << 4)) == 128
 
         # dilate both 'valid' and 'water'
         for key, val in self.BAD_BITS_MASK.items():

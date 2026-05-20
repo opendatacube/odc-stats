@@ -1,22 +1,33 @@
 from functools import partial
 import numpy as np
 import xarray as xr
+from numpy.testing import assert_array_equal
 import dask.array as da
 from odc.stats.plugins.wofs import StatsWofs
 import pytest
 import pandas as pd
+
+DRY = np.uint8(0)
+NODATA = np.uint8(1)
+NONCONT = np.uint8(1 << 1)
+LOW_ANG = np.uint8(1 << 2)
+T_SHAD = np.uint8(1 << 3)
+T_SLOPE = np.uint8(1 << 4)
+C_SHADOW = np.uint8(1 << 5)
+CLOUD = np.uint8(1 << 6)
+WATER = np.uint8(1 << 7)
 
 
 @pytest.fixture
 def dataset():
     band_1 = np.array(
         [
-            [[0, (1 << 7)], [(1 << 7), 1], [(1 << 7), 1]],
-            [[0, (1 << 7) | (1 << 6) | (1 << 5)], [0, (1 << 1)], [(1 << 7), 1]],
+            [[DRY, WATER], [WATER, NODATA], [WATER, NODATA]],
+            [[DRY, WATER | CLOUD | C_SHADOW], [DRY, NONCONT], [WATER, NODATA]],
             [
-                [(1 << 7), (1 << 7) | (1 << 6) | (1 << 5)],
-                [(1 << 2) | (1 << 1), 0],
-                [(1 << 1), 1],
+                [WATER, WATER | CLOUD | C_SHADOW],
+                [LOW_ANG | NONCONT, DRY],
+                [NONCONT, NODATA],
             ],
         ]
     ).astype(np.uint8)

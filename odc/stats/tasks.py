@@ -758,6 +758,9 @@ class TaskReader:
         Upading the cfg which used placeholder filedb path for sqs task init.
         """
 
+        if isinstance(self._dscache, DatasetCache):
+            self._dscache.close()
+            self._dscache = None
         cache = DatasetCache.open_ro(local_db_path)
 
         # TODO: Validate this information. Assumption is the ...
@@ -784,13 +787,15 @@ class TaskReader:
             else:  # if resolution has issue, stop init
                 _log.error(
                     "Requested resolution is not compatible with GridSpec in '%s'",
-                    cfg.filedb,
+                    cfg["filedb"],
                 )
                 raise ValueError(
-                    f"Requested resolution is not compatible with GridSpec in '{cfg.filedb}'"
+                    f"Requested resolution is not compatible with GridSpec in '{cfg['filedb']}'"
                 )
 
     def __del__(self):
+        if self.cache:
+            self.cache.close()
         if self._cache_path is not None:
             os.unlink(self._cache_path)
 

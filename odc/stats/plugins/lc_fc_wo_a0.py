@@ -30,7 +30,7 @@ class StatsVegCount(StatsPluginInterface):
     VERSION = "0.0.1"
     PRODUCT_FAMILY = "lccs"
 
-    BAD_BITS_MASK = {"cloud": (1 << 6), "cloud_shadow": (1 << 5)}
+    BAD_BITS_MASK = {"cloud": np.uint8(1 << 6), "cloud_shadow": np.uint8(1 << 5)}
 
     def __init__(
         self,
@@ -58,10 +58,10 @@ class StatsVegCount(StatsPluginInterface):
         # valid and dry pixels not mask against bit 4: terrain high slope,
         # bit 3: terrain shadow, and
         # bit 2: low solar angle
-        valid = (xx["water"].data & ~((1 << 4) | (1 << 3) | (1 << 2))) == 0
+        valid = (xx["water"].data & ~np.uint8((1 << 4) | (1 << 3) | (1 << 2))) == 0
 
         # clear wet pixels not mask against bit 2: low solar angle
-        wet = (xx["water"].data & ~(1 << 2)) == 128
+        wet = (xx["water"].data & ~np.uint8(1 << 2)) == 128
 
         # clear dry pixels
         clear = xx["water"].data == 0
