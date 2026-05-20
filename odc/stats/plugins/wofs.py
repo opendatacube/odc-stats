@@ -24,7 +24,6 @@ from odc.algo import safe_div, apply_numexpr, keep_good_only
 from ._registry import StatsPluginInterface, register
 from odc.algo._masking import _or_fuser, mask_cleanup
 
-
 DRY = np.uint8(0)
 NODATA = np.uint8(1)
 NONCONT = np.uint8(1 << 1)
@@ -64,9 +63,9 @@ class StatsWofs(StatsPluginInterface):
     }  # Cloud/Shadow + Terrain Shadow
 
     def __init__(
-        self, 
-        cloud_filters: dict[str, Iterable[tuple[str, int]]] | None = None, 
-        **kwargs
+        self,
+        cloud_filters: dict[str, Iterable[tuple[str, int]]] | None = None,
+        **kwargs,
     ):
         super().__init__(input_bands=["water"], **kwargs)
         self.cloud_filters = cloud_filters if cloud_filters is not None else {}
@@ -104,7 +103,9 @@ class StatsWofs(StatsPluginInterface):
           .wet<Bool>   - pixel has wet classification and is not ``bad``
         """
         xx["bad"] = (xx.water & NODATA) == 0  # start with valid data (not NODATA)
-        xx["bad"] &= (xx.water & ~(WATER | NODATA)) > 0  # bad if any other non-water flag is set
+        xx["bad"] &= (
+            xx.water & ~(WATER | NODATA)
+        ) > 0  # bad if any other non-water flag is set
 
         # dilate 'bad'
         for key, val in self.BAD_BITS_MASK.items():
