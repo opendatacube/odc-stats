@@ -23,7 +23,11 @@ class StatsFCP(StatsPluginInterface):
     VERSION = "0.0.3"
     PRODUCT_FAMILY = "fc_percentiles"
 
-    BAD_BITS_MASK = {"cloud": np.uint8(1 << 6), "cloud_shadow": np.uint8(1 << 5), "terrain_shadow": np.uint8(1 << 3)}
+    BAD_BITS_MASK = {
+        "cloud": np.uint8(1 << 6),
+        "cloud_shadow": np.uint8(1 << 5),
+        "terrain_shadow": np.uint8(1 << 3),
+    }
 
     def __init__(
         self,
