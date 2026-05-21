@@ -1,12 +1,10 @@
 from functools import partial
 import numpy as np
 import xarray as xr
-from numpy.testing import assert_array_equal
 import dask.array as da
 from odc.stats.plugins.wofs import StatsWofs
 import pytest
 import pandas as pd
-
 
 DRY = np.uint8(0)
 NODATA = np.uint8(1)
@@ -17,6 +15,7 @@ T_SLOPE = np.uint8(1 << 4)
 C_SHADOW = np.uint8(1 << 5)
 CLOUD = np.uint8(1 << 6)
 WATER = np.uint8(1 << 7)
+
 
 @pytest.fixture
 def dataset():
