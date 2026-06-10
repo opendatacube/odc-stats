@@ -20,7 +20,7 @@ import toolz
 from odc.dscache import DatasetCache
 from datacube import Datacube
 from datacube.model import Dataset
-from odc.geo import Geometry
+from odc.geo import Geometry, Resolution
 from odc.geo.gridspec import GridSpec
 from datacube.utils.documents import transform_object_tree
 from datacube.utils.dates import normalise_dt
@@ -749,7 +749,7 @@ class TaskReader:
             )
         gs = self._gridspec
         self._gridspec = GridSpec(
-            gs.crs, gs.tile_size, resolution=resolution, origin=gs.origin
+            gs.crs, gs.tile_size, resolution=Resolution(*resolution), origin=gs.origin
         )
 
     def init_from_sqs(self, local_db_path: str):
