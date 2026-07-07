@@ -195,7 +195,7 @@ class TaskRunner:
         Records the timestamp at which a hearbeat was detected
 
         """
-        t_now = datetime.now(timezone.UTC)
+        t_now = datetime.now(timezone.utc)
         with open(f"{hearbeat_filepath}", "w", encoding="utf-8") as file_obj:
             file_obj.write(t_now.strftime("%Y-%m-%d %H:%M:%S"))
 
