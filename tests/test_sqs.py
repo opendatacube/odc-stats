@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta
 
 import boto3
 import moto
@@ -42,8 +42,8 @@ def test_sqs_work_token(sqs_message):
     tk = SQSWorkToken(sqs_message, 60)
 
     assert tk.active_seconds < 2
-    assert tk.start_time < datetime.now(UTC)
-    assert tk.deadline > datetime.now(UTC)
+    assert tk.start_time < datetime.now(timezone.UTC)
+    assert tk.deadline > datetime.now(timezone.UTC)
 
     deadline0 = tk.deadline
     assert tk.extend_if_needed(1000, 1)
@@ -65,7 +65,7 @@ def test_sqs_work_token(sqs_message):
     tk = SQSWorkToken(sqs_message, 60)
 
     assert tk.active_seconds < 2
-    assert tk.deadline > datetime.now(UTC)
+    assert tk.deadline > datetime.now(timezone.UTC)
     tk.cancel()
     assert tk._msg is None
     # should be no-op
@@ -85,7 +85,7 @@ def test_rdr_sqs(sqs_queue_by_name, test_db_path):
     for task in rdr.stream_from_sqs(
         sqs_queue_by_name, visibility_timeout=120, max_wait=0
     ):
-        _now = datetime.now(UTC)
+        _now = datetime.now(timezone.UTC)
         assert task.source is not None
         assert task.source.active_seconds < 2
         assert task.source.deadline > _now
