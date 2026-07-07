@@ -40,8 +40,10 @@ dependencies = [
 Homepage = "https://github.com/opendatacube/odc-stats/"
 
 [project.optional-dependencies]
-dev = [
+test = [
     "pytest",
+    "pytest_httpserver",
+    "moto"
 ]
 ows = [
     "blinker",
