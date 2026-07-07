@@ -236,7 +236,7 @@ class WorkTokenInterface(ABC):
         """
         Implementations should use this method internally
         """
-        return datetime.now(timezone.UTC)
+        return datetime.now(timezone.utc)
 
     @property
     @abstractmethod
@@ -458,7 +458,7 @@ class Task:
         warnings.filterwarnings("default")
 
         if processing_dt is None:
-            processing_dt = datetime.now(tz=timezone.UTC)
+            processing_dt = datetime.now(tz=timezone.utc)
         dataset_assembler.processed = processing_dt
 
         dataset_assembler.maturity = self.product.maturity
@@ -495,7 +495,7 @@ class Task:
         Put together STAC metadata document for the output of this task.
         """
         if processing_dt is None:
-            processing_dt = datetime.now(timezone.UTC)
+            processing_dt = datetime.now(timezone.utc)
 
         product = self.product
         geobox = self.geobox
