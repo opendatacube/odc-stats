@@ -104,7 +104,7 @@ def mk_dask_xx(
     if chunks is None:
         chunks = {"x": -1, "y": -1}
     if timestamps is None:
-        timestamps = [datetime.now(timezone.UTC)]
+        timestamps = [datetime.now(timezone.utc)]
 
     dtype = np.dtype(dtype)
     _chunks = (chunks.get("time", 1), chunks.get("y", -1), chunks.get("x", -1))
