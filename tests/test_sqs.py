@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import boto3
 import moto
@@ -41,9 +41,10 @@ def test_publish_sqs(test_db_filter_path, test_geom_path):
 def test_sqs_work_token(sqs_message):
     tk = SQSWorkToken(sqs_message, 60)
 
+    _now = datetime.now(timezone.UTC)
     assert tk.active_seconds < 2
-    assert tk.start_time < datetime.now(timezone.UTC)
-    assert tk.deadline > datetime.now(timezone.UTC)
+    assert tk.start_time < _now
+    assert tk.deadline > _now
 
     deadline0 = tk.deadline
     assert tk.extend_if_needed(1000, 1)
