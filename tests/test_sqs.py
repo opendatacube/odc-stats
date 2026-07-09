@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import boto3
 import moto
@@ -41,9 +41,10 @@ def test_publish_sqs(test_db_filter_path, test_geom_path):
 def test_sqs_work_token(sqs_message):
     tk = SQSWorkToken(sqs_message, 60)
 
+    _now = datetime.now(timezone.utc)
     assert tk.active_seconds < 2
-    assert tk.start_time < datetime.utcnow()
-    assert tk.deadline > datetime.utcnow()
+    assert tk.start_time < _now
+    assert tk.deadline > _now
 
     deadline0 = tk.deadline
     assert tk.extend_if_needed(1000, 1)
@@ -65,7 +66,7 @@ def test_sqs_work_token(sqs_message):
     tk = SQSWorkToken(sqs_message, 60)
 
     assert tk.active_seconds < 2
-    assert tk.deadline > datetime.utcnow()
+    assert tk.deadline > datetime.now(timezone.utc)
     tk.cancel()
     assert tk._msg is None
     # should be no-op
@@ -85,7 +86,7 @@ def test_rdr_sqs(sqs_queue_by_name, test_db_path):
     for task in rdr.stream_from_sqs(
         sqs_queue_by_name, visibility_timeout=120, max_wait=0
     ):
-        _now = datetime.utcnow()
+        _now = datetime.now(timezone.utc)
         assert task.source is not None
         assert task.source.active_seconds < 2
         assert task.source.deadline > _now
