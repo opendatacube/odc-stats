@@ -2,7 +2,7 @@
 Utilities for unit tests
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 from uuid import UUID
 import xarray as xr
