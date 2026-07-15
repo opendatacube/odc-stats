@@ -26,10 +26,7 @@ def rasterize_vector_mask(
         if mask.sum() > mask.size * threshold:
             return da.ones(geobox.shape.shape, name=False)
 
-    return da.from_array(
-        mask.reshape(geobox.shape.shape),
-        name=False,
-    )
+    return da.from_array(mask.reshape(geobox.shape.shape), name=False)
 
 
 OPERATORS = {
