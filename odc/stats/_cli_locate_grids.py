@@ -18,13 +18,13 @@ def locate_grids(grid_shape, extent_shape, attr_filter=None):
     else:
         extents = gpd.read_file(extent_shape)
 
+    if extents.empty:
+        return []
+
     # Match CRS.
     if grids.crs is not None and extents.crs is not None and grids.crs != extents.crs:
         # We transform the grid as it can be in geographic projection with antemeridian issues
         grids = grids.to_crs(extents.crs)
-
-    if extents.empty:
-        return []
 
     extent_geom = extents.geometry.union_all()
     matched_grids = grids[grids.geometry.intersects(extent_geom)]
