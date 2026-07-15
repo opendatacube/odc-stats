@@ -29,10 +29,7 @@ def locate_grids(grid_shape, extent_shape, attr_filter=None):
     extent_geom = extents.geometry.union_all()
     matched_grids = grids[grids.geometry.intersects(extent_geom)]["region_code"]
 
-    return [
-        re.findall(r"\d+", str(region_code))
-        for region_code in matched_grids
-    ]
+    return [re.findall(r"\d+", str(region_code)) for region_code in matched_grids]
 
 
 @main.command("locate-grids")
