@@ -54,9 +54,7 @@ class Mangroves(StatsPluginInterface):
         mangroves computation here
         it is not a 'reduce' though
         """
-        extent_mask = rasterize_vector_mask(
-            self.mangroves_extent, xx.odc.geobox.transform, xx.pv_pc_10.shape
-        )
+        extent_mask = rasterize_vector_mask(self.mangroves_extent, geobox=xx.odc.geobox)
         good_data = extent_mask == 1
         good_data &= xx.wet_pc_10 > self.tcw_threshold
         good_data &= (xx.pv_pc_10 > self.pv_thresholds[0]) & (xx.qa == 2) | (xx.qa == 1)

@@ -1,3 +1,4 @@
+from typing import Iterable
 import numpy as np
 import xarray as xr
 import dask.array as da
@@ -22,6 +23,95 @@ def dataset(usgs_ls8_sr_definition):
             [[0, 0], [cloud_mask, no_data]],
             [[no_data, 0], [0, 0]],
             [[0, cloud_mask], [cloud_mask, 0]],
+        ]
+    )
+
+    band_red = da.from_array(band_red, chunks=(3, -1, -1))
+    band_pq = da.from_array(band_pq, chunks=(3, -1, -1))
+
+    tuples = [
+        (np.datetime64(f"2000-01-01T0{i}"), np.datetime64("2000-01-01"))
+        for i in range(3)
+    ]
+    index = pd.MultiIndex.from_tuples(tuples, names=["time", "solar_day"])
+    coords = {
+        "x": np.linspace(10, 20, band_red.shape[2]),
+        "y": np.linspace(0, 5, band_pq.shape[1]),
+    }
+    pq_flags_definition = {}
+    for measurement in usgs_ls8_sr_definition["measurements"]:
+        if measurement["name"] == "QA_PIXEL":
+            pq_flags_definition = measurement["flags_definition"]
+    attrs = dict(
+        units="bit_index",
+        nodata="1",
+        crs="epsg:32633",
+        grid_mapping="spatial_ref",
+        flags_definition=pq_flags_definition,
+    )
+
+    data_vars = {
+        "band_red": (("spec", "y", "x"), band_red),
+        "QA_PIXEL": (("spec", "y", "x"), band_pq, attrs),
+    }
+    xx = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs)
+    xx = xx.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
+    xx["band_red"].attrs["nodata"] = 0
+    return xx
+
+
+@pytest.fixture
+def large_dataset(usgs_ls8_sr_definition):
+    band_red = np.array(
+        [
+            [
+                [254, 157, 90, 80, 50],  # Data
+                [120, 150, 99, 80, 50],
+                [122, 136, 60, 70, 50],
+                [145, 120, 85, 60, 50],
+                [110, 110, 82, 60, 50],
+            ],
+            [
+                [255, 157, 90, 80, 50],  # Data
+                [120, 150, 99, 80, 50],
+                [122, 136, 60, 70, 50],
+                [145, 120, 85, 60, 50],
+                [110, 110, 82, 60, 50],
+            ],
+            [
+                [0, 0, 0, 0, 0],  # No Data
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+            ],
+        ]
+    )
+    C = 0b0000_0000_0001_1100  # CLOUD_MASK
+    N = 0b0000_0000_0000_0001  # NO_DATA
+    band_pq = np.array(
+        [
+            [
+                [C, C, C, 0, 0],
+                [C, C, C, 0, 0],
+                [0, C, 0, 0, 0],
+                [0, C, 0, 0, 0],
+                [0, 0, 0, 0, C],
+            ],
+            [
+                [N, C, 0, 0, 0],
+                [0, 0, C, C, 0],
+                [0, 0, 0, C, 0],
+                [0, 0, 0, C, 0],
+                [0, 0, C, C, 0],
+            ],
+            [
+                [C, 0, 0, 0, N],
+                [C, C, 0, N, N],
+                [C, C, N, N, N],
+                [C, N, N, N, N],
+                [N, N, N, N, N],
+            ],
         ]
     )
 
@@ -190,14 +280,14 @@ def test_reduce(dataset):
     assert (clear == expected_result).all()
 
 
-def test_reduce_with_filter(dataset):
-    filters = {
+def test_reduce_with_filter(large_dataset):
+    filters: dict[str, Iterable[tuple[str, int]]] = {
         "clear_1_1": [("opening", 1), ("dilation", 1)],
         "clear_2_1_1": [("closing", 2), ("opening", 1), ("dilation", 1)],
     }
     pq = StatsPQLSBitmask(filters=filters)
 
-    xx = pq.native_transform(dataset)
+    xx = pq.native_transform(large_dataset)
     xx = pq.reduce(xx)
     reduce_result = xx.compute()
 
@@ -208,19 +298,51 @@ def test_reduce_with_filter(dataset):
         "clear_2_1_1",
     }
 
-    expected_result = np.array([[2, 3], [3, 2]])
+    expected_result = np.array(
+        [
+            [2, 3, 3, 3, 2],
+            [3, 3, 3, 2, 2],
+            [3, 3, 2, 2, 2],
+            [3, 2, 2, 2, 2],
+            [2, 2, 2, 2, 2],
+        ]
+    )
     total = reduce_result["total"].data
     assert (total == expected_result).all()
 
-    expected_result = np.array([[2, 2], [1, 2]])
+    expected_result = np.array(
+        [
+            [0, 1, 2, 3, 2],
+            [1, 1, 1, 1, 2],
+            [2, 1, 2, 1, 2],
+            [2, 1, 2, 1, 2],
+            [2, 2, 1, 1, 1],
+        ]
+    )
     clear = reduce_result["clear"].data
     assert (clear == expected_result).all()
 
-    expected_result = np.array([[2, 3], [3, 2]])
+    expected_result = np.array(
+        [
+            [1, 2, 2, 3, 2],
+            [2, 2, 2, 1, 2],
+            [2, 2, 1, 2, 2],
+            [3, 1, 2, 2, 2],
+            [2, 2, 2, 2, 2],
+        ]
+    )
     clear_1_1 = reduce_result["clear_1_1"].data
     assert (clear_1_1 == expected_result).all()
 
-    expected_result = np.array([[0, 1], [1, 1]])
+    expected_result = np.array(
+        [
+            [1, 2, 2, 3, 2],
+            [2, 2, 2, 1, 2],
+            [2, 2, 1, 2, 2],
+            [3, 1, 2, 2, 2],
+            [2, 2, 2, 2, 2],
+        ]
+    )
     clear_2_1_1 = reduce_result["clear_2_1_1"].data
     assert (clear_2_1_1 == expected_result).all()
 
