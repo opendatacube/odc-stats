@@ -12,10 +12,7 @@ def rasterize_vector_mask(
     shape_file, geobox: GeoBox, filter_expression=None, threshold=None
 ):
     gdf = gpd.read_file(shape_file, where=filter_expression)
-    geom = Geometry(
-        gdf.union_all(),
-        crs=gdf.crs,
-    )
+    geom = Geometry(gdf.union_all(), crs=gdf.crs)
 
     mask = rasterize(geom, geobox).values.astype("uint8")
 
