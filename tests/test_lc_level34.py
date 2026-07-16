@@ -208,7 +208,7 @@ def test_l4_classes(image_groups, urban_shape):
             },
             data_var_condition={"level1": "level_3_4"},
             urban_mask=urban_shape,
-            filter_expression="mock > 9",
+            filter_expression="value > 9",
             mask_threshold=0.3,
         )
     ds = stats_l4.reduce(image_groups)
@@ -490,7 +490,7 @@ def test_level4(urban_shape):
         },
         data_var_condition={"level1": "level_3_4"},
         urban_mask=urban_shape,
-        filter_expression="mock > 9",
+        filter_expression="value > 9",
         mask_threshold=0.3,
     )
     ds = stats_l4.reduce(xx)

@@ -4,34 +4,32 @@ import tempfile
 import pandas as pd
 from os import path
 from io import StringIO
-from osgeo import ogr, osr
+import geopandas as gpd
 from ._cli_common import main
 
 
-def locate_grids(grid_shape, extent_shape, attr_filter):
-    ds_grid = ogr.Open(grid_shape)
-    lyr_grid = ds_grid.GetLayer(0)
-    lyr_grid.ResetReading()
-    grid_spatial_ref = lyr_grid.GetSpatialRef()
+def locate_grids(grid_shape, extent_shape, attr_filter=None):
+    grids = gpd.read_file(grid_shape)
 
-    ds_extent = ogr.Open(extent_shape)
-    lyr_extent = ds_extent.GetLayer(0)
+    # Read extent layer, optionally applying an OGR-style attribute filter
+    # e.g. attr_filter = "type = 'foo'"
     if attr_filter is not None:
-        lyr_extent.SetAttributeFilter(attr_filter)
-    lyr_extent.ResetReading()
+        extents = gpd.read_file(extent_shape, where=attr_filter)
+    else:
+        extents = gpd.read_file(extent_shape)
 
-    extent_spatial_ref = lyr_extent.GetSpatialRef()
-    transform = osr.CoordinateTransformation(grid_spatial_ref, extent_spatial_ref)
-    extent_grids = []
-    for grid in lyr_grid:
-        grid_geom = grid.geometry()
-        grid_geom.Transform(transform)
-        lyr_extent.SetSpatialFilter(grid_geom)
-        if lyr_extent.GetFeatureCount() > 0:
-            extent_grids += [re.findall(r"\d+", grid["region_code"])]
-        lyr_extent.SetSpatialFilter(None)
-        lyr_extent.ResetReading()
-    return extent_grids
+    if extents.empty:
+        return []
+
+    # Match CRS.
+    if grids.crs is not None and extents.crs is not None and grids.crs != extents.crs:
+        # We transform the grid as it can be in geographic projection with antemeridian issues
+        grids = grids.to_crs(extents.crs)
+
+    extent_geom = extents.geometry.union_all()
+    matched_grids = grids[grids.geometry.intersects(extent_geom)]["region_code"]
+
+    return [re.findall(r"\d+", str(region_code)) for region_code in matched_grids]
 
 
 @main.command("locate-grids")
