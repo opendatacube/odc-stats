@@ -92,7 +92,7 @@ jobs:
           aws-region: ap-southeast-2
 
       - name: Push image to ECR
-        uses: whoan/docker-build-with-cache-action@d8d3ad518e7ac382b880720d0751815e656fe032 # v8.1.0
+        uses: whoan/docker-build-with-cache-action@79574702d64f46f39ecaf1f1d771d45230e10b93 # v8.1.1
         with:
           context: .
           registry: 538673716275.dkr.ecr.ap-southeast-2.amazonaws.com
@@ -114,7 +114,7 @@ jobs:
           persist-credentials: false
 
       - name: Push image to ghcr
-        uses: whoan/docker-build-with-cache-action@d8d3ad518e7ac382b880720d0751815e656fe032 # v8.1.0
+        uses: whoan/docker-build-with-cache-action@79574702d64f46f39ecaf1f1d771d45230e10b93 # v8.1.1
         with:
           context: .
           registry: ghcr.io
