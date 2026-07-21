@@ -2,6 +2,7 @@ import pytest
 
 from odc.stats.tasks import sanitize_products_str, SaveTasks
 from odc.stats.model import DateTimeRange
+import sqlalchemy.exc
 from datacube import Datacube
 
 
@@ -16,7 +17,10 @@ def query():
 
 @pytest.fixture
 def dc():
-    return Datacube(app="test")
+    try:
+        return Datacube(app="test")
+    except sqlalchemy.exc.OperationalError:
+        pytest.skip(reason="Database unavailable")
 
 
 @pytest.fixture(
