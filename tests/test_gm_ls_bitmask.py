@@ -246,23 +246,27 @@ def test_reduce_with_filters(large_dataset):
 
     assert set(xx.data_vars.keys()) == {"band_red", "smad", "emad", "bcmad", "count"}
 
-    expected_result = np.array([
-        [ 92, 133,  68,  58,  33],
-        [ 97, 125,  77,   0,  33],
-        [ 99, 113,   0,  48,  29],
-        [121,  97,  63,   0,  19],
-        [ 87,  87,  60,  38,  38]
-    ])
+    expected_result = np.array(
+        [
+            [92, 133, 68, 58, 33],
+            [97, 125, 77, 0, 33],
+            [99, 113, 0, 48, 29],
+            [121, 97, 63, 0, 19],
+            [87, 87, 60, 38, 38],
+        ]
+    )
     band_red = result["band_red"].data
     assert (band_red == expected_result).all()
 
-    expected_result = np.array([
-        [ 0,  0,  0,  0,  5],
-        [ 0,  0,  0,  0,  4],
-        [ 0,  0,  0,  0,  0],
-        [ 0,  0,  0,  0,  9],
-        [ 0,  0,  0,  0, 16]
-    ])
+    expected_result = np.array(
+        [
+            [0, 0, 0, 0, 5],
+            [0, 0, 0, 0, 4],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 9],
+            [0, 0, 0, 0, 16],
+        ]
+    )
     band_emad = result["emad"].data
     assert (band_emad == expected_result).all()
 
@@ -272,7 +276,7 @@ def test_reduce_with_filters(large_dataset):
             [1, 1, 1, 0, 2],
             [1, 1, 0, 1, 1],
             [1, 1, 1, 0, 2],
-            [1, 1, 1, 2, 2]
+            [1, 1, 1, 2, 2],
         ],
     )
     count = result["count"].data
