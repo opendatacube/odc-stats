@@ -177,6 +177,7 @@ def test_resampling(dataset):
 
 
 def test_no_data_value(monkeypatch):
+    _ = pytest.importorskip("hdstats")
     monkeypatch.setenv("AWS_DEFAULT_REGION", "ap-southeast-2")
     # Our test data is in dea-public-data, which for now is free to read anonymously
     monkeypatch.setenv("AWS_NO_SIGN_REQUEST", "YES")
