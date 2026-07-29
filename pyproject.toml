@@ -5,7 +5,7 @@ description = "Statistical Product Generation Framework"
 authors = [
     {name = "Open Data Cube", email = "earth.observation@ga.gov.au"},
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 readme = "README.md"
 license = "Apache-2.0"
 dependencies = [
@@ -14,16 +14,16 @@ dependencies = [
     "ciso8601",
     "click>=8.0.0",
     "dask",
-    "datacube==1.9.5",
-    "distributed>=2025.4,<2025.9",
+    "datacube>=1.9.10,<1.10",
+    "distributed",
     "eodatasets3>=1.9",
     "fiona",
     "fsspec>=2022.1.0",
     "geopandas",
     "numpy",
     "odc-cloud[ASYNC]>=0.2.5",
-    "odc-geo>=0.5.0rc1",
-    "odc_algo>=1.1.1",
+    "odc-geo>=0.5.3",
+    "odc_algo>=1.2.1",
     "odc_dscache>=1.9",
     "odc_io",
     "pandas",
