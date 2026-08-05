@@ -9,6 +9,7 @@ on:
     paths: &paths
       - 'docker/**'
       - '!docker/readme.md'
+      - 'tests/integration_test.sh'
   push:
     branches:
       - develop
