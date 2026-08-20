@@ -36,6 +36,14 @@ dependencies = [
     "xarray>=2023.1.0",
 ]
 
+[tool.uv]
+only-binary-package = [
+    "rasterio",
+    "fiona",
+    "pyproj",
+    "shapely",
+]
+
 [project.urls]
 Homepage = "https://github.com/opendatacube/odc-stats/"
 
