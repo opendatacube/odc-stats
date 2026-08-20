@@ -60,7 +60,7 @@ jobs:
       - name: Run tests
         run: uv run --python ${{ matrix.python-version }} pytest --cov=odc --cov-report=xml --durations=5 tests
         env:
-          AWS_REGION: ap-southeast-2
+          AWS_DEFAULT_REGION: ap-southeast-2
 
   build-wheels:
     if: |
