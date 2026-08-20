@@ -9,6 +9,7 @@ requires-python = ">=3.12"
 readme = "README.md"
 license = "Apache-2.0"
 dependencies = [
+    "affine<3",
     "ai-edge-litert",
     "botocore",
     "ciso8601",
