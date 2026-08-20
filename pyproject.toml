@@ -37,7 +37,7 @@ dependencies = [
 ]
 
 [tool.uv]
-only-binary-package = [
+no-build-package = [
     "rasterio",
     "fiona",
     "pyproj",
