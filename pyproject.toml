@@ -64,6 +64,7 @@ ows = [
 dev = [
     "mypy>=1.15.0",
     "pytest",
+    "pytest-cov",
     "pytest_httpserver",
     "moto",
     "psycopg2-binary",
