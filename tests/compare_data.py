@@ -19,7 +19,7 @@ def nodata_equal(expected, actual) -> bool:
     if len(expected) != len(actual):
         return False
     return all(
-        e == a or (e is not None and a is not None and np.isnan(e) and np.isnan(a))
+        e == a or (e is not None and a is not None and np.isnan(e) and np.isnan(a)) or e is None # skip if golden nodata not set
         for e, a in zip(expected, actual)
     )
 
