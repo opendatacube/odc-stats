@@ -129,14 +129,18 @@ jobs:
           odc-stats --version
 
   test-wheels:
+    name: Test wheels on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
     container:
-      image: ghcr.io/opendatacube/odc-stats:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      # Plain upstream Python images: the wheel and its dependencies are
+      # installed from scratch rather than relying on a pre-baked environment.
+      image: python:${{ matrix.python-version }}
 
     services:
       postgres:
@@ -162,8 +166,8 @@ jobs:
           --fix-missing --no-install-recommends \
           curl \
           gpg \
-          nodejs \
-          zstd
+          zstd \
+          libpq-dev
           python -m pip install --upgrade --no-cache pip
           pip install --no-cache -r \
           tests/requirements.txt
@@ -182,7 +186,7 @@ jobs:
           which datacube
 
           ls -lh dist
-          pip install --no-deps --no-cache dist/*whl
+          pip install --no-cache dist/*whl
           pip check || true
           pip show odc-stats
           which odc-stats | xargs ls -alt
