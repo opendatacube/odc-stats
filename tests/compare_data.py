@@ -14,12 +14,26 @@ import numpy as np
 import rasterio
 
 
+def nodata_equal(expected, actual) -> bool:
+    """Compare nodata tuples, treating nan as equal to nan."""
+    if len(expected) != len(actual):
+        return False
+    return all(
+        e == a or (e is not None and a is not None and np.isnan(e) and np.isnan(a))
+        for e, a in zip(expected, actual)
+    )
+
+
 def compare(golden: str, candidate: str) -> list[str]:
     differences = []
     with rasterio.open(golden) as g, rasterio.open(candidate) as c:
         for attr in ("count", "width", "height", "dtypes", "nodatavals", "crs"):
             expected, actual = getattr(g, attr), getattr(c, attr)
-            if expected != actual:
+            if attr == "nodatavals":
+                same = nodata_equal(expected, actual)
+            else:
+                same = expected == actual
+            if not same:
                 differences.append(f"{attr}: golden {expected!r} != {actual!r}")
 
         if not g.transform.almost_equals(c.transform):
