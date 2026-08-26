@@ -114,9 +114,7 @@ def main() -> int:
         AWS_NO_SIGN_REQUEST=os.environ.get("AWS_NO_SIGN_REQUEST", "NO"),
         GDAL_HTTP_MAX_RETRY=os.environ.get("GDAL_HTTP_MAX_RETRY", "0"),
     ):
-        differences, tolerated = compare(
-            args.golden, args.candidate, args.max_diff_pct
-        )
+        differences, tolerated = compare(args.golden, args.candidate, args.max_diff_pct)
 
     for message in tolerated:
         print(f"  IGNORED {message}", file=sys.stderr)
