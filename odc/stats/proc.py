@@ -322,7 +322,6 @@ class TaskRunner:
 
     def __del__(self):
         if self.client():
-            self.client().shutdown()
             self.client().close()
 
 
