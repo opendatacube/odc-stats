@@ -49,6 +49,7 @@ jobs:
           docker compose build
 
       - name: Run Dockerized Tests for Statistician
+        timeout-minutes: 20
         shell: bash
         run: |
           cd docker
