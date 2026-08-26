@@ -129,6 +129,7 @@ jobs:
           odc-stats --version
 
   test-wheels:
+    timeout-minutes: 15
     name: Test wheels on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     permissions:
@@ -151,7 +152,7 @@ jobs:
           POSTGRES_USER: opendatacube
 
     needs:
-      - build-wheels
+      - check-wheel-compat
 
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
