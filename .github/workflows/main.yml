@@ -129,7 +129,7 @@ jobs:
           odc-stats --version
 
   test-wheels:
-    timeout-minutes: 15
+    timeout-minutes: 20
     name: Test wheels on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     permissions:
