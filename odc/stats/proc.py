@@ -323,7 +323,7 @@ class TaskRunner:
     def __del__(self):
         if self.client():
             self.client().shutdown()
-            self.client().close(timeout=10)  # Wait to avoid log noise
+            self.client().close()
 
 
 def get_max_mem() -> int:
