@@ -7,6 +7,7 @@ metadata and the pixel data of every band, which is what
 ``gdalcompare.py -sds -skip_binary`` did for these single-subdataset COGs.
 """
 
+import argparse
 import os
 import sys
 
@@ -26,8 +27,18 @@ def nodata_equal(expected, actual) -> bool:
     )
 
 
-def compare(golden: str, candidate: str) -> list[str]:
+def compare(
+    golden: str, candidate: str, max_diff_pct: float = 0.0
+) -> tuple[list[str], list[str]]:
+    """Compare two rasters.
+
+    Bands where fewer than ``max_diff_pct`` percent of the pixels differ are
+    reported as tolerated rather than as differences.
+
+    Returns ``(differences, tolerated)``.
+    """
     differences = []
+    tolerated = []
     with rasterio.open(golden) as g, rasterio.open(candidate) as c:
         for attr in ("count", "width", "height", "dtypes", "nodatavals", "crs"):
             expected, actual = getattr(g, attr), getattr(c, attr)
@@ -43,7 +54,7 @@ def compare(golden: str, candidate: str) -> list[str]:
 
         if differences:
             # Shapes/band counts may not line up, so do not read the pixels.
-            return differences
+            return differences, tolerated
 
         for band in g.indexes:
             expected, actual = g.read(band), c.read(band)
@@ -68,23 +79,47 @@ def compare(golden: str, candidate: str) -> list[str]:
                 max_change = float(abs_diff.max())
 
             if differing:
-                differences.append(
+                diff_pct = 100 * differing / total if total else 100.0
+                message = (
                     f"band {band}: {differing} pixels differ "
-                    f"({differing/total:.0%}), "
+                    f"({diff_pct:.2f}%), "
                     f"mean change={mean_change:.3f}, "
                     f"max change={max_change:.3f}"
                 )
-    return differences
+                if diff_pct < max_diff_pct:
+                    tolerated.append(f"{message} [under {max_diff_pct}% threshold]")
+                else:
+                    differences.append(message)
+    return differences, tolerated
 
 
 def main() -> int:
-    golden, candidate = sys.argv[1], sys.argv[2]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("golden", help="path to the golden file")
+    parser.add_argument("candidate", help="path to the generated file")
+    parser.add_argument(
+        "--max-diff-pct",
+        type=float,
+        default=0.0,
+        metavar="PCT",
+        help="ignore a band whose differing pixels are under this percentage "
+        "of the band (default: %(default)s, i.e. any difference fails)",
+    )
+    args = parser.parse_args()
+
+    if not 0 <= args.max_diff_pct <= 100:
+        parser.error("--max-diff-pct must be between 0 and 100")
+
     with rasterio.Env(
         AWS_NO_SIGN_REQUEST=os.environ.get("AWS_NO_SIGN_REQUEST", "NO"),
         GDAL_HTTP_MAX_RETRY=os.environ.get("GDAL_HTTP_MAX_RETRY", "0"),
     ):
-        differences = compare(golden, candidate)
+        differences, tolerated = compare(
+            args.golden, args.candidate, args.max_diff_pct
+        )
 
+    for message in tolerated:
+        print(f"  IGNORED {message}", file=sys.stderr)
     for difference in differences:
         print(f"  {difference}", file=sys.stderr)
     return 1 if differences else 0
