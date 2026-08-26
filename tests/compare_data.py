@@ -47,12 +47,33 @@ def compare(golden: str, candidate: str) -> list[str]:
 
         for band in g.indexes:
             expected, actual = g.read(band), c.read(band)
-            # equal_nan needs a float dtype; integer bands use nodata instead.
-            equal_nan = np.issubdtype(expected.dtype, np.floating)
-            if not np.array_equal(expected, actual, equal_nan=equal_nan):
-                differing = int(np.count_nonzero(expected != actual))
-                differences.append(f"band {band}: {differing} pixels differ")
 
+            # Handle NaNs appropriately
+            if np.issubdtype(expected.dtype, np.floating):
+                diff_mask = ~(np.isnan(expected) & np.isnan(actual))
+                differing = int(np.count_nonzero(
+                    diff_mask & (expected != actual)
+                ))
+                total = int(np.count_nonzero(~np.isnan(expected)))
+
+                abs_diff = np.abs(actual - expected)
+                mean_change = float(np.nanmean(abs_diff))
+                max_change = float(np.nanmax(abs_diff))
+            else:
+                differing = int(np.count_nonzero(expected != actual))
+                total = expected.size
+
+                abs_diff = np.abs(actual.astype(np.float64) - expected.astype(np.float64))
+                mean_change = float(abs_diff.mean())
+                max_change = float(abs_diff.max())
+
+            if differing:
+                differences.append(
+                    f"band {band}: {differing} pixels differ "
+                    f"({differing/total:.0%}), "
+                    f"mean change={mean_change:.3f}, "
+                    f"max change={max_change:.3f}"
+                )
     return differences
 
 
