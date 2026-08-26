@@ -58,7 +58,8 @@ Homepage = "https://github.com/opendatacube/odc-stats/"
 test = [
     "pytest",
     "pytest_httpserver",
-    "moto"
+    "moto",
+    "odc-apps-dc-tools",
 ]
 ows = [
     "blinker",

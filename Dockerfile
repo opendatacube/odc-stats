@@ -23,7 +23,7 @@ COPY --link pyproject.toml /build/
 COPY --link ./odc /build/odc
 COPY --link ./.git /build/.git
 RUN micromamba run -p /env pip install --no-cache-dir \
-    --no-build-isolation .
+    --no-build-isolation .[test,ows]
 
 FROM ubuntu:jammy-20260410
 COPY --link --from=stats-conda /env /env
