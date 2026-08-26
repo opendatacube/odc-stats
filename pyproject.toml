@@ -20,12 +20,13 @@ dependencies = [
     "ciso8601",
     "click>=8.0.0",
     "dask",
-    "datacube>=1.9.10,<1.10",
+    "datacube[performance,s3]>=1.9.10,<1.10",
     "distributed",
     "eodatasets3>=1.9",
     "fiona",
     "fsspec>=2022.1.0",
     "geopandas",
+    "numexpr>=2.11",
     "numpy",
     "odc-cloud[ASYNC]>=0.2.5",
     "odc-geo>=0.5.3",
@@ -61,7 +62,7 @@ test = [
 ]
 ows = [
     "blinker",
-    "datacube_ows>=1.9",
+    "datacube_ows[webserver]>=1.9", # need matplotlib for thumbnails
     "sentry-sdk",
 ]
 

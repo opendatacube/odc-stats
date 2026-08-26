@@ -9,7 +9,7 @@ odc-stats --version
 # echo "Checking a job run"
 # odc-stats run  --threads=1 --plugin pq --location file:///tmp ./test-run.db 0
 
-# echo "Test LS GeoMAD"
+echo "Test LS GeoMAD"
 
 odc-stats save-tasks --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/709daaee176c04e33de4cc9600462717cca5b34d/dev/services/odc-stats/geomedian/ga_ls8c_nbart_gm_cyear_3.yaml --year=2015 --tiles 49:50,24:25 --overwrite ls-geomad-cyear.db
 odc-stats run  --memory-limit=12GiB --threads=1 --config https://raw.githubusercontent.com/GeoscienceAustralia/dea-config/709daaee176c04e33de4cc9600462717cca5b34d/dev/services/odc-stats/geomedian/ga_ls8c_nbart_gm_cyear_3.yaml --location file:///tmp --overwrite ls-geomad-cyear.db
