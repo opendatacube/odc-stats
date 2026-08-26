@@ -322,7 +322,8 @@ class TaskRunner:
 
     def __del__(self):
         if self.client():
-            self.client().close(shutdown=True)  # Shutdown the cluster too
+            self.client().shutdown()
+            self.client().close(timeout=10)  # Wait to avoid log noise
 
 
 def get_max_mem() -> int:
