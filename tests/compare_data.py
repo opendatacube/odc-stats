@@ -51,9 +51,7 @@ def compare(golden: str, candidate: str) -> list[str]:
             # Handle NaNs appropriately
             if np.issubdtype(expected.dtype, np.floating):
                 diff_mask = ~(np.isnan(expected) & np.isnan(actual))
-                differing = int(np.count_nonzero(
-                    diff_mask & (expected != actual)
-                ))
+                differing = int(np.count_nonzero(diff_mask & (expected != actual)))
                 total = int(np.count_nonzero(~np.isnan(expected)))
 
                 abs_diff = np.abs(actual - expected)
@@ -63,7 +61,9 @@ def compare(golden: str, candidate: str) -> list[str]:
                 differing = int(np.count_nonzero(expected != actual))
                 total = expected.size
 
-                abs_diff = np.abs(actual.astype(np.float64) - expected.astype(np.float64))
+                abs_diff = np.abs(
+                    actual.astype(np.float64) - expected.astype(np.float64)
+                )
                 mean_change = float(abs_diff.mean())
                 max_change = float(abs_diff.max())
 
