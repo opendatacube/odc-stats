@@ -72,7 +72,7 @@ product:
     - 0
     - 3000
 
-aws_unsigned: True
+aws_unsigned: true
 
 max_processing_time: 2400
 job_queue_max_lease: 300
@@ -81,7 +81,7 @@ future_poll_interval: 2
 # Generic product attributes
 cog_opts:
   zlevel: 9
-apply_eodatasets3: True
+apply_eodatasets3: true
 
 # output_location: >-
 #  s3://dea-public-data/derivative/ga_ls8cls9c_gm_cyear_3/4-0-0
