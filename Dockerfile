@@ -10,7 +10,6 @@ RUN micromamba create  -y -p /env -f /conf/env.yaml && \
 
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
 ARG UPDATE_VERSION=1
-COPY --link docker/requirements.txt /conf/
 # required to build numexpr
 # or any --no-binary
 ENV CC=/env/bin/x86_64-conda_cos6-linux-gnu-gcc \
