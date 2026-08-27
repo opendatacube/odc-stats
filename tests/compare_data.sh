@@ -22,7 +22,7 @@ do
 	then g_name=$(echo $f | cut -d'/' -f3-)
 	else g_name=$(echo $f | cut -d'/' -f2-)
 	fi
-	python3 "$(dirname "$0")/compare_data.py" $S3_PREFIX$g_name $f "${@:3}"
+	python3 "$(dirname "$0")/utils/compare_data.py" $S3_PREFIX$g_name $f "${@:3}"
 	if [[ $? -ge 1 ]]
 	then 
 		echo "ERROR: results different from the golden file $S3_PREFIX$g_name"
