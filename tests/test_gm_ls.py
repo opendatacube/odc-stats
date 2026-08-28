@@ -4,6 +4,8 @@ import dask.array as da
 from pathlib import Path
 import pytest
 
+from datacube.utils.dask import start_local_dask
+from datacube.utils.aws import configure_s3_access
 from odc.stats.model import product_for_plugin
 from odc.stats.plugins.gm import StatsGMLS
 from odc.stats.tasks import TaskReader
@@ -82,7 +84,7 @@ def dataset():
 
 
 def test_native_transform(dataset):
-    _ = pytest.importorskip("hdstats")
+    _ = pytest.importorskip("geomad")
 
     dataset = dataset.copy()
     stats_gmls = StatsGMLS(nodata_classes=(0,))
@@ -104,7 +106,7 @@ def test_native_transform(dataset):
 
 
 def test_result_bands_to_match_inputs(dataset):
-    _ = pytest.importorskip("hdstats")
+    _ = pytest.importorskip("geomad")
     mask_filters = {
         "cloud": [("closing", 2), ("dilation", 1)],
         "shadow": [("closing", 0), ("dilation", 5)],
@@ -130,7 +132,7 @@ def test_result_bands_to_match_inputs(dataset):
 
 
 def test_result_aux_bands_to_match_inputs(dataset):
-    _ = pytest.importorskip("hdstats")
+    _ = pytest.importorskip("geomad")
     mask_filters = {
         "cloud": [("closing", 2), ("dilation", 1)],
         "shadow": [("closing", 0), ("dilation", 5)],
@@ -165,7 +167,7 @@ def test_result_aux_bands_to_match_inputs(dataset):
 
 
 def test_resampling(dataset):
-    _ = pytest.importorskip("hdstats")
+    _ = pytest.importorskip("geomad")
     mask_filters = {
         "cloud": [("closing", 2), ("dilation", 1)],
         "shadow": [("closing", 0), ("dilation", 5)],
@@ -177,6 +179,7 @@ def test_resampling(dataset):
 
 
 def test_no_data_value(monkeypatch):
+    _ = pytest.importorskip("geomad")
     monkeypatch.setenv("AWS_DEFAULT_REGION", "ap-southeast-2")
     # Our test data is in dea-public-data, which for now is free to read anonymously
     monkeypatch.setenv("AWS_NO_SIGN_REQUEST", "YES")
@@ -204,7 +207,11 @@ def test_no_data_value(monkeypatch):
         indexers={"x": slice(None, None, 100), "y": slice(None, None, 100)}
     )
     gm = gm_ls.reduce(xx_0_0)
+
+    client = start_local_dask(n_workers=1, threads_per_worker=2)
+    configure_s3_access(aws_unsigned=True, cloud_defaults=True, client=client)
     result = gm.compute()
+    client.close()
 
     bands = [x for x in result.data_vars]
     for x in bands:

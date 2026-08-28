@@ -150,7 +150,7 @@ class StatsGMLSBitmask(StatsPluginInterface):
         }
 
         if self.filters is not None:
-            cloud_mask = mask_cleanup(xx["cloud_mask"], mask_filters=self.filters)
+            cloud_mask = mask_cleanup(mask=xx["cloud_mask"], mask_filters=self.filters)
 
         # erase pixels with cloud
         xx = xx.drop_vars(["cloud_mask"])

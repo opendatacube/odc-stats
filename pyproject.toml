@@ -5,25 +5,32 @@ description = "Statistical Product Generation Framework"
 authors = [
     {name = "Open Data Cube", email = "earth.observation@ga.gov.au"},
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 readme = "README.md"
 license = "Apache-2.0"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
+    "affine<3",
     "ai-edge-litert",
     "botocore",
     "ciso8601",
     "click>=8.0.0",
     "dask",
-    "datacube==1.9.5",
-    "distributed>=2025.4,<2025.9",
+    "datacube[performance,s3]>=1.9.10,<1.10",
+    "distributed",
     "eodatasets3>=1.9",
     "fiona",
     "fsspec>=2022.1.0",
     "geopandas",
+    "numexpr>=2.11",
     "numpy",
     "odc-cloud[ASYNC]>=0.2.5",
-    "odc-geo>=0.5.0rc1",
-    "odc_algo>=1.0.1,<1.1", # Don't want geomad yet
+    "odc-geo>=0.5.3",
+    "odc_algo>=1.2.1",
     "odc_dscache>=1.9",
     "odc_io",
     "pandas",
@@ -36,6 +43,14 @@ dependencies = [
     "xarray>=2023.1.0",
 ]
 
+[tool.uv]
+no-build-package = [
+    "rasterio",
+    "fiona",
+    "pyproj",
+    "shapely",
+]
+
 [project.urls]
 Homepage = "https://github.com/opendatacube/odc-stats/"
 
@@ -43,12 +58,23 @@ Homepage = "https://github.com/opendatacube/odc-stats/"
 test = [
     "pytest",
     "pytest_httpserver",
-    "moto"
+    "moto",
+    "odc-apps-dc-tools",
 ]
 ows = [
     "blinker",
-    "datacube_ows>=1.9",
+    "datacube_ows[webserver]>=1.9", # need matplotlib for thumbnails
     "sentry-sdk",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15.0",
+    "pytest",
+    "pytest-cov",
+    "pytest_httpserver",
+    "moto",
+    "psycopg2-binary",
 ]
 
 [project.scripts]
@@ -65,3 +91,14 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 write_to = "odc/stats/_version.py"
 fallback_version = "1.9.11.dev0"
+
+
+[tool.mypy]
+python_version = '3.12'
+allow_redefinition = true
+enable_error_code = ['explicit-override']
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+disable_error_code = 'import-untyped'

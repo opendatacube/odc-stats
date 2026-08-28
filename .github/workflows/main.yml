@@ -13,56 +13,135 @@ on:
       - '!README.md'
     tags:
       - '**'
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+# When a PR is updated, cancel the jobs from the previous version. Merges
+# do not define head_ref, so use run_id to never cancel those jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
   packages: read
 
 jobs:
-  build-wheels:
-    if: |
-      github.event_name == 'push' || (github.ref == 'refs/heads/develop'
-        && github.event.workflow_run.conclusion == 'success')
+  quality:  # Do not fail on MyPy yet - needs uplift
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        id: wheels_cache
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Run MyPy
+        run: |
+          uv run mypy -p odc.stats || echo "WARNING: mypy did not pass"
+        shell: bash
+
+  run-tests:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: ./wheels
-          key: wheels-${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-uv-cache: ${{ !startsWith(github.ref, 'refs/tags/') }} # Disable cache on tags to prevent cache poisoning attack
+
+      - name: Run tests
+        run: uv run --python ${{ matrix.python-version }} pytest --cov=odc --cov-report=xml --durations=5 tests
+        env:
+          AWS_DEFAULT_REGION: ap-southeast-2
+
+  build-wheels:
+    name: Build & verify package
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0 # setuptools_scm needs the full history to derive the version
+          persist-credentials: false
+
+      # Builds the sdist and wheel, runs twine check and check-wheel-contents,
+      # and uploads them as the "Packages" artifact. Same action and pin as
+      # opendatacube/odc-algo.
+      - uses: hynek/build-and-inspect-python-package@efb823f52190ad02594531168b7a2d5790e66516 # v2.14.0
+        with:
+          attest-build-provenance-github: 'true'
+
+  check-wheel-compat:
+    # build-wheels emits a single py3-none-any wheel.
+    # Check the dependency set on each supported interpreter.
+    runs-on: ubuntu-latest
+    needs:
+      - build-wheels
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - name: Download wheels
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: Packages
+          path: dist
 
       - name: Setup Python
         uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
-          python-version: "3.10"
+          python-version: ${{ matrix.python-version }}
 
-      - name: Install Dependencies
+      - name: Install wheel with full dependency resolution
         run: |
+          ls -lh dist
           python -m pip install --upgrade pip
-          python -m pip install build
-          python -m pip freeze
-
-      - name: Build Clean Packages
-        run: |
-          mkdir -p ./wheels/clean
-          python -m build
-          mv dist/* ./wheels/clean/
-          find ./wheels/clean -type f
+          # Deliberately no --no-deps: resolving every dependency is the point,
+          # it is what catches a dep with no wheel for this interpreter.
+          pip install ./dist/*.whl
+          pip check
+          odc-stats --version
 
   test-wheels:
+    timeout-minutes: 30
+    name: Test wheels on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
     container:
-      image: ghcr.io/opendatacube/odc-stats:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      # Plain upstream Python images: the wheel and its dependencies are
+      # installed from scratch rather than relying on a pre-baked environment.
+      image: python:${{ matrix.python-version }}
 
     services:
       postgres:
@@ -73,7 +152,7 @@ jobs:
           POSTGRES_USER: opendatacube
 
     needs:
-      - build-wheels
+      - check-wheel-compat
 
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -88,19 +167,18 @@ jobs:
           --fix-missing --no-install-recommends \
           curl \
           gpg \
-          nodejs \
-          zstd
+          zstd \
+          libpq-dev
           python -m pip install --upgrade --no-cache pip
           pip install --no-cache -r \
           tests/requirements.txt
           pip freeze
 
-      - name: Get Wheels from Cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        id: wheels_cache
+      - name: Download wheels
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          path: ./wheels
-          key: wheels-${{ github.sha }}
+          name: Packages
+          path: dist
 
       - name: Install wheels for testing
         shell: bash
@@ -108,8 +186,8 @@ jobs:
           which python
           which datacube
 
-          ls -lh wheels/clean
-          pip install --no-deps --no-cache wheels/clean/*whl
+          ls -lh dist
+          pip install --no-cache dist/*whl
           pip check || true
           pip show odc-stats
           which odc-stats | xargs ls -alt
@@ -150,3 +228,32 @@ jobs:
           use_oidc: true
           fail_ci_if_error: false
           verbose: false
+
+  publish-pypi:
+    name: Publish released package to pypi.org
+    # Only a published GitHub Release: setuptools_scm derives a clean version
+    # from the tag, whereas untagged commits build .devN+g<sha> local versions
+    # that PyPI rejects.
+    if: |
+      github.repository_owner == 'opendatacube'
+        && github.event.action == 'published'
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Trusted Publishing; no PyPI API token needed
+    needs:
+      - run-tests
+      - check-wheel-compat
+      - test-wheels
+
+    steps:
+      - name: Download wheels
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: Packages
+          path: dist
+
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          skip-existing: true
