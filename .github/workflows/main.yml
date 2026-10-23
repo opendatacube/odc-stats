@@ -96,7 +96,7 @@ jobs:
       # opendatacube/odc-algo.
       - uses: hynek/build-and-inspect-python-package@efb823f52190ad02594531168b7a2d5790e66516 # v2.14.0
         with:
-          attest-build-provenance-github: 'true'
+          attest-build-provenance-github: ${{ github.event_name == 'pull_request' && 'false' || 'true' }}
 
   check-wheel-compat:
     # build-wheels emits a single py3-none-any wheel.
