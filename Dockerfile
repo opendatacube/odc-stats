@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM mambaorg/micromamba:git-ab98666-ubuntu22.04 AS stats-conda
+FROM mambaorg/micromamba:git-8f03a70-ubuntu22.04 AS stats-conda
 
 USER root
 COPY --link docker/env.yaml /conf/
@@ -24,7 +24,7 @@ COPY --link ./.git /build/.git
 RUN micromamba run -p /env pip install --no-cache-dir \
     --no-build-isolation .[test,ows]
 
-FROM ubuntu:jammy-20260410
+FROM ubuntu:jammy-20260930
 COPY --link --from=stats-conda /env /env
 COPY --link docker/distributed.yaml  /etc/dask/
 

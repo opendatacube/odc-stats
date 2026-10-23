@@ -17,6 +17,7 @@ dependencies = [
     "affine<3",
     "ai-edge-litert",
     "botocore",
+    "certify>=2026.10.19",
     "ciso8601",
     "click>=8.0.0",
     "dask",
