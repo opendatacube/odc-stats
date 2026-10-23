@@ -10,12 +10,12 @@ on:
       - '!docs/**'
       - '!k8s/**'
       - '!README.md'
-    tags:
-      - '**'
   push:
     branches:
       - develop
     paths: *paths
+    tags:
+      - '**'
   release:
     types:
       - published
