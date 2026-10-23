@@ -1,9 +1,8 @@
 name: Run Code Checks
 
 on:
-  push:
-    branches-ignore: [develop]
-    paths:
+  pull_request:
+    paths: &paths
       - '**'
       - '!docker/**'
       - '!.github/workflows/statistician-*'
@@ -13,6 +12,10 @@ on:
       - '!README.md'
     tags:
       - '**'
+  push:
+    branches:
+      - develop
+    paths: *paths
   release:
     types:
       - published
