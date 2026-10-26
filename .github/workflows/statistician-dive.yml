@@ -14,7 +14,7 @@ on:
 env:
   ORG: odc
   IMAGE: statistician
-  DIVE: wagoodman/dive:v0.12.0
+  DIVE: ghcr.io/wagoodman/dive:v0.13.1
   DOCKER_API: 1.43
 
 jobs:
